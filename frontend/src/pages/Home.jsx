@@ -64,13 +64,14 @@ const Home = () => {
 
                     {/* LEFT */}
                     <div>
-                        <div className='mt-3 md:mt-8'>
-                        <div className="mb-6 md:mb-8 inline-flex items-center gap-2 border-4 border-neo-ink bg-white px-4 py-2 font-black uppercase tracking-[0.18em] shadow-brutal-sm">
+                        <div className='mt-2 md:mt-5'>
+                        <div className="mb-6 inline-flex items-center gap-2 border-4 border-neo-ink bg-white px-4 py-2 font-black uppercase tracking-[0.18em] shadow-brutal-sm">
                             <span className="h-3 w-3 rounded-full bg-neo-green ring-2 ring-neo-ink" />
                             Trustworthy Pay-Per-Use AI
                         </div>
 </div>
-                        <h1 className="text-4xl md:text-7xl lg:text-8xl font-black leading-[0.95] tracking-[-0.06em]">
+
+                        <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold leading-[0.95] tracking-[-0.06em]">
                             Industrial AI without the subscription trap.
                         </h1>
 
@@ -79,7 +80,7 @@ const Home = () => {
                         </p>
 
                         <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                            <Link to="/dashboard" className="btn-primary">
+                            <Link to="/" className="btn-primary">
                                 {isWalletConnected ? 'Open workspace →' : 'Connect wallet →'}
                             </Link>
                             <a href="#final-round" className="btn-secondary">
