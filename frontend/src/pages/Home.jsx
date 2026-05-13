@@ -117,7 +117,7 @@ const Home = () => {
                                     <div className="text-2xl">{service.icon}</div>
                                     <div className="flex-1">
                                         <p className="font-black text-sm">{service.name}</p>
-                                        <p className="text-xs text-neo-muted truncate">{service.desc}</p>
+                                       <p className="text-xs text-neo-muted whitespace-normal break-words">{service.desc}</p>
                                     </div>
                                     <div className="font-black text-sm">{service.price}</div>
                                 </div>
