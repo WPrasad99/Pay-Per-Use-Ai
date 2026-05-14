@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useSiwa } from '../hooks/useSiwa';
 import {
     depositWalletFunds,
     generateImage,
@@ -7,10 +8,11 @@ import {
     getConversationMessages,
     getPaymentInfo,
     getServices,
-    getWalletPrepayBalance,
     mintNFT,
     sendChat,
     transferNFT,
+    getUserProfile,
+    getUserAnalytics,
 } from '../api/client';
 
 const ICONS = {
@@ -42,8 +44,10 @@ const WorkspacePage = () => {
     const { serviceId } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
+    const { signOut } = useSiwa();
     const wallet = sessionStorage.getItem('wallet_address');
     const messagesEndRef = useRef(null);
+    const peraWalletRef = useRef(null);
 
     const [service, setService] = useState(location.state?.service || null);
     const [serviceLoading, setServiceLoading] = useState(!location.state?.service);
@@ -52,30 +56,29 @@ const WorkspacePage = () => {
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [isPaid, setIsPaid] = useState(false);
     const [paymentInfo, setPaymentInfo] = useState(null);
-    const [balance, setBalance] = useState(0);
     const [totalTokens, setTotalTokens] = useState(0);
     const [totalCost, setTotalCost] = useState(0);
     const [history, setHistory] = useState([]);
     const [payingStatus, setPayingStatus] = useState('');
+    const [sessionStatus, setSessionStatus] = useState('inactive'); // inactive, active, expired
+    const [sessionExpiry, setSessionExpiry] = useState(null);
+    const [, setTick] = useState(0); // Used to force re-render for countdown
+    const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
+    const [isStartingSession, setIsStartingSession] = useState(false);
     const [isDepositing, setIsDepositing] = useState(false);
     const [depositInput, setDepositInput] = useState('1');
     const [isMinting, setIsMinting] = useState(false);
     const [mintedAssetId, setMintedAssetId] = useState(null);
     const [isOptingIn, setIsOptingIn] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [selectedModel, setSelectedModel] = useState(MODELS[1].id);
+    const [userProfile, setUserProfile] = useState(null);
+    const [userAnalytics, setUserAnalytics] = useState(null);
+    const [allServices, setAllServices] = useState([]);
 
-    const fetchBalance = useCallback(async (address) => {
-        try {
-            const data = await getWalletPrepayBalance(address);
-            return data.balance_microalgo || 0;
-        } catch (e) {
-            console.warn('Balance fetch failed:', e);
-            return 0;
-        }
-    }, []);
+
 
     useEffect(() => {
         if (!wallet) {
@@ -83,25 +86,76 @@ const WorkspacePage = () => {
             return;
         }
 
-        if (!service) {
-            setServiceLoading(true);
-            getServices()
-                .then((services) => {
-                    const found = services.find((s) => s.id === serviceId);
-                    if (found) setService(found);
-                    else navigate('/services');
-                })
-                .catch(() => navigate('/services'))
-                .finally(() => setServiceLoading(false));
+        // Fetch all services and set the current one
+        setServiceLoading(true);
+        getServices()
+            .then((services) => {
+                setAllServices(services);
+                const found = services.find((s) => s.id === serviceId);
+                if (found) {
+                    setService(found);
+                } else if (!serviceId && services.length > 0) {
+                    // Default to first service if none specified
+                    navigate(`/dashboard/${services[0].id}`, { replace: true });
+                }
+            })
+            .catch((err) => {
+                console.error('Failed to fetch services:', err);
+                navigate('/services');
+            })
+            .finally(() => setServiceLoading(false));
+    }, [wallet, serviceId, navigate]);
+
+    const checkSessionStatus = useCallback(async () => {
+        if (!wallet || !paymentInfo?.app_id) return;
+        try {
+            const algosdk = (await import('algosdk')).default;
+            const client = new algosdk.Algodv2('', ALGOD_API, '');
+            const appId = parseInt(paymentInfo.app_id);
+            const boxName = new Uint8Array([
+                ...new TextEncoder().encode('se_'),
+                ...algosdk.decodeAddress(wallet).publicKey,
+            ]);
+
+            try {
+                const box = await client.getApplicationBoxByName(appId, boxName).do();
+                const expiry = Number(algosdk.decodeUint64(box.value, 'safe'));
+                const now = Math.floor(Date.now() / 1000);
+                
+                setSessionExpiry(expiry);
+                if (expiry > now) {
+                    setSessionStatus('active');
+                    return true;
+                } else {
+                    setSessionStatus('expired');
+                    return false;
+                }
+            } catch (e) {
+                setSessionStatus('inactive');
+                return false;
+            }
+        } catch (err) {
+            console.error('Session check failed:', err);
         }
-    }, [wallet, service, serviceId, navigate]);
+    }, [wallet, paymentInfo]);
 
     useEffect(() => {
         if (!service || !wallet) return;
-        getPaymentInfo(service.id).then(setPaymentInfo).catch(() => {});
-        fetchBalance(wallet).then(setBalance).catch(() => {});
+        getPaymentInfo(service.id).then((info) => {
+            setPaymentInfo(info);
+        }).catch(() => {});
         getConversationHistory(wallet, service.id).then(setHistory).catch(() => {});
-    }, [service, wallet, fetchBalance]);
+        getUserProfile(wallet).then(setUserProfile).catch(() => {});
+        getUserAnalytics(wallet).then(setUserAnalytics).catch(() => {});
+    }, [service, wallet]);
+
+    useEffect(() => {
+        if (paymentInfo) checkSessionStatus();
+        const interval = setInterval(() => {
+            setTick(t => t + 1);
+        }, 60000); // Update every minute
+        return () => clearInterval(interval);
+    }, [paymentInfo, checkSessionStatus]);
 
     const loadConversation = useCallback(
         async (convId) => {
@@ -160,74 +214,44 @@ const WorkspacePage = () => {
         }));
     }, [history, service]);
 
-    const selectedModelCopy = MODELS.find((model) => model.id === selectedModel) || MODELS[1];
+    const remainingTime = useMemo(() => {
+        if (!sessionExpiry || sessionStatus !== 'active') return '';
+        const now = Math.floor(Date.now() / 1000);
+        const diff = sessionExpiry - now;
+        if (diff <= 0) return 'Expiring...';
+        const hours = Math.floor(diff / 3600);
+        const mins = Math.floor((diff % 3600) / 60);
+        if (hours > 0) return `${hours}h ${mins}m left`;
+        return `${mins}m left`;
+    }, [sessionExpiry, sessionStatus]);
 
-    const handleDeposit = async () => {
+    const handleStartSession = async () => {
         try {
-            setIsDepositing(true);
+            setIsStartingSession(true);
             setError(null);
 
             const { PeraWalletConnect } = await import('@perawallet/connect');
             const algosdk = (await import('algosdk')).default;
 
-            let toAddr = paymentInfo?.contract_address;
-            if (!toAddr) {
-                const freshInfo = await getPaymentInfo(service.id);
-                setPaymentInfo(freshInfo);
-                toAddr = freshInfo?.contract_address;
+            if (!peraWalletRef.current) {
+                peraWalletRef.current = new PeraWalletConnect({
+                    shouldShowSignTxnToast: true,
+                });
             }
+            const pw = peraWalletRef.current;
 
-            const pw = new PeraWalletConnect();
             let accounts = [];
             try {
                 accounts = await pw.reconnectSession();
             } catch (_) {}
-            if (!accounts || !accounts.length) accounts = await pw.connect();
+            if (!accounts || !accounts.length) {
+                accounts = await pw.connect();
+            }
             if (accounts[0] !== wallet) throw new Error('Wallet mismatch. Please reconnect the correct wallet.');
 
-            const algodClient = new algosdk.Algodv2('', ALGOD_API, '');
-            const params = await algodClient.getTransactionParams().do();
-
-            const parsedAlgo = parseFloat(depositInput);
-            if (Number.isNaN(parsedAlgo) || parsedAlgo <= 0) throw new Error('Invalid deposit amount');
-
-            const amountMicro = Math.floor(parsedAlgo * 1_000_000);
-            const payTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-                sender: wallet,
-                receiver: toAddr,
-                amount: amountMicro,
-                suggestedParams: params,
-            });
-
-            const method = new algosdk.ABIMethod({
-                name: 'deposit',
-                args: [{ type: 'pay', name: 'payment' }],
-                returns: { type: 'uint64' },
-            });
-
-            const dummySigner = algosdk.makeBasicAccountTransactionSigner({
-                addr: wallet,
-                sk: new Uint8Array(64),
-            });
-
-            const atc = new algosdk.AtomicTransactionComposer();
-            atc.addMethodCall({
-                appID: parseInt(paymentInfo.app_id),
-                method,
-                methodArgs: [{ txn: payTxn, signer: dummySigner }],
-                sender: wallet,
-                suggestedParams: params,
-                signer: dummySigner,
-                boxes: [
-                    {
-                        appIndex: parseInt(paymentInfo.app_id),
-                        name: new Uint8Array([
-                            ...new TextEncoder().encode('b_'),
-                            ...algosdk.decodeAddress(wallet).publicKey,
-                        ]),
-                    },
-                ],
-            });
+            const client = new algosdk.Algodv2('', ALGOD_API, '');
+            const params = await client.getTransactionParams().do();
+            const appId = parseInt(paymentInfo.app_id);
 
             const sessionMethod = new algosdk.ABIMethod({
                 name: 'start_session',
@@ -238,64 +262,85 @@ const WorkspacePage = () => {
                 returns: { type: 'bool' },
             });
 
-            const expiryTime = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
-            const maxSpend = 1000000000000;
+            const expiryTime = Math.floor(Date.now() / 1000) + 24 * 60 * 60; // 24h
+            const maxSpend = 100000; // 0.1 ALGO (Must match or be less than balance for ARC-0060/x402)
+
+            const dummySigner = algosdk.makeBasicAccountTransactionSigner({
+                addr: wallet,
+                sk: new Uint8Array(64),
+            });
+
+            const atc = new algosdk.AtomicTransactionComposer();
+
+            // Add a 0.1 ALGO payment + deposit call to satisfy the Minimum Balance Requirement (MBR) 
+            // for the on-chain boxes. This is required by the Algorand network to store session data.
+            const payTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+                sender: wallet,
+                receiver: paymentInfo.contract_address,
+                amount: 100000, // 0.1 ALGO
+                suggestedParams: params,
+            });
+
+            const depositMethod = new algosdk.ABIMethod({
+                name: 'deposit',
+                args: [{ type: 'pay', name: 'payment' }],
+                returns: { type: 'uint64' },
+            });
 
             atc.addMethodCall({
-                appID: parseInt(paymentInfo.app_id),
+                appID: appId,
+                method: depositMethod,
+                methodArgs: [{ txn: payTxn, signer: dummySigner }],
+                sender: wallet,
+                suggestedParams: params,
+                signer: dummySigner,
+                boxes: [{ appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('b_'), ...algosdk.decodeAddress(wallet).publicKey]) }],
+            });
+
+            // Now start the session
+            atc.addMethodCall({
+                appID: appId,
                 method: sessionMethod,
                 methodArgs: [maxSpend, expiryTime],
                 sender: wallet,
                 suggestedParams: params,
                 signer: dummySigner,
                 boxes: [
-                    {
-                        appIndex: parseInt(paymentInfo.app_id),
-                        name: new Uint8Array([
-                            ...new TextEncoder().encode('sb_'),
-                            ...algosdk.decodeAddress(wallet).publicKey,
-                        ]),
-                    },
-                    {
-                        appIndex: parseInt(paymentInfo.app_id),
-                        name: new Uint8Array([
-                            ...new TextEncoder().encode('se_'),
-                            ...algosdk.decodeAddress(wallet).publicKey,
-                        ]),
-                    },
-                    {
-                        appIndex: parseInt(paymentInfo.app_id),
-                        name: new Uint8Array([
-                            ...new TextEncoder().encode('b_'),
-                            ...algosdk.decodeAddress(wallet).publicKey,
-                        ]),
-                    },
+                    { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('sb_'), ...algosdk.decodeAddress(wallet).publicKey]) },
+                    { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('se_'), ...algosdk.decodeAddress(wallet).publicKey]) },
+                    { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('b_'), ...algosdk.decodeAddress(wallet).publicKey]) },
                 ],
             });
 
-            const group = atc.buildGroup().map((t) => t.txn);
-            const txId = group[0].txID().toString();
-
-            const signed = await pw.signTransaction([group.map((txn) => ({ txn, signers: [wallet] }))]);
-            await algodClient.sendRawTransaction(signed).do();
-
-            setPayingStatus('Verifying your deposit on the Algorand Testnet...');
-            await algosdk.waitForConfirmation(algodClient, txId, 4);
-
-            setPayingStatus('Syncing balance...');
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-
-            await depositWalletFunds(wallet, txId);
-            const bal = await fetchBalance(wallet);
-            setBalance(bal);
+            const group = atc.buildGroup().map(t => t.txn);
+            const signed = await pw.signTransaction([
+                group.map(txn => ({ txn, signers: [wallet] }))
+            ]);
+            
+            setPayingStatus('Sending to Algorand...');
+            const { txId } = await client.sendRawTransaction(signed).do();
+            
+            setPayingStatus('Confirming session on-chain...');
+            await algosdk.waitForConfirmation(client, txId, 10);
+            
+            setPayingStatus('Syncing session state...');
+            // Poll for box state updates for up to 5 seconds
+            for (let i = 0; i < 5; i++) {
+                await new Promise(r => setTimeout(r, 1000));
+                const active = await checkSessionStatus();
+                if (active) break;
+            }
+            
+            setIsSessionModalOpen(false);
             setPayingStatus('');
         } catch (e) {
-            setError(e.message || 'Deposit failed');
-            setPayingStatus('');
+            setError(`Session failed: ${e.message}`);
         } finally {
-            setIsDepositing(false);
+            setIsStartingSession(false);
         }
     };
+
+    const selectedModelCopy = MODELS.find((model) => model.id === selectedModel) || MODELS[1];
 
     const handleOptIn = async (assetId) => {
         try {
@@ -379,26 +424,14 @@ const WorkspacePage = () => {
             if (service.id === 'image_studio') {
                 const result = await generateImage(wallet, userPrompt, conversationId);
                 setConversationId(result.conversation_id);
-
                 const updated = await getConversationMessages(wallet, result.conversation_id);
                 setMessages(updated.messages || []);
-                setBalance((prev) => Math.max(0, prev - 2000000));
             } else {
                 const result = await sendChat(service.id, wallet, userPrompt, conversationId, null);
                 setConversationId(result.conversation_id);
                 setMessages(result.messages || []);
                 setTotalTokens(result.total_tokens_session || 0);
                 setTotalCost(result.total_cost_session || 0);
-
-                const algoPriceUsd = 0.2;
-                const sessionCostAlgo = (result.total_cost_session || 0) / algoPriceUsd;
-                const sessionCostMicroAlgo = Math.round(sessionCostAlgo * 1_000_000);
-
-                fetchBalance(wallet)
-                    .then((realBalance) => {
-                        setBalance(Math.max(0, realBalance - sessionCostMicroAlgo));
-                    })
-                    .catch(() => {});
             }
 
             getConversationHistory(wallet, service.id).then(setHistory).catch(() => {});
@@ -415,10 +448,19 @@ const WorkspacePage = () => {
     const Sidebar = ({ isMobile = false }) => (
         <div className="flex min-h-full flex-col bg-white text-[#111]">
             <div className="flex items-start justify-between gap-3">
-                <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-60">Workspace</p>
-                    <h1 className="text-base font-black md:text-xl">Control Room</h1>
-                </div>
+                <button 
+                    type="button"
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="flex flex-1 items-center gap-3 rounded-xl border-2 border-[#111] bg-yellow-200 p-2 shadow-[3px_3px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none text-left min-w-0"
+                >
+                    <div className="h-10 w-10 shrink-0 rounded-full border-2 border-[#111] bg-pink-200 flex items-center justify-center font-black text-lg">
+                        {wallet ? wallet.slice(0, 2).toUpperCase() : 'U'}
+                    </div>
+                    <div className="overflow-hidden">
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-60">Workspace</p>
+                        <p className="truncate text-sm font-black">{wallet ? `${wallet.slice(0, 4)}...${wallet.slice(-4)}` : 'User'}</p>
+                    </div>
+                </button>
                 {isMobile && (
                     <button
                         type="button"
@@ -431,64 +473,12 @@ const WorkspacePage = () => {
                 )}
             </div>
 
-            <div className="mt-3 rounded-xl border-2 border-[#111] bg-yellow-200 p-3 shadow-[6px_6px_0px_#111] md:border-4">
-                <p className="text-xs font-black">Balance</p>
-                <p className="text-xl font-black md:text-2xl">{formatMicroAlgo(balance)} ALGO</p>
-                <p className="mt-1 text-[11px] font-black opacity-60">{history.length} saved sessions</p>
-            </div>
-
-            <div className="mt-4 rounded-xl border-2 border-[#111] bg-white p-3 shadow-[4px_4px_0px_#111] md:border-4">
-                <p className="font-black text-sm">Top up</p>
-                <div className="mt-2 flex gap-2">
-                    <input
-                        type="number"
-                        min="0.1"
-                        step="0.1"
-                        value={depositInput}
-                        onChange={(e) => setDepositInput(e.target.value)}
-                        className="min-w-0 flex-1 rounded-lg border-2 border-[#111] bg-white px-2 py-2 text-sm font-black outline-none md:border-4"
-                        aria-label="Deposit amount in ALGO"
-                    />
-                    <button
-                        type="button"
-                        onClick={handleDeposit}
-                        disabled={isDepositing}
-                        className="rounded-lg border-2 border-[#111] bg-green-200 px-3 py-2 text-sm font-black shadow-[3px_3px_0px_#111] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-50 md:border-4"
-                    >
-                        {isDepositing ? '...' : 'Add'}
-                    </button>
-                </div>
-                <p className="mt-2 text-[11px] font-bold opacity-60">
-                    Contract #{paymentInfo?.app_id || 'syncing'} · {service.price_algo ? `${service.price_algo} ALGO` : 'Pay per use'}
-                </p>
-            </div>
-
-            <div className="mt-4">
-                <p className="font-black text-sm">Models</p>
-                {MODELS.map((model) => (
-                    <button
-                        key={model.id}
-                        type="button"
-                        onClick={() => setSelectedModel(model.id)}
-                        className={`mt-2 w-full rounded-xl border-2 border-[#111] p-2 text-left text-sm font-black shadow-[4px_4px_0px_#111] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none md:border-4 ${
-                            selectedModel === model.id ? 'bg-green-200' : 'bg-white hover:-translate-y-0.5'
-                        }`}
-                    >
-                        <span className="flex items-center justify-between gap-2">
-                            <span>{model.name}</span>
-                            <span className="text-[10px] uppercase opacity-60">{model.badge}</span>
-                        </span>
-                        <span className="block text-xs font-bold opacity-60">{model.note}</span>
-                    </button>
-                ))}
-            </div>
-
-            <div className="mt-5 flex-1">
+            <div className="mt-5 flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between gap-3">
                     <p className="font-black text-sm">History</p>
                     <span className="rounded-full bg-[#111] px-2 py-1 text-[10px] font-black text-white">{usageRows.length}</span>
                 </div>
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 space-y-2 flex-1 overflow-y-auto pr-1">
                     {usageRows.map((row) => (
                         <button
                             key={row.id}
@@ -505,6 +495,16 @@ const WorkspacePage = () => {
                             </span>
                         </button>
                     ))}
+                </div>
+                
+                <div className="mt-4 pt-4 border-t-2 md:border-t-4 border-[#111]">
+                    <button
+                        type="button"
+                        onClick={async () => { await signOut(); navigate('/'); }}
+                        className="w-full rounded-xl border-2 border-[#111] bg-pink-200 p-3 text-sm font-black shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none md:border-4 flex items-center justify-center gap-2"
+                    >
+                        Disconnect
+                    </button>
                 </div>
             </div>
         </div>
@@ -590,6 +590,95 @@ const WorkspacePage = () => {
 
     return (
         <div className="h-[100dvh] overflow-hidden bg-[#fff7df] font-sans text-[#111]">
+            {isSessionModalOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#fff7df]/80 backdrop-blur-sm" onClick={() => !isStartingSession && setIsSessionModalOpen(false)} />
+                    <div className="animate-fadeUp relative w-full max-w-sm rounded-2xl border-4 border-[#111] bg-white p-6 shadow-[8px_8px_0px_#111]">
+                        <h2 className="text-xl font-black mb-2">🚀 Start Smart Session?</h2>
+                        <p className="text-sm font-bold opacity-70 mb-6">
+                            Approving a session allows us to process micro-payments automatically for 24 hours. No manual approval for every message!
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setIsSessionModalOpen(false)}
+                                disabled={isStartingSession}
+                                className="flex-1 rounded-xl border-2 border-[#111] bg-white py-2.5 text-sm font-black shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none"
+                            >
+                                Not Now
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleStartSession}
+                                disabled={isStartingSession}
+                                className="flex-1 rounded-xl border-2 border-[#111] bg-neo-blue py-2.5 text-sm font-black text-white shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none disabled:opacity-50"
+                            >
+                                {isStartingSession ? 'Waiting...' : 'Approve'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {isProfileModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <button
+                        type="button"
+                        className="absolute inset-0 cursor-default bg-[#fff7df]/80 backdrop-blur-sm"
+                        onClick={() => setIsProfileModalOpen(false)}
+                        aria-label="Close profile modal overlay"
+                    />
+                    <div className="animate-fadeUp relative w-full max-w-md rounded-2xl border-4 border-[#111] bg-white p-6 shadow-[8px_8px_0px_#111]">
+                        <div className="mb-6 flex items-center gap-4">
+                            <div className="h-16 w-16 shrink-0 rounded-full border-4 border-[#111] bg-pink-200 flex items-center justify-center font-black text-2xl shadow-[4px_4px_0px_#111]">
+                                {wallet ? wallet.slice(0, 2).toUpperCase() : 'U'}
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black">{userProfile?.name || 'Anonymous User'}</h2>
+                                <p className="text-sm font-bold opacity-60">{userProfile?.email || 'user@example.com'}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div className="rounded-xl border-2 border-[#111] bg-yellow-200 p-4 shadow-[4px_4px_0px_#111]">
+                                <h3 className="mb-2 text-xs font-black uppercase tracking-[0.15em] opacity-60">Tokens Used</h3>
+                                <div className="flex justify-between gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-bold opacity-60">Last 30 Days</p>
+                                        <p className="text-lg font-black">{(userAnalytics?.tokens_used_30d || 0).toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold opacity-60">Total Sessions</p>
+                                        <p className="text-lg font-black">{userAnalytics?.total_sessions || 0}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="rounded-xl border-2 border-[#111] bg-green-200 p-4 shadow-[4px_4px_0px_#111]">
+                                <h3 className="mb-2 text-xs font-black uppercase tracking-[0.15em] opacity-60">Algos Spent</h3>
+                                <div className="flex justify-between gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-bold opacity-60">Last 30 Days</p>
+                                        <p className="text-lg font-black">{(userAnalytics?.spent_algo_30d || 0).toFixed(2)} ALGO</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold opacity-60">Avg / Session</p>
+                                        <p className="text-lg font-black">{(userAnalytics?.avg_algo_per_session || 0).toFixed(2)} ALGO</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setIsProfileModalOpen(false)}
+                            className="mt-6 w-full rounded-xl border-2 border-[#111] bg-white p-3 text-sm font-black shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {isSidebarOpen && (
                 <div className="fixed inset-0 z-50 flex md:hidden">
                     <button
@@ -611,17 +700,37 @@ const WorkspacePage = () => {
 
                 <main className="flex h-[100dvh] flex-col overflow-hidden">
                     <div className="flex shrink-0 items-center justify-between gap-3 border-b-4 border-[#111] bg-white p-3 font-black">
-                        <div className="min-w-0 text-sm md:text-base">
-                            <span className="truncate">{service.name}</span> • {selectedModelCopy.name}
-                        </div>
+                            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-sm md:text-base">
+                                <span className="truncate">{service.name}</span>
+                                <span className="hidden opacity-30 md:inline">•</span>
+                                
+                                <div 
+                                    onClick={() => sessionStatus !== 'active' && setIsSessionModalOpen(true)}
+                                    className={`flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-[#111] px-2 py-1 text-[10px] shadow-[2px_2px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none md:text-xs ${
+                                        sessionStatus === 'active' ? 'bg-green-200' : sessionStatus === 'expired' ? 'bg-pink-200' : 'bg-yellow-200'
+                                    }`}
+                                >
+                                    <span className="hidden md:inline">Smart Session:</span>
+                                    <span className="font-black">
+                                        {sessionStatus === 'active' 
+                                            ? `Approved (${remainingTime})` 
+                                            : sessionStatus === 'expired' 
+                                            ? 'Expired' 
+                                            : 'Start Session'
+                                        }
+                                    </span>
+                                </div>
+                            </div>
 
-                        <button
-                            type="button"
-                            onClick={() => setIsSidebarOpen(true)}
-                            className="relative rounded-xl border-2 border-[#111] bg-green-200 px-4 py-2 text-sm font-black shadow-[4px_4px_0px_#111] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none md:hidden"
-                        >
-                            Menu
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsSidebarOpen(true)}
+                                className="relative rounded-xl border-2 border-[#111] bg-green-200 px-3 py-1.5 text-[10px] font-black shadow-[3px_3px_0px_#111] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none md:hidden"
+                            >
+                                Menu
+                            </button>
+                        </div>
                     </div>
 
                     {(payingStatus || error) && (
@@ -644,27 +753,48 @@ const WorkspacePage = () => {
 
                     <div className="flex-1 space-y-3 overflow-y-auto p-2 pb-4 md:p-4">
                         {messages.length === 0 && !isLoading && (
-                            <div className="flex min-h-full items-center justify-center py-10">
-                                <div className="max-w-xl rounded-xl border-2 border-[#111] bg-white p-5 text-center shadow-[6px_6px_0px_#111] md:border-4">
-                                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl border-2 border-[#111] bg-yellow-200 text-4xl shadow-[4px_4px_0px_#111] md:border-4">
-                                        {ICONS[service.id] || '✨'}
-                                    </div>
-                                    <h2 className="text-2xl font-black md:text-3xl">Build your next AI run</h2>
-                                    <p className="mt-2 text-sm font-bold opacity-70 md:text-base">
-                                        Pick a model, drop a prompt, and track every token from one responsive workspace.
-                                    </p>
-                                    <div className="mt-4 flex flex-wrap justify-center gap-2">
-                                        {QUICK_PROMPTS.map((item) => (
-                                            <button
-                                                key={item}
-                                                type="button"
-                                                onClick={() => setPrompt(item)}
-                                                className="rounded-xl border-2 border-[#111] bg-white px-3 py-2 text-xs font-black shadow-[3px_3px_0px_#111] transition-all hover:-translate-y-1 md:border-4"
-                                            >
-                                                {item}
-                                            </button>
-                                        ))}
-                                    </div>
+                            <div className="flex flex-col min-h-full items-center justify-center py-6 max-w-4xl mx-auto w-full px-4">
+                                <div className="text-center mb-6 animate-fadeUp">
+                                    <h2 className="text-2xl font-black text-neo-blue mb-1 md:text-3xl">
+                                        Hello, {userProfile?.name?.split(' ')[0] || 'User'}
+                                    </h2>
+                                    <h3 className="text-lg font-black md:text-2xl opacity-80">How can I help you today?</h3>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full animate-fadeUp delay-100">
+                                    {(allServices.length > 0 ? allServices : [service]).filter(Boolean).map((s) => (
+                                        <button
+                                            key={s.id}
+                                            type="button"
+                                            onClick={() => navigate(`/dashboard/${s.id}`)}
+                                            className={`rounded-xl border-2 border-[#111] p-4 text-left shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-1 active:translate-x-1 active:translate-y-1 active:shadow-none md:border-4 ${
+                                                s.id === serviceId ? 'bg-yellow-100' : 'bg-white'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-[#111] bg-yellow-200 text-base font-black md:border-[3px] shadow-[2px_2px_0px_#111]">
+                                                    {ICONS[s.id] || '✨'}
+                                                </div>
+                                                <span className="font-black text-base">{s.name}</span>
+                                            </div>
+                                            <p className="text-xs font-bold opacity-70 leading-snug line-clamp-2">
+                                                {s.description || 'Access specialized AI capabilities instantly.'}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="mt-6 flex flex-wrap justify-center gap-2 animate-fadeUp delay-200">
+                                    {QUICK_PROMPTS.map((item) => (
+                                        <button
+                                            key={item}
+                                            type="button"
+                                            onClick={() => setPrompt(item)}
+                                            className="rounded-xl border-2 border-[#111] bg-white px-3 py-1.5 text-[10px] font-black shadow-[2px_2px_0px_#111] transition-all hover:-translate-y-1 active:translate-y-0 active:shadow-none md:border-[3px]"
+                                        >
+                                            {item}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         )}
@@ -692,13 +822,29 @@ const WorkspacePage = () => {
                                 disabled={isLoading}
                                 maxLength={2000}
                             />
-                            <button
-                                type="submit"
-                                disabled={isLoading || !prompt.trim()}
-                                className="h-11 whitespace-nowrap rounded-lg border-2 border-[#111] bg-green-200 px-4 text-sm font-black shadow-[3px_3px_0px_#111] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 md:h-12 md:border-4 md:px-5 md:text-base"
-                            >
-                                {isLoading ? 'Wait...' : 'Send'}
-                            </button>
+                            
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={serviceId}
+                                    onChange={(e) => navigate(`/dashboard/${e.target.value}`)}
+                                    className="hidden h-11 cursor-pointer appearance-none rounded-lg border-2 border-[#111] bg-yellow-200 px-3 pr-8 text-xs font-black shadow-[3px_3px_0px_#111] outline-none transition-all focus:border-[#111] md:block md:h-12 md:border-4 md:px-4 md:pr-10 md:text-sm bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[right_12px_center] bg-no-repeat"
+                                    disabled={isLoading}
+                                >
+                                    {allServices.map((s) => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name} ({s.price_algo ? `${s.price_algo} ALGO` : 'Free'})
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading || !prompt.trim()}
+                                    className="h-11 whitespace-nowrap rounded-lg border-2 border-[#111] bg-green-200 px-4 text-sm font-black shadow-[3px_3px_0px_#111] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 md:h-12 md:border-4 md:px-5 md:text-base"
+                                >
+                                    {isLoading ? 'Wait...' : 'Send'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </main>

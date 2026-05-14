@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { peraWallet } from '../config/peraWallet';
-import { getUserProfile, getNonce, verifySiwa, authLogout } from '../api/client';
+import { getUserProfile, getNonce, verifySiwa, authLogout, registerUser } from '../api/client';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [accountAddress, setAccountAddress] = useState(sessionStorage.getItem('wallet_address'));
     const [isConnecting, setIsConnecting] = useState(false);
     const [connectStatus, setConnectStatus] = useState('');
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [onboardingData, setOnboardingData] = useState({ name: '', dob: '', email: '' });
+    const [isRegistering, setIsRegistering] = useState(false);
     const location  = useLocation();
     const navigate  = useNavigate();
 
@@ -65,8 +68,12 @@ const Navbar = () => {
             try {
                 await getUserProfile(addr);
                 navigate('/dashboard');
-            } catch (_) {
-                navigate('/onboarding');
+            } catch (err) {
+                if (err.status === 404 || (err.message && err.message.toLowerCase().includes('not found'))) {
+                    setShowOnboarding(true);
+                } else {
+                    throw err;
+                }
             }
 
         } catch (err) {
@@ -77,6 +84,20 @@ const Navbar = () => {
         } finally {
             setIsConnecting(false);
             setConnectStatus('');
+        }
+    };
+
+    const handleRegisterSubmit = async (e) => {
+        e.preventDefault();
+        setIsRegistering(true);
+        try {
+            await registerUser(accountAddress, onboardingData.name, onboardingData.dob, onboardingData.email);
+            setShowOnboarding(false);
+            navigate('/dashboard');
+        } catch (err) {
+            alert('Registration failed: ' + (err.message || 'Unknown error'));
+        } finally {
+            setIsRegistering(false);
         }
     };
 
@@ -208,6 +229,60 @@ const Navbar = () => {
                         )
                     )}
                     <ConnectBtn mobile />
+                </div>
+            )}
+
+            {/* Onboarding Modal */}
+            {showOnboarding && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#fff7df]/80 backdrop-blur-sm" />
+                    <div className="animate-fadeUp relative w-full max-w-md rounded-2xl border-4 border-[#111] bg-white p-6 shadow-[8px_8px_0px_#111]">
+                        <h2 className="mb-2 text-2xl font-black">Complete Profile</h2>
+                        <p className="mb-6 text-sm font-bold opacity-60">Please provide your details to continue.</p>
+                        
+                        <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                            <div>
+                                <label className="mb-1 block text-sm font-black">Full Name</label>
+                                <input 
+                                    required 
+                                    type="text" 
+                                    value={onboardingData.name}
+                                    onChange={e => setOnboardingData({...onboardingData, name: e.target.value})}
+                                    className="w-full rounded-xl border-2 border-[#111] px-4 py-2 font-black outline-none transition-all focus:border-4 focus:shadow-[4px_4px_0px_#111]"
+                                    placeholder="John Doe"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-black">Email</label>
+                                <input 
+                                    required 
+                                    type="email" 
+                                    value={onboardingData.email}
+                                    onChange={e => setOnboardingData({...onboardingData, email: e.target.value})}
+                                    className="w-full rounded-xl border-2 border-[#111] px-4 py-2 font-black outline-none transition-all focus:border-4 focus:shadow-[4px_4px_0px_#111]"
+                                    placeholder="john@example.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-black">Date of Birth</label>
+                                <input 
+                                    required 
+                                    type="date" 
+                                    value={onboardingData.dob}
+                                    onChange={e => setOnboardingData({...onboardingData, dob: e.target.value})}
+                                    className="w-full rounded-xl border-2 border-[#111] px-4 py-2 font-black outline-none transition-all focus:border-4 focus:shadow-[4px_4px_0px_#111]"
+                                />
+                                <p className="mt-1 text-[10px] font-bold opacity-60">You must be at least 18 years old.</p>
+                            </div>
+                            <button 
+                                type="submit" 
+                                disabled={isRegistering}
+                                className="mt-6 w-full rounded-xl border-2 border-[#111] bg-neo-blue py-3 font-black text-white shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-50 md:border-4"
+                            >
+                                {isRegistering ? 'Creating Profile...' : 'Continue'}
+                            </button>
+                        </form>
+                    </div>
                 </div>
             )}
         </nav>
