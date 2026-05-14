@@ -6,94 +6,49 @@ from openai import AsyncOpenAI
 from app.config import settings
 
 SERVICE_CATALOG = {
-    "code_review": {
-        "id": "code_review",
-        "name": "Code Reviewer",
-        "description": "Senior engineer reviews your code for bugs, security, and performance.",
-        "price_algo": 0.5,
-        "price_microalgo": 500_000,
-        "example_prompt": "Review this Python function for bugs and improvements: ...",
-        "system_prompt": (
-            "You are a senior software engineer with 15 years of experience. "
-            "Conduct a thorough code review analyzing: correctness, edge cases, "
-            "security vulnerabilities, performance bottlenecks, and style. "
-            "Structure your response with sections: 🐛 Bugs, 🔒 Security, "
-            "⚡ Performance, ✅ What's Good, 📝 Suggestions. Be specific and actionable."
-        )
+    "summarizer": {
+        "id": "summarizer",
+        "name": "Quick Summarizer",
+        "description": "Extract key trade-offs and bullet points instantly.",
+        "price_algo": 0.1,
+        "price_microalgo": 100_000,
+        "example_prompt": "Summarize the main trade-offs in bullet points.",
+        "provider": "groq",
+        "model": "llama3-70b-8192",
+        "system_prompt": "You are a concise analyst. Summarize complex topics into high-impact bullet points focusing on trade-offs."
     },
-    "image_studio": {
-        "id": "image_studio",
-        "name": "AI Image Studio",
-        "description": "Mint your imagination. Generate high-quality unique AI art and turn them into Algorand NFTs.",
-        "price_algo": 2.0,
-        "price_microalgo": 2_000_000,
-        "example_prompt": "A cyberpunk street market in Neo-Tokyo with pink neon signs, 8k resolution, cinematic lighting.",
-        "system_prompt": (
-            "You are a master digital artist and prompt engineer. "
-            "When a user provides a prompt, refine it for high-end AI image generation. "
-            "Focus on: artistic style, lighting, composition, and technical details like '8k', 'unreal engine 5', or 'photorealistic'. "
-            "Always return a descriptive visual prompt optimized for DALL-E 3."
-        )
+    "saas_designer": {
+        "id": "saas_designer",
+        "name": "SaaS Copywriter",
+        "description": "Turn rough ideas into polished SaaS landing page sections.",
+        "price_algo": 0.2,
+        "price_microalgo": 200_000,
+        "example_prompt": "Turn this into a polished SaaS landing page section.",
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "system_prompt": "You are an elite SaaS copywriter. Create high-converting, polished landing page copy from user inputs."
     },
-    "business_evaluator": {
-        "id": "business_evaluator",
-        "name": "Business Idea Evaluator",
-        "description": "Evaluate the viability, target audience, and monetization plan of your startup idea.",
-        "price_algo": 2.0,
-        "price_microalgo": 2_000_000,
-        "example_prompt": "Evaluate this idea: A subscription box for exotic, rare houseplant seeds targeting millennials.",
-        "system_prompt": (
-            "You are a seasoned startup founder and venture capitalist. "
-            "When given a business idea, provide a brutal, honest evaluation. "
-            "Structure your response: 💡 Concept Viability, 🎯 Target Audience, "
-            "💰 Monetization Strategy, ⚠️ Critical Risks, and 🏁 Final Verdict. "
-            "Be specific, realistic, and commercially focused."
-        )
+    "impact_reviewer": {
+        "id": "impact_reviewer",
+        "name": "Impact Reviewer",
+        "description": "Get critical feedback and high-impact improvement suggestions.",
+        "price_algo": 0.15,
+        "price_microalgo": 150_000,
+        "example_prompt": "Review this and suggest the highest-impact improvements.",
+        "provider": "gemini",
+        "model": "gemini-1.5-flash",
+        "system_prompt": "You are a strategic advisor. Review user content and provide the 3 highest-impact improvements possible."
     },
-    "linkedin_post": {
-        "id": "linkedin_post",
-        "name": "LinkedIn Post Generator",
-        "description": "Convert brief descriptions into highly engaging, professional LinkedIn posts.",
-        "price_algo": 1.0,
-        "price_microalgo": 1_000_000,
-        "example_prompt": "Help me announce my new job as Senior Developer at Stripe.",
-        "system_prompt": (
-            "You are a master LinkedIn ghostwriter. Convert the user's brief into an engaging, "
-            "professional, and slightly energetic LinkedIn post. "
-            "Structure: Use a strong hook, break up paragraphs for readability, "
-            "add a personal reflection or lesson learned, and end with an engaging question. "
-            "Include 3-5 relevant hashtags at the bottom. Do not sound robotic or artificially enthusiastic."
-        )
-    },
-    "cold_email": {
-        "id": "cold_email",
-        "name": "Cold Email Writer",
-        "description": "Expert copywriter crafts high-converting cold outreach emails that get replies.",
-        "price_algo": 0.5,
-        "price_microalgo": 500_000,
-        "example_prompt": "Write a cold email to a SaaS startup CEO pitching our design agency services.",
-        "system_prompt": (
-            "You are an elite cold email copywriter with a proven 40% open rate track record. "
-            "Write compelling, personalized cold outreach emails that feel genuine, not spammy. "
-            "Structure: attention-grabbing subject line, personalized hook, clear value proposition, "
-            "social proof, and a soft CTA. Keep it under 150 words. Avoid salesy language. "
-            "Always provide 3 variations: formal, casual, and ultra-short."
-        )
-    },
-    "humanize_text": {
-        "id": "humanize_text",
-        "name": "Humanize Text",
-        "description": "Transform AI-generated content into natural, human-sounding text that bypasses detectors.",
-        "price_algo": 0.5,
-        "price_microalgo": 500_000,
-        "example_prompt": "Humanize this AI-generated paragraph about climate change to sound natural.",
-        "system_prompt": (
-            "You are an expert editor specializing in making AI-generated text sound naturally human. "
-            "Rewrite the given text to: vary sentence lengths, add personal touches and colloquialisms, "
-            "introduce subtle imperfections, use active voice, add transitional phrases, and maintain "
-            "the original meaning while making it undetectable as AI-written. "
-            "Preserve the core message but make it feel like a real person wrote it conversationally."
-        )
+    "qwen_chat": {
+        "id": "qwen_chat",
+        "name": "Qwen Expert",
+        "description": "Harness the power of Qwen via HuggingFace for specialized reasoning.",
+        "price_algo": 0.1,
+        "price_microalgo": 100_000,
+        "example_prompt": "Explain the concept of quantum entanglement simply.",
+        "provider": "huggingface",
+        "model": "Qwen/Qwen2.5-72B-Instruct",
+        "system_prompt": "You are the Qwen AI expert. Provide deep technical insights and clear explanations."
     }
 }
 
@@ -177,45 +132,84 @@ async def get_ai_response_with_context(service_id: str, messages: list[dict]) ->
         raise RuntimeError(f"Unexpected error interfacing with OpenAI: {e}") from e
 
 async def stream_ai_response_with_context(service_id: str, messages: list[dict]):
-    """
-    Multi-turn conversation support with streaming.
-    Yields chunks of text as they arrive.
-    The final yield will be a dict containing the total tokens used.
-    """
     if service_id not in SERVICE_CATALOG:
-        raise ValueError("Invalid service_id provided for AI inference.")
+        raise ValueError("Invalid service_id")
         
-    system_prompt = SERVICE_CATALOG[service_id]["system_prompt"]
-    
-    client = AsyncOpenAI(api_key=settings.openai_api_key)
+    config = SERVICE_CATALOG[service_id]
+    provider = config.get("provider", "openai")
+    model = config.get("model", "gpt-4o-mini")
+    system_prompt = config["system_prompt"]
     
     api_messages = [{"role": "system", "content": system_prompt}]
     for msg in messages:
         api_messages.append({"role": msg["role"], "content": msg["content"]})
     
-    try:
+    if provider == "openai":
+        client = AsyncOpenAI(api_key=settings.openai_api_key)
         stream = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model,
             messages=api_messages,
             max_tokens=1500,
             temperature=0.7,
             stream=True,
             stream_options={"include_usage": True}
         )
-        
         async for chunk in stream:
             if len(chunk.choices) > 0 and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
-            
             if getattr(chunk, "usage", None):
                 yield {"tokens_used": chunk.usage.total_tokens}
-                
-    except openai.RateLimitError as e:
-        raise RuntimeError("OpenAI rate limit exceeded. Please try again later.") from e
-    except openai.APIError as e:
-        raise RuntimeError(f"OpenAI API error occurred: {e}") from e
-    except Exception as e:
-        raise RuntimeError(f"Unexpected error interfacing with OpenAI: {e}") from e
+
+    elif provider == "groq":
+        from groq import AsyncGroq
+        client = AsyncGroq(api_key=settings.groq_api_key)
+        stream = await client.chat.completions.create(
+            model=model,
+            messages=api_messages,
+            max_tokens=1500,
+            temperature=0.7,
+            stream=True
+        )
+        total_content = ""
+        async for chunk in stream:
+            if chunk.choices[0].delta.content:
+                content = chunk.choices[0].delta.content
+                total_content += content
+                yield content
+        # Groq usage estimation (simplified)
+        yield {"tokens_used": len(total_content) // 4}
+
+    elif provider == "gemini":
+        import google.generativeai as genai
+        genai.configure(api_key=settings.gemini_api_key)
+        gemini_model = genai.GenerativeModel(model)
+        # Convert messages to Gemini format
+        chat_session = gemini_model.start_chat(history=[])
+        # Send system prompt as first message or instruction
+        full_prompt = f"System: {system_prompt}\n\n" + "\n".join([f"{m['role']}: {m['content']}" for m in messages])
+        response = await gemini_model.generate_content_async(full_prompt, stream=True)
+        total_content = ""
+        async for chunk in response:
+            if chunk.text:
+                total_content += chunk.text
+                yield chunk.text
+        yield {"tokens_used": len(total_content) // 4}
+
+    elif provider == "huggingface":
+        from huggingface_hub import AsyncInferenceClient
+        client = AsyncInferenceClient(token=settings.hf_api_key)
+        total_content = ""
+        async for chunk in client.chat_completion(
+            model=model,
+            messages=api_messages,
+            max_tokens=1500,
+            stream=True
+        ):
+            if chunk.choices[0].delta.content:
+                content = chunk.choices[0].delta.content
+                total_content += content
+                yield content
+        yield {"tokens_used": len(total_content) // 4}
 async def generate_ai_image(prompt: str) -> str:
     """
     Calls OpenAI DALL-E 3 to generate a high-quality image URL.

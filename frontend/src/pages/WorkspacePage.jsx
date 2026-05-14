@@ -16,19 +16,19 @@ import {
 } from '../api/client';
 
 const ICONS = {
-    code_review: '🔍',
-    image_studio: '🎨',
-    business_evaluator: '💡',
-    cold_email: '📧',
-    humanize_text: '🤖',
-    linkedin_post: '📝',
+    summarizer: '⚡',
+    saas_designer: '🚀',
+    impact_reviewer: '🎯',
+    qwen_chat: '🧠',
 };
 
-const MODELS = [
-    { id: 'turbo', name: 'Turbo', note: 'Fast drafts', badge: 'Popular' },
-    { id: 'pro', name: 'Pro', note: 'Balanced quality', badge: 'Default' },
-    { id: 'deep', name: 'Deep', note: 'Complex tasks', badge: 'Precise' },
-];
+// Provider badge colours for each service
+const PROVIDER_BADGE = {
+    summarizer:      { label: 'Groq · Llama 3',       color: 'bg-pink-200' },
+    saas_designer:   { label: 'OpenAI · GPT-4o',      color: 'bg-yellow-200' },
+    impact_reviewer: { label: 'Gemini 1.5 Flash',     color: 'bg-green-200' },
+    qwen_chat:       { label: 'HuggingFace · Qwen 2.5', color: 'bg-blue-100' },
+};
 
 const QUICK_PROMPTS = [
     'Summarize the main trade-offs in bullet points.',
@@ -73,7 +73,6 @@ const WorkspacePage = () => {
     const [isOptingIn, setIsOptingIn] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-    const [selectedModel, setSelectedModel] = useState(MODELS[1].id);
     const [userProfile, setUserProfile] = useState(null);
     const [userAnalytics, setUserAnalytics] = useState(null);
     const [allServices, setAllServices] = useState([]);
@@ -340,7 +339,6 @@ const WorkspacePage = () => {
         }
     };
 
-    const selectedModelCopy = MODELS.find((model) => model.id === selectedModel) || MODELS[1];
 
     const handleOptIn = async (assetId) => {
         try {
@@ -415,8 +413,8 @@ const WorkspacePage = () => {
         setIsPaid(true);
         setPayingStatus(
             service.id === 'image_studio'
-                ? `Generating AI art with ${selectedModelCopy.name} mode...`
-                : `Running ${selectedModelCopy.name} mode...`
+                ? `Generating image...`
+                : `Running ${service?.name || 'AI'}...`
         );
         setMessages((prev) => [...prev, { role: 'user', content: userPrompt, tokens_used: 0, cost_usd: 0 }]);
 
@@ -525,7 +523,7 @@ const WorkspacePage = () => {
                 >
                     <div className="mb-3 flex flex-wrap items-center gap-2">
                         <span className="rounded-full border-2 border-[#111] bg-[#111] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-white">
-                            {isUser ? 'You' : selectedModelCopy.name}
+                            {isUser ? 'You' : (PROVIDER_BADGE[service?.id]?.label || service?.name || 'AI')}
                         </span>
                         {msg.tokens_used > 0 && !isImage && (
                             <span className="text-[11px] font-black opacity-60">
@@ -762,26 +760,36 @@ const WorkspacePage = () => {
                                 </div>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full animate-fadeUp delay-100">
-                                    {(allServices.length > 0 ? allServices : [service]).filter(Boolean).map((s) => (
-                                        <button
-                                            key={s.id}
-                                            type="button"
-                                            onClick={() => navigate(`/dashboard/${s.id}`)}
-                                            className={`rounded-xl border-2 border-[#111] p-4 text-left shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-1 active:translate-x-1 active:translate-y-1 active:shadow-none md:border-4 ${
-                                                s.id === serviceId ? 'bg-yellow-100' : 'bg-white'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-[#111] bg-yellow-200 text-base font-black md:border-[3px] shadow-[2px_2px_0px_#111]">
-                                                    {ICONS[s.id] || '✨'}
+                                    {(allServices.length > 0 ? allServices.slice(0, 4) : [service]).filter(Boolean).map((s) => {
+                                        const badge = PROVIDER_BADGE[s.id];
+                                        return (
+                                            <button
+                                                key={s.id}
+                                                type="button"
+                                                onClick={() => navigate(`/dashboard/${s.id}`)}
+                                                className={`rounded-xl border-2 border-[#111] p-4 text-left shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-1 active:translate-x-1 active:translate-y-1 active:shadow-none md:border-4 ${
+                                                    s.id === serviceId ? 'bg-yellow-100' : 'bg-white'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-[#111] bg-yellow-200 text-base font-black md:border-[3px] shadow-[2px_2px_0px_#111]">
+                                                            {ICONS[s.id] || '✨'}
+                                                        </div>
+                                                        <span className="font-black text-base">{s.name}</span>
+                                                    </div>
+                                                    {badge && (
+                                                        <span className={`shrink-0 rounded-full border border-[#111] px-2 py-0.5 text-[9px] font-black ${badge.color}`}>
+                                                            {badge.label}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <span className="font-black text-base">{s.name}</span>
-                                            </div>
-                                            <p className="text-xs font-bold opacity-70 leading-snug line-clamp-2">
-                                                {s.description || 'Access specialized AI capabilities instantly.'}
-                                            </p>
-                                        </button>
-                                    ))}
+                                                <p className="text-xs font-bold opacity-70 leading-snug line-clamp-2">
+                                                    {s.example_prompt || s.description || 'Click to start.'}
+                                                </p>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
 
                                 <div className="mt-6 flex flex-wrap justify-center gap-2 animate-fadeUp delay-200">

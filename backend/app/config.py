@@ -7,6 +7,15 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str = "sk-placeholder"
     
+    # Groq
+    groq_api_key: str = ""
+    
+    # Google Gemini
+    gemini_api_key: str = ""
+    
+    # HuggingFace
+    hf_api_key: str = ""
+    
     # Algorand Network
     algorand_network: str = "testnet"
     algod_url: str = "https://testnet-api.algonode.cloud"
