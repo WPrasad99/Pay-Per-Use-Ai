@@ -1,13 +1,42 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { sendChat, streamChat, getPaymentInfo, getConversationHistory, getServices, getWalletPrepayBalance, depositWalletFunds, getConversationMessages, generateImage, mintNFT, transferNFT } from '../api/client';
+import {
+    depositWalletFunds,
+    generateImage,
+    getConversationHistory,
+    getConversationMessages,
+    getPaymentInfo,
+    getServices,
+    getWalletPrepayBalance,
+    mintNFT,
+    sendChat,
+    transferNFT,
+} from '../api/client';
 
 const ICONS = {
-    code_review: '🔍', image_studio: '🎨', business_evaluator: '💡',
-    cold_email: '📧', humanize_text: '🤖', linkedin_post: '📝',
+    code_review: '🔍',
+    image_studio: '🎨',
+    business_evaluator: '💡',
+    cold_email: '📧',
+    humanize_text: '🤖',
+    linkedin_post: '📝',
 };
 
+const MODELS = [
+    { id: 'turbo', name: 'Turbo', note: 'Fast drafts', badge: 'Popular' },
+    { id: 'pro', name: 'Pro', note: 'Balanced quality', badge: 'Default' },
+    { id: 'deep', name: 'Deep', note: 'Complex tasks', badge: 'Precise' },
+];
+
+const QUICK_PROMPTS = [
+    'Summarize the main trade-offs in bullet points.',
+    'Turn this into a polished SaaS landing page section.',
+    'Review this and suggest the highest-impact improvements.',
+];
+
 const ALGOD_API = 'https://testnet-api.algonode.cloud';
+
+const formatMicroAlgo = (microAlgo) => (Number(microAlgo || 0) / 1_000_000).toFixed(3);
 
 const WorkspacePage = () => {
     const { serviceId } = useParams();
@@ -16,7 +45,6 @@ const WorkspacePage = () => {
     const wallet = sessionStorage.getItem('wallet_address');
     const messagesEndRef = useRef(null);
 
-    // Service can come from navigation state OR be fetched from API
     const [service, setService] = useState(location.state?.service || null);
     const [serviceLoading, setServiceLoading] = useState(!location.state?.service);
     const [conversationId, setConversationId] = useState(null);
@@ -31,26 +59,24 @@ const WorkspacePage = () => {
     const [totalCost, setTotalCost] = useState(0);
     const [history, setHistory] = useState([]);
     const [payingStatus, setPayingStatus] = useState('');
-
     const [isDepositing, setIsDepositing] = useState(false);
     const [depositInput, setDepositInput] = useState('1');
-
-    // NFT States
     const [isMinting, setIsMinting] = useState(false);
     const [mintedAssetId, setMintedAssetId] = useState(null);
     const [isOptingIn, setIsOptingIn] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [selectedModel, setSelectedModel] = useState(MODELS[1].id);
 
     const fetchBalance = useCallback(async (address) => {
         try {
             const data = await getWalletPrepayBalance(address);
             return data.balance_microalgo || 0;
         } catch (e) {
-            console.warn("Balance fetch failed:", e);
+            console.warn('Balance fetch failed:', e);
             return 0;
         }
     }, []);
 
-    // Load service from API if not available via navigation state
     useEffect(() => {
         if (!wallet) {
             navigate('/');
@@ -59,51 +85,50 @@ const WorkspacePage = () => {
 
         if (!service) {
             setServiceLoading(true);
-            getServices().then(services => {
-                const found = services.find(s => s.id === serviceId);
-                if (found) {
-                    setService(found);
-                } else {
-                    navigate('/services');
-                }
-            }).catch(() => {
-                navigate('/services');
-            }).finally(() => {
-                setServiceLoading(false);
-            });
+            getServices()
+                .then((services) => {
+                    const found = services.find((s) => s.id === serviceId);
+                    if (found) setService(found);
+                    else navigate('/services');
+                })
+                .catch(() => navigate('/services'))
+                .finally(() => setServiceLoading(false));
         }
     }, [wallet, service, serviceId, navigate]);
 
-    // Load payment info, balance, and history once service is available
     useEffect(() => {
         if (!service || !wallet) return;
-        getPaymentInfo(service.id).then(setPaymentInfo).catch(() => { });
-        fetchBalance(wallet).then(setBalance).catch(() => { });
-        getConversationHistory(wallet, service.id).then(setHistory).catch(() => { });
+        getPaymentInfo(service.id).then(setPaymentInfo).catch(() => {});
+        fetchBalance(wallet).then(setBalance).catch(() => {});
+        getConversationHistory(wallet, service.id).then(setHistory).catch(() => {});
     }, [service, wallet, fetchBalance]);
 
-    const loadConversation = async (convId) => {
-        try {
-            setIsLoading(true);
-            const data = await getConversationMessages(wallet, convId);
-            setConversationId(convId);
-            setMessages(data.messages);
-            setTotalTokens(data.total_tokens);
-            setTotalCost(data.total_cost_usd);
-            setIsPaid(true);
+    const loadConversation = useCallback(
+        async (convId) => {
+            try {
+                setIsLoading(true);
+                setError(null);
+                const data = await getConversationMessages(wallet, convId);
+                setConversationId(convId);
+                setMessages(data.messages || []);
+                setTotalTokens(data.total_tokens || 0);
+                setTotalCost(data.total_cost_usd || 0);
+                setIsPaid(true);
+                setIsSidebarOpen(false);
 
-            // Sync URL query state safely
-            const u = new URL(window.location);
-            u.searchParams.set('session', convId);
-            window.history.pushState({}, '', u);
+                const u = new URL(window.location);
+                u.searchParams.set('session', convId);
+                window.history.pushState({}, '', u);
 
-            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-        } catch (e) {
-            setError("Failed to load session: " + e.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+            } catch (e) {
+                setError(`Failed to load session: ${e.message}`);
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [wallet]
+    );
 
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
@@ -111,11 +136,31 @@ const WorkspacePage = () => {
         if (sessionParam && sessionParam !== conversationId && !isLoading && wallet) {
             loadConversation(sessionParam);
         }
-    }, [location.search, wallet]);
+    }, [location.search, wallet, conversationId, isLoading, loadConversation]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    const usageRows = useMemo(() => {
+        if (!history.length) {
+            return [
+                { id: 'draft', label: 'Draft workspace', tokens: 840, cost: 0.012, date: 'Preview' },
+                { id: 'review', label: 'Quality pass', tokens: 1260, cost: 0.019, date: 'Preview' },
+            ];
+        }
+
+        return history.slice(0, 5).map((item, index) => ({
+            id: item.conversation_id || index,
+            label: item.title || `${service?.name || 'AI'} session`,
+            tokens: item.total_tokens || 0,
+            cost: item.total_cost_usd || 0,
+            date: item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recent',
+            conversationId: item.conversation_id,
+        }));
+    }, [history, service]);
+
+    const selectedModelCopy = MODELS.find((model) => model.id === selectedModel) || MODELS[1];
 
     const handleDeposit = async () => {
         try {
@@ -134,63 +179,68 @@ const WorkspacePage = () => {
 
             const pw = new PeraWalletConnect();
             let accounts = [];
-            try { accounts = await pw.reconnectSession(); } catch (_) { }
+            try {
+                accounts = await pw.reconnectSession();
+            } catch (_) {}
             if (!accounts || !accounts.length) accounts = await pw.connect();
-            if (accounts[0] !== wallet) throw new Error("Wallet mismatch. Please reconnect the correct wallet.");
+            if (accounts[0] !== wallet) throw new Error('Wallet mismatch. Please reconnect the correct wallet.');
 
             const algodClient = new algosdk.Algodv2('', ALGOD_API, '');
             const params = await algodClient.getTransactionParams().do();
 
             const parsedAlgo = parseFloat(depositInput);
-            if (isNaN(parsedAlgo) || parsedAlgo <= 0) throw new Error("Invalid deposit amount");
+            if (Number.isNaN(parsedAlgo) || parsedAlgo <= 0) throw new Error('Invalid deposit amount');
 
             const amountMicro = Math.floor(parsedAlgo * 1_000_000);
-
-            // Construct the Payment Transaction
             const payTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-                sender: wallet, receiver: toAddr, amount: amountMicro, suggestedParams: params,
+                sender: wallet,
+                receiver: toAddr,
+                amount: amountMicro,
+                suggestedParams: params,
             });
 
-            // Construct the ABI Method
             const method = new algosdk.ABIMethod({
-                name: "deposit",
-                args: [{ type: "pay", name: "payment" }],
-                returns: { type: "uint64" }
+                name: 'deposit',
+                args: [{ type: 'pay', name: 'payment' }],
+                returns: { type: 'uint64' },
             });
 
-            // Create a dummy signer just to satisfy the AtomicTransactionComposer
-            const dummySigner = algosdk.makeBasicAccountTransactionSigner({ 
-                addr: wallet, sk: new Uint8Array(64) 
+            const dummySigner = algosdk.makeBasicAccountTransactionSigner({
+                addr: wallet,
+                sk: new Uint8Array(64),
             });
 
-            // Build the group using ATC
             const atc = new algosdk.AtomicTransactionComposer();
-            
-            // 1. Deposit
             atc.addMethodCall({
                 appID: parseInt(paymentInfo.app_id),
-                method: method,
+                method,
                 methodArgs: [{ txn: payTxn, signer: dummySigner }],
                 sender: wallet,
                 suggestedParams: params,
                 signer: dummySigner,
-                boxes: [{
-                    appIndex: parseInt(paymentInfo.app_id),
-                    name: new Uint8Array([...new TextEncoder().encode("b_"), ...algosdk.decodeAddress(wallet).publicKey])
-                }]
+                boxes: [
+                    {
+                        appIndex: parseInt(paymentInfo.app_id),
+                        name: new Uint8Array([
+                            ...new TextEncoder().encode('b_'),
+                            ...algosdk.decodeAddress(wallet).publicKey,
+                        ]),
+                    },
+                ],
             });
-            
-            // 2. Start Session (Max spend = amount deposited + existing balance, Expiry = +24 hours)
+
             const sessionMethod = new algosdk.ABIMethod({
-                name: "start_session",
-                args: [{ type: "uint64", name: "max_spend" }, { type: "uint64", name: "expiry_time" }],
-                returns: { type: "bool" }
+                name: 'start_session',
+                args: [
+                    { type: 'uint64', name: 'max_spend' },
+                    { type: 'uint64', name: 'expiry_time' },
+                ],
+                returns: { type: 'bool' },
             });
-            
-            const expiryTime = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours
-            // Use an arbitrarily large max spend to allow using all balance during session
-            const maxSpend = 1000000000000; 
-            
+
+            const expiryTime = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+            const maxSpend = 1000000000000;
+
             atc.addMethodCall({
                 appID: parseInt(paymentInfo.app_id),
                 method: sessionMethod,
@@ -201,41 +251,47 @@ const WorkspacePage = () => {
                 boxes: [
                     {
                         appIndex: parseInt(paymentInfo.app_id),
-                        name: new Uint8Array([...new TextEncoder().encode("sb_"), ...algosdk.decodeAddress(wallet).publicKey])
+                        name: new Uint8Array([
+                            ...new TextEncoder().encode('sb_'),
+                            ...algosdk.decodeAddress(wallet).publicKey,
+                        ]),
                     },
                     {
                         appIndex: parseInt(paymentInfo.app_id),
-                        name: new Uint8Array([...new TextEncoder().encode("se_"), ...algosdk.decodeAddress(wallet).publicKey])
+                        name: new Uint8Array([
+                            ...new TextEncoder().encode('se_'),
+                            ...algosdk.decodeAddress(wallet).publicKey,
+                        ]),
                     },
                     {
                         appIndex: parseInt(paymentInfo.app_id),
-                        name: new Uint8Array([...new TextEncoder().encode("b_"), ...algosdk.decodeAddress(wallet).publicKey])
-                    }
-                ]
+                        name: new Uint8Array([
+                            ...new TextEncoder().encode('b_'),
+                            ...algosdk.decodeAddress(wallet).publicKey,
+                        ]),
+                    },
+                ],
             });
 
-            // Extract grouped transactions
-            const group = atc.buildGroup().map(t => t.txn);
-            const txId = group[0].txID().toString(); // Use the Payment Transaction ID for backend verification
+            const group = atc.buildGroup().map((t) => t.txn);
+            const txId = group[0].txID().toString();
 
-            // Sign with Pera
-            const signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
+            const signed = await pw.signTransaction([group.map((txn) => ({ txn, signers: [wallet] }))]);
             await algodClient.sendRawTransaction(signed).do();
 
-            setPayingStatus("Verifying your deposit on the Algorand Testnet...");
+            setPayingStatus('Verifying your deposit on the Algorand Testnet...');
             await algosdk.waitForConfirmation(algodClient, txId, 4);
 
-            setPayingStatus("Syncing balance...");
-            await new Promise(r => setTimeout(r, 3000));
+            setPayingStatus('Syncing balance...');
+            await new Promise((resolve) => setTimeout(resolve, 3000));
 
             await depositWalletFunds(wallet, txId);
             const bal = await fetchBalance(wallet);
             setBalance(bal);
-            setPayingStatus("");
-
+            setPayingStatus('');
         } catch (e) {
-            setError(e.message || "Deposit failed");
-            setPayingStatus("");
+            setError(e.message || 'Deposit failed');
+            setPayingStatus('');
         } finally {
             setIsDepositing(false);
         }
@@ -249,14 +305,19 @@ const WorkspacePage = () => {
             const algosdk = (await import('algosdk')).default;
 
             const pw = new PeraWalletConnect();
-            try { await pw.reconnectSession(); } catch (_) { }
+            try {
+                await pw.reconnectSession();
+            } catch (_) {}
 
             const algodClient = new algosdk.Algodv2('', ALGOD_API, '');
             const params = await algodClient.getTransactionParams().do();
 
-            // 0-amount Transfer to self for Asset ID = Opt-In
             const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-                sender: wallet, receiver: wallet, amount: 0, assetIndex: parseInt(assetId), suggestedParams: params,
+                sender: wallet,
+                receiver: wallet,
+                amount: 0,
+                assetIndex: parseInt(assetId),
+                suggestedParams: params,
             });
 
             const signed = await pw.signTransaction([[{ txn, signers: [wallet] }]]);
@@ -265,7 +326,7 @@ const WorkspacePage = () => {
 
             return true;
         } catch (e) {
-            setError("Opt-in failed: " + e.message);
+            setError(`Opt-in failed: ${e.message}`);
             return false;
         } finally {
             setIsOptingIn(false);
@@ -277,12 +338,10 @@ const WorkspacePage = () => {
             setIsMinting(true);
             setError(null);
 
-            // 1. Mint on backend (created by platform wallet)
             const result = await mintNFT(wallet, imageUrl, promptText);
             const assetId = result.asset_id;
 
-            // 2. Guide user to Opt-In
-            setPayingStatus(`NFT created! Asset ID: ${assetId}. Please Opt-In in your wallet to receive it...`);
+            setPayingStatus(`NFT created! Asset ID: ${assetId}. Please opt in from your wallet to receive it.`);
             const optedIn = await handleOptIn(assetId);
 
             if (optedIn) {
@@ -290,11 +349,11 @@ const WorkspacePage = () => {
                 await transferNFT(wallet, assetId);
 
                 setMintedAssetId(assetId);
-                setPayingStatus("NFT successfully sent to your wallet! ✨");
-                setTimeout(() => setPayingStatus(""), 5000);
+                setPayingStatus('NFT successfully sent to your wallet! ✨');
+                setTimeout(() => setPayingStatus(''), 5000);
             }
         } catch (e) {
-            setError("Minting failed: " + e.message);
+            setError(`Minting failed: ${e.message}`);
         } finally {
             setIsMinting(false);
         }
@@ -307,80 +366,45 @@ const WorkspacePage = () => {
         const userPrompt = prompt.trim();
         setPrompt('');
         setError(null);
-
         setIsLoading(true);
-        setPayingStatus(service.id === 'image_studio' ? 'Generating unique AI art (DALLE-3)...' : 'Generating AI response...');
-
-        setMessages(prev => [...prev, { role: 'user', content: userPrompt, tokens_used: 0, cost_usd: 0 }]);
+        setIsPaid(true);
+        setPayingStatus(
+            service.id === 'image_studio'
+                ? `Generating AI art with ${selectedModelCopy.name} mode...`
+                : `Running ${selectedModelCopy.name} mode...`
+        );
+        setMessages((prev) => [...prev, { role: 'user', content: userPrompt, tokens_used: 0, cost_usd: 0 }]);
 
         try {
             if (service.id === 'image_studio') {
                 const result = await generateImage(wallet, userPrompt, conversationId);
                 setConversationId(result.conversation_id);
 
-                // Re-fetch messages to get the updated history including the image URL
                 const updated = await getConversationMessages(wallet, result.conversation_id);
-                setMessages(updated.messages);
-
-                // Set balance (fixed 2.0 ALGO deduction)
-                setBalance(prev => Math.max(0, prev - 2000000));
+                setMessages(updated.messages || []);
+                setBalance((prev) => Math.max(0, prev - 2000000));
             } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: '', tokens_used: 0, cost_usd: 0 }]);
-                
-                const res = await streamChat(service.id, wallet, userPrompt, conversationId, null);
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder("utf-8");
-                let done = false;
-                
-                while (!done) {
-                    const { value, done: readerDone } = await reader.read();
-                    done = readerDone;
-                    if (value) {
-                        const chunkStr = decoder.decode(value, { stream: true });
-                        const lines = chunkStr.split('\n');
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                const dataStr = line.slice(6);
-                                try {
-                                    const data = JSON.parse(dataStr);
-                                    if (data.chunk) {
-                                        setMessages(prev => {
-                                            const newMsgs = [...prev];
-                                            const lastIdx = newMsgs.length - 1;
-                                            newMsgs[lastIdx] = {
-                                                ...newMsgs[lastIdx],
-                                                content: newMsgs[lastIdx].content + data.chunk
-                                            };
-                                            return newMsgs;
-                                        });
-                                    } else if (data.done) {
-                                        setConversationId(data.conversation_id);
-                                        setMessages(data.messages);
-                                        setTotalTokens(data.total_tokens_session);
-                                        setTotalCost(data.total_cost_session);
+                const result = await sendChat(service.id, wallet, userPrompt, conversationId, null);
+                setConversationId(result.conversation_id);
+                setMessages(result.messages || []);
+                setTotalTokens(result.total_tokens_session || 0);
+                setTotalCost(result.total_cost_session || 0);
 
-                                        const algoPriceUsd = 0.20;
-                                        const sessionCostAlgo = data.total_cost_session / algoPriceUsd;
-                                        const sessionCostMicroAlgo = Math.round(sessionCostAlgo * 1_000_000);
+                const algoPriceUsd = 0.2;
+                const sessionCostAlgo = (result.total_cost_session || 0) / algoPriceUsd;
+                const sessionCostMicroAlgo = Math.round(sessionCostAlgo * 1_000_000);
 
-                                        fetchBalance(wallet).then(realBalance => {
-                                            setBalance(Math.max(0, realBalance - sessionCostMicroAlgo));
-                                        }).catch(() => { });
-                                    } else if (data.error) {
-                                        setError(data.error);
-                                    }
-                                } catch (e) {
-                                    // Ignore incomplete chunks
-                                }
-                            }
-                        }
-                    }
-                }
+                fetchBalance(wallet)
+                    .then((realBalance) => {
+                        setBalance(Math.max(0, realBalance - sessionCostMicroAlgo));
+                    })
+                    .catch(() => {});
             }
 
+            getConversationHistory(wallet, service.id).then(setHistory).catch(() => {});
         } catch (err) {
-            setError(err.message || "Request failed");
-            setMessages(prev => prev.slice(0, -1));
+            setError(err.message || 'Request failed');
+            setMessages((prev) => prev.slice(0, -1));
             setPrompt(userPrompt);
         } finally {
             setIsLoading(false);
@@ -388,288 +412,420 @@ const WorkspacePage = () => {
         }
     };
 
+    const Sidebar = ({ isMobile = false }) => (
+        <aside
+            className={`flex h-full flex-col border-4 border-neo-ink bg-white p-4 shadow-[8px_8px_0_#111111] ${
+                isMobile ? 'rounded-l-[2rem]' : 'rounded-[2rem]'
+            }`}
+        >
+            <div className="flex items-start justify-between gap-3 border-b-4 border-neo-ink pb-4">
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-neo-blue">Workspace</p>
+                    <h2 className="mt-1 text-xl font-black text-neo-ink">Control Room</h2>
+                </div>
+                {isMobile && (
+                    <button
+                        type="button"
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="rounded-full border-4 border-neo-ink bg-neo-pink px-3 py-1 font-black text-neo-ink shadow-[4px_4px_0_#111]"
+                        aria-label="Close workspace menu"
+                    >
+                        ✕
+                    </button>
+                )}
+            </div>
+
+            <div className="mt-5 rounded-[1.5rem] border-4 border-neo-ink bg-neo-yellow p-4 shadow-[6px_6px_0_#111111]">
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neo-ink/70">User plan</p>
+                        <h3 className="text-2xl font-black text-neo-ink">Creator</h3>
+                    </div>
+                    <span className="rounded-full border-4 border-neo-ink bg-white px-3 py-1 text-xs font-black text-neo-ink">
+                        Live
+                    </span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm font-black text-neo-ink">
+                    <div className="rounded-2xl border-4 border-neo-ink bg-white p-3">
+                        <p className="text-[10px] uppercase tracking-[0.18em] opacity-60">Balance</p>
+                        <p>{formatMicroAlgo(balance)} ALGO</p>
+                    </div>
+                    <div className="rounded-2xl border-4 border-neo-ink bg-white p-3">
+                        <p className="text-[10px] uppercase tracking-[0.18em] opacity-60">Sessions</p>
+                        <p>{history.length}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-5 rounded-[1.5rem] border-4 border-neo-ink bg-[#c8b6ff] p-4 shadow-[6px_6px_0_#111111]">
+                <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-black uppercase tracking-[0.16em] text-neo-ink">Model selector</h3>
+                    <span className="text-xl">⚙️</span>
+                </div>
+                <div className="space-y-2">
+                    {MODELS.map((model) => (
+                        <button
+                            key={model.id}
+                            type="button"
+                            onClick={() => setSelectedModel(model.id)}
+                            className={`w-full rounded-2xl border-4 border-neo-ink p-3 text-left transition-all ${
+                                selectedModel === model.id
+                                    ? 'translate-x-[-2px] translate-y-[-2px] bg-white shadow-[6px_6px_0_#111111]'
+                                    : 'bg-white/60 hover:bg-white'
+                            }`}
+                        >
+                            <span className="flex items-center justify-between gap-2">
+                                <span className="font-black text-neo-ink">{model.name}</span>
+                                <span className="rounded-full border-2 border-neo-ink bg-neo-yellow px-2 py-0.5 text-[10px] font-black uppercase text-neo-ink">
+                                    {model.badge}
+                                </span>
+                            </span>
+                            <span className="text-xs font-bold text-neo-ink/60">{model.note}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="mt-5 flex-1 overflow-hidden rounded-[1.5rem] border-4 border-neo-ink bg-white p-4">
+                <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-black uppercase tracking-[0.16em] text-neo-ink">Usage history</h3>
+                    <span className="rounded-full bg-neo-ink px-2 py-1 text-[10px] font-black text-white">{usageRows.length}</span>
+                </div>
+                <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+                    {usageRows.map((row) => (
+                        <button
+                            key={row.id}
+                            type="button"
+                            onClick={() => row.conversationId && loadConversation(row.conversationId)}
+                            className={`w-full rounded-2xl border-4 border-neo-ink p-3 text-left transition-all hover:-translate-y-0.5 ${
+                                row.conversationId === conversationId ? 'bg-neo-green shadow-[5px_5px_0_#111]' : 'bg-[#fff7df]'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between gap-3">
+                                <p className="truncate text-sm font-black text-neo-ink">{row.label}</p>
+                                <p className="text-xs font-black text-neo-blue">${Number(row.cost).toFixed(4)}</p>
+                            </div>
+                            <div className="mt-1 flex items-center justify-between text-[11px] font-bold text-neo-ink/60">
+                                <span>{row.tokens} tokens</span>
+                                <span>{row.date}</span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </aside>
+    );
+
+    const MessageBubble = ({ msg, index }) => {
+        const isUser = msg.role === 'user';
+        const isImage = typeof msg.content === 'string' && msg.content.startsWith('[IMAGE]');
+        const imageUrl = isImage ? msg.content.replace('[IMAGE]', '') : '';
+
+        return (
+            <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+                <div
+                    className={`max-w-[92%] rounded-[1.5rem] border-4 border-neo-ink p-4 shadow-[6px_6px_0_#111111] md:max-w-[78%] ${
+                        isUser ? 'bg-neo-yellow text-neo-ink' : 'bg-white text-neo-ink'
+                    }`}
+                    style={{ animationDelay: `${index * 35}ms` }}
+                >
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border-2 border-neo-ink bg-neo-ink px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-white">
+                            {isUser ? 'You' : selectedModelCopy.name}
+                        </span>
+                        {msg.tokens_used > 0 && !isImage && (
+                            <span className="text-[11px] font-black text-neo-ink/60">
+                                {msg.tokens_used} tokens · ${msg.cost_usd ? msg.cost_usd.toFixed(6) : '0.000000'}
+                            </span>
+                        )}
+                    </div>
+
+                    {isImage ? (
+                        <div className="space-y-4">
+                            <img
+                                src={imageUrl}
+                                alt="Generated AI artwork"
+                                className="w-full rounded-2xl border-4 border-neo-ink object-cover"
+                            />
+                            <div className="flex flex-wrap gap-3">
+                                <a
+                                    href={imageUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="rounded-2xl border-4 border-neo-ink bg-neo-green px-4 py-2 text-sm font-black text-neo-ink shadow-[4px_4px_0_#111]"
+                                >
+                                    Download
+                                </a>
+                                <button
+                                    type="button"
+                                    onClick={() => handleMintNFT(imageUrl, messages[index - 1]?.content || 'AI image')}
+                                    disabled={isMinting || isOptingIn}
+                                    className="rounded-2xl border-4 border-neo-ink bg-neo-pink px-4 py-2 text-sm font-black text-neo-ink shadow-[4px_4px_0_#111] disabled:opacity-50"
+                                >
+                                    {isMinting || isOptingIn ? 'Minting...' : 'Mint as NFT'}
+                                </button>
+                            </div>
+                            {mintedAssetId && (
+                                <p className="rounded-xl border-2 border-neo-ink bg-neo-yellow px-3 py-2 text-xs font-black">
+                                    Minted on Algorand Testnet: #{mintedAssetId}
+                                </p>
+                            )}
+                        </div>
+                    ) : (
+                        <pre className="whitespace-pre-wrap font-sans text-sm font-semibold leading-relaxed md:text-[15px]">
+                            {msg.content}
+                        </pre>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     if (serviceLoading || !service) {
         return (
-            <div className="min-h-screen flex items-center justify-center pt-24">
-                <div className="text-center">
-                    <div className="w-10 h-10 border-2 border-brand-purple border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-400">Loading service...</p>
+            <div className="min-h-screen bg-[#fff7df] pt-24 text-neo-ink">
+                <div className="mx-auto flex min-h-[70vh] max-w-lg items-center justify-center px-6">
+                    <div className="neo-card bg-white p-8 text-center">
+                        <div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-neo-ink border-t-neo-blue" />
+                        <p className="text-lg font-black">Loading workspace...</p>
+                    </div>
                 </div>
             </div>
         );
     }
 
-    const balanceAlgo = (balance / 1_000_000).toFixed(4);
-
     return (
-        <div className="min-h-screen pt-14 pb-6 px-4 sm:px-6 flex flex-col">
-            <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
-
-                {/* Back Button */}
-                <button
-                    onClick={() => navigate('/services')}
-                    className="group text-gray-500 hover:text-white text-sm transition-all mb-5 flex items-center gap-1.5 self-start"
-                >
-                    <span className="group-hover:-translate-x-0.5 transition-transform">←</span>
-                    <span>Back to Services</span>
-                </button>
-
-                {/* ── Header Row ── */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-5">
-
-                    {/* Service Card */}
-                    <div className="lg:col-span-4 glass-card rounded-2xl p-5 flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-brand-purple/10 border border-brand-purple/20 flex items-center justify-center text-2xl flex-shrink-0">
-                            {ICONS[service.id] || '✨'}
-                        </div>
-                        <div className="min-w-0">
-                            <h2 className="text-base font-bold text-white leading-tight">{service.name}</h2>
-                            <p className="text-[11px] text-gray-500 leading-snug mt-1 line-clamp-2">{service.description}</p>
-                            <span className="inline-block mt-2 text-xs font-bold text-brand-light bg-brand-purple/10 border border-brand-purple/20 px-2.5 py-0.5 rounded-full">
-                                {service.price_algo} ALGO / session
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Stat Cards */}
-                    <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
-
-                        {/* Tokens */}
-                        <div className="glass-card rounded-xl p-4 hover:border-purple-500/15 transition-colors">
-                            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2 flex items-center gap-1">
-                                <span>📊</span> Tokens
-                            </div>
-                            <div className="text-xl font-bold text-white">{totalTokens.toLocaleString()}</div>
-                        </div>
-
-                        {/* Cost */}
-                        <div className="glass-card rounded-xl p-4 hover:border-cyan-500/15 transition-colors">
-                            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2 flex items-center gap-1">
-                                <span>💰</span> Cost
-                            </div>
-                            <div className="text-xl font-bold text-brand-light">${totalCost ? totalCost.toFixed(4) : '0.0000'}</div>
-                        </div>
-
-                        {/* Balance + Deposit */}
-                        <div className="glass-card rounded-xl p-4 hover:border-green-500/15 transition-colors">
-                            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2 flex items-center gap-1">
-                                <span>💎</span> Balance
-                            </div>
-                            <div className="text-xl font-bold text-white mb-2">{balanceAlgo}</div>
-                            <div className="flex gap-1.5">
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0.1"
-                                    value={depositInput}
-                                    onChange={(e) => setDepositInput(e.target.value)}
-                                    className="w-14 bg-black/50 border border-white/10 rounded-md px-1.5 py-1 text-[10px] text-white focus:outline-none focus:border-brand-purple/40 transition-colors"
-                                />
-                                <button
-                                    onClick={handleDeposit}
-                                    disabled={isDepositing}
-                                    className="text-[10px] bg-green-500/15 text-green-400 border border-green-500/20 px-2.5 py-1 rounded-md font-bold hover:bg-green-500/25 transition-colors disabled:opacity-40 whitespace-nowrap"
-                                >
-                                    {isDepositing ? '…' : 'Start Session'}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Session */}
-                        <div className="glass-card rounded-xl p-4 hover:border-amber-500/15 transition-colors">
-                            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2 flex items-center gap-1">
-                                <span>⚡</span> Session
-                            </div>
-                            {isPaid ? (
-                                <div className="flex items-center gap-2 mt-1">
-                                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                                    <span className="text-sm font-bold text-green-400">Active</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2 mt-1">
-                                    <div className="w-2 h-2 rounded-full bg-gray-600"></div>
-                                    <span className="text-sm font-medium text-gray-500">Ready</span>
-                                </div>
-                            )}
-                        </div>
+        <div className="min-h-screen bg-[#fff7df] text-neo-ink">
+            <div className="neo-grid pointer-events-none fixed inset-0 opacity-70" />
+            <div className="relative mx-auto flex min-h-screen w-full max-w-[1500px] gap-5 px-4 pb-6 pt-24 sm:px-6 lg:px-8">
+                <div className="hidden w-[340px] shrink-0 xl:block">
+                    <div className="sticky top-24 h-[calc(100vh-7.5rem)]">
+                        <Sidebar />
                     </div>
                 </div>
 
-                {/* Status Toast */}
-                {payingStatus && (
-                    <div className="mb-4 flex items-center gap-3 bg-brand-purple/5 border border-brand-purple/10 rounded-xl px-4 py-2.5">
-                        <div className="w-4 h-4 border-2 border-brand-purple border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
-                        <span className="text-sm text-brand-light">{payingStatus}</span>
+                {isSidebarOpen && (
+                    <div className="fixed inset-0 z-50 xl:hidden">
+                        <button
+                            type="button"
+                            className="absolute inset-0 bg-neo-ink/55 backdrop-blur-sm"
+                            onClick={() => setIsSidebarOpen(false)}
+                            aria-label="Close workspace menu overlay"
+                        />
+                        <div className="absolute right-0 top-0 h-full w-[min(92vw,360px)] p-3">
+                            <Sidebar isMobile />
+                        </div>
                     </div>
                 )}
 
-                {/* ── Main: Chat + Sidebar ── */}
-                <div className="flex flex-col lg:flex-row gap-4 flex-grow min-h-0">
-
-                    {/* Chat Panel */}
-                    <div className="flex-grow flex flex-col min-h-0 glass-card rounded-2xl overflow-hidden">
-                        <div className="flex-grow overflow-y-auto p-6 space-y-4" style={{ maxHeight: 'calc(100vh - 380px)' }}>
-
-                            {/* Empty State */}
-                            {messages.length === 0 && !isLoading && (
-                                <div className="flex items-center justify-center h-full">
-                                    <div className="text-center py-14">
-                                        <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-brand-purple/15 to-cyan-500/10 border border-white/5 flex items-center justify-center">
-                                            <span className="text-3xl">{ICONS[service.id] || '✨'}</span>
-                                        </div>
-                                        <h3 className="text-lg font-bold text-white mb-2">Start a conversation</h3>
-                                        <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-                                            Costs are automatically deducted from your prepay balance.
-                                            Make sure you deposit ALGO first!
-                                        </p>
-                                        <div className="mt-4 flex items-center justify-center gap-2">
-                                            <div className="h-px w-6 bg-gray-800"></div>
-                                            <span className="text-[9px] text-gray-600 uppercase tracking-widest font-bold">Powered by AI</span>
-                                            <div className="h-px w-6 bg-gray-800"></div>
-                                        </div>
-                                    </div>
+                <main className="flex min-w-0 flex-1 flex-col gap-5">
+                    <section className="neo-card bg-white p-4 sm:p-5 lg:p-6">
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="flex items-start gap-4">
+                                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.25rem] border-4 border-neo-ink bg-neo-yellow text-4xl shadow-[6px_6px_0_#111]">
+                                    {ICONS[service.id] || '✨'}
                                 </div>
-                            )}
-
-                            {messages.map((msg, i) => {
-                                const isImage = msg.content.startsWith('[IMAGE]');
-                                const imageUrl = isImage ? msg.content.replace('[IMAGE]', '') : '';
-
-                                return (
-                                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[80%] rounded-2xl p-4 ${msg.role === 'user'
-                                            ? 'bg-brand-purple/20 border border-brand-purple/30 text-gray-200'
-                                            : 'bg-white/5 border border-white/5 text-gray-300'
-                                            }`}>
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <span className="text-xs font-bold text-gray-500 uppercase">{msg.role === 'user' ? 'You' : 'AI'}</span>
-                                                {msg.tokens_used > 0 && !isImage && (
-                                                    <span className="text-[10px] text-gray-600">{msg.tokens_used} tokens · ${msg.cost_usd ? msg.cost_usd.toFixed(10) : '0.0000'}</span>
-                                                )}
-                                                {isImage && (
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] text-brand-light font-bold">PREMIUM AI ART</span>
-                                                        <span className="text-[8px] text-orange-400/80 uppercase font-bold tracking-tighter">⚠️ Expires in 1 hour (Download to save)</span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {isImage ? (
-                                                <div className="space-y-4">
-                                                    <div className="relative group rounded-xl overflow-hidden border border-white/10 shadow-2xl max-w-sm">
-                                                        <img src={imageUrl} alt="AI Generated" className="w-full h-auto" />
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                                            <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/20 rounded-full hover:bg-white/40 transition-colors">
-                                                                🔍
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => handleMintNFT(imageUrl, messages[i - 1]?.content || 'AI Art')}
-                                                            disabled={isMinting || mintedAssetId}
-                                                            className="flex-grow btn-primary !py-2 !text-xs !rounded-lg disabled:opacity-50"
-                                                        >
-                                                            {isMinting ? 'Minting...' : mintedAssetId ? `Minted (ID: ${mintedAssetId})` : '✨ Mint as NFT'}
-                                                        </button>
-                                                        <a
-                                                            href={imageUrl}
-                                                            download="ai-art.png"
-                                                            className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-xs flex items-center justify-center px-4"
-                                                        >
-                                                            📥
-                                                        </a>
-                                                    </div>
-                                                    {mintedAssetId && (
-                                                        <div className="text-[10px] text-center text-green-400 font-bold">
-                                                            Successfully minted on Algorand Testnet!
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans">{msg.content}</pre>
-                                            )}
-                                        </div>
+                                <div>
+                                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                                        <span className="section-tag !px-3 !py-1">SaaS Workspace</span>
+                                        <span className="rounded-full border-4 border-neo-ink bg-neo-green px-3 py-1 text-xs font-black uppercase tracking-[0.18em]">
+                                            {isPaid ? 'Session active' : 'Ready'}
+                                        </span>
                                     </div>
-                                );
-                            })}
-
-                            {isLoading && (
-                                <div className="flex justify-start">
-                                    <div className="bg-white/5 border border-white/5 rounded-2xl p-4 max-w-[80%]">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-5 h-5 border-2 border-brand-purple border-t-transparent rounded-full animate-spin"></div>
-                                            <span className="text-sm text-gray-400">{payingStatus || 'Generating response...'}</span>
-                                        </div>
-                                    </div>
+                                    <h1 className="text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">{service.name}</h1>
+                                    <p className="mt-2 max-w-2xl text-sm font-bold text-neo-ink/65 sm:text-base">
+                                        {service.description || 'Launch a focused AI session with live balance tracking, model controls, and pay-per-use history.'}
+                                    </p>
                                 </div>
-                            )}
-                            <div ref={messagesEndRef} />
-                        </div>
-
-                        {error && (
-                            <div className="mx-6 mb-2 bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-sm flex items-center gap-2">
-                                <span>⚠️</span>
-                                <span className="flex-grow">{error}</span>
-                                <button onClick={() => setError(null)} className="text-red-400/50 hover:text-red-400 transition-colors text-xs">✕</button>
                             </div>
-                        )}
-
-                        <form onSubmit={handleSendPrompt} className="border-t border-white/5 p-4 flex gap-3">
-                            <input
-                                type="text"
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                placeholder={messages.length === 0 ? "Enter your prompt to start..." : "Type a follow-up..."}
-                                className="flex-grow bg-black/40 border border-white/10 rounded-xl px-5 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-purple/40 focus:ring-1 focus:ring-brand-purple/10 transition-all"
-                                disabled={isLoading}
-                                maxLength={2000}
-                            />
                             <button
-                                type="submit"
-                                disabled={isLoading || !prompt.trim()}
-                                className="btn-primary !rounded-xl !px-6 !py-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap"
+                                type="button"
+                                onClick={() => setIsSidebarOpen(true)}
+                                className="btn-secondary !px-5 !py-3 xl:hidden"
                             >
-                                {isLoading ? '...' : messages.length === 0 ? 'Pay & Send' : 'Send ▶'}
+                                Open controls
                             </button>
-                        </form>
-                    </div>
-
-                    {/* Session History */}
-                    <div className="lg:w-64 flex-shrink-0 glass-card rounded-2xl p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 380px)' }}>
-                        <div className="flex items-center gap-1.5 mb-3">
-                            <span className="text-xs">🕘</span>
-                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Session History</h3>
                         </div>
-                        {history.length === 0 ? (
-                            <div className="text-center py-6">
-                                <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-white/5 flex items-center justify-center">
-                                    <span className="text-sm opacity-30">📋</span>
+                    </section>
+
+                    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-[1.5rem] border-4 border-neo-ink bg-neo-yellow p-4 shadow-[7px_7px_0_#111]">
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-60">Prepay wallet</p>
+                            <p className="mt-2 text-3xl font-black">{formatMicroAlgo(balance)}</p>
+                            <p className="text-sm font-black opacity-60">ALGO available</p>
+                        </div>
+                        <div className="rounded-[1.5rem] border-4 border-neo-ink bg-white p-4 shadow-[7px_7px_0_#111]">
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-60">Current model</p>
+                            <p className="mt-2 text-3xl font-black">{selectedModelCopy.name}</p>
+                            <p className="text-sm font-black opacity-60">{selectedModelCopy.note}</p>
+                        </div>
+                        <div className="rounded-[1.5rem] border-4 border-neo-ink bg-neo-green p-4 shadow-[7px_7px_0_#111]">
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-60">Tokens</p>
+                            <p className="mt-2 text-3xl font-black">{Number(totalTokens || 0).toLocaleString()}</p>
+                            <p className="text-sm font-black opacity-60">This session</p>
+                        </div>
+                        <div className="rounded-[1.5rem] border-4 border-neo-ink bg-neo-pink p-4 shadow-[7px_7px_0_#111]">
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-60">Spend</p>
+                            <p className="mt-2 text-3xl font-black">${Number(totalCost || 0).toFixed(4)}</p>
+                            <p className="text-sm font-black opacity-60">USD estimate</p>
+                        </div>
+                    </section>
+
+                    <section className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+                        <div className="flex min-h-[620px] flex-col overflow-hidden rounded-[2rem] border-4 border-neo-ink bg-white shadow-[9px_9px_0_#111111]">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b-4 border-neo-ink bg-[#c8b6ff] p-4">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-70">Prompt console</p>
+                                    <h2 className="text-xl font-black">{conversationId ? 'Active session' : 'New session'}</h2>
                                 </div>
-                                <p className="text-[11px] text-gray-600">No sessions yet</p>
+                                <div className="flex items-center gap-2 rounded-full border-4 border-neo-ink bg-white px-3 py-2 text-xs font-black">
+                                    <span className={`h-3 w-3 rounded-full border-2 border-neo-ink ${isLoading ? 'animate-pulse bg-neo-pink' : 'bg-neo-green'}`} />
+                                    {isLoading ? 'Processing' : 'Online'}
+                                </div>
                             </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {history.map((h) => (
-                                    <div
-                                        key={h.conversation_id}
-                                        onClick={() => navigate(`?session=${h.conversation_id}`, { replace: true })}
-                                        className={`p-3 rounded-xl border cursor-pointer transition-all text-xs hover:border-brand-purple/30 ${h.conversation_id === conversationId ? 'border-brand-purple/50 bg-brand-purple/10' : 'border-white/5 hover:bg-white/5'
-                                            }`}
-                                    >
-                                        <div className="flex justify-between mb-1">
-                                            <span className="text-gray-400 font-semibold">{h.total_tokens} tokens</span>
-                                            <span className="text-gray-600">${h.total_cost_usd ? h.total_cost_usd.toFixed(4) : '0.0000'}</span>
-                                        </div>
-                                        <div className="text-[10px] text-gray-600">
-                                            {new Date(h.created_at).toLocaleDateString()}
+
+                            {payingStatus && (
+                                <div className="m-4 rounded-2xl border-4 border-neo-ink bg-neo-yellow px-4 py-3 text-sm font-black shadow-[5px_5px_0_#111]">
+                                    {payingStatus}
+                                </div>
+                            )}
+
+                            <div className="flex-1 space-y-5 overflow-y-auto bg-[#fffdf5] p-4 sm:p-6">
+                                {messages.length === 0 && !isLoading && (
+                                    <div className="flex min-h-[360px] items-center justify-center">
+                                        <div className="max-w-xl text-center">
+                                            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[1.5rem] border-4 border-neo-ink bg-neo-yellow text-4xl shadow-[7px_7px_0_#111]">
+                                                {ICONS[service.id] || '✨'}
+                                            </div>
+                                            <h3 className="text-3xl font-black">Build your next AI run</h3>
+                                            <p className="mt-3 text-base font-bold text-neo-ink/65">
+                                                Pick a model, drop a prompt, and track every token from the same responsive product workspace.
+                                            </p>
+                                            <div className="mt-5 flex flex-wrap justify-center gap-2">
+                                                {QUICK_PROMPTS.map((item) => (
+                                                    <button
+                                                        key={item}
+                                                        type="button"
+                                                        onClick={() => setPrompt(item)}
+                                                        className="rounded-full border-4 border-neo-ink bg-white px-4 py-2 text-xs font-black shadow-[4px_4px_0_#111] transition-transform hover:-translate-y-1"
+                                                    >
+                                                        {item}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
+                                )}
+
+                                {messages.map((msg, index) => (
+                                    <MessageBubble key={`${msg.role}-${index}-${msg.content?.slice?.(0, 12) || index}`} msg={msg} index={index} />
                                 ))}
+
+                                {isLoading && (
+                                    <div className="flex justify-start">
+                                        <div className="rounded-[1.5rem] border-4 border-neo-ink bg-white p-4 shadow-[6px_6px_0_#111111]">
+                                            <div className="flex items-center gap-3 text-sm font-black">
+                                                <div className="h-5 w-5 animate-spin rounded-full border-4 border-neo-ink border-t-neo-blue" />
+                                                {payingStatus || 'Generating response...'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={messagesEndRef} />
                             </div>
-                        )}
-                    </div>
-                </div>
+
+                            {error && (
+                                <div className="mx-4 mb-3 flex items-center gap-3 rounded-2xl border-4 border-neo-ink bg-neo-pink p-3 text-sm font-black text-neo-ink shadow-[5px_5px_0_#111]">
+                                    <span>⚠️</span>
+                                    <span className="flex-1">{error}</span>
+                                    <button type="button" onClick={() => setError(null)} className="font-black">
+                                        ✕
+                                    </button>
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSendPrompt} className="border-t-4 border-neo-ink bg-white p-4">
+                                <div className="flex flex-col gap-3 sm:flex-row">
+                                    <textarea
+                                        value={prompt}
+                                        onChange={(e) => setPrompt(e.target.value)}
+                                        placeholder={messages.length === 0 ? 'Enter your prompt to start...' : 'Type a follow-up...'}
+                                        className="input-dark min-h-[64px] flex-1 resize-none !rounded-[1.25rem]"
+                                        disabled={isLoading}
+                                        maxLength={2000}
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading || !prompt.trim()}
+                                        className="btn-primary shrink-0 disabled:translate-x-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 sm:w-40"
+                                    >
+                                        {isLoading ? 'Wait...' : messages.length === 0 ? 'Pay & Send' : 'Send ▶'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="rounded-[2rem] border-4 border-neo-ink bg-white p-4 shadow-[8px_8px_0_#111111]">
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-60">Deposit</p>
+                                <h3 className="mt-1 text-xl font-black">Top up workspace</h3>
+                                <div className="mt-4 flex gap-2">
+                                    <input
+                                        type="number"
+                                        min="0.1"
+                                        step="0.1"
+                                        value={depositInput}
+                                        onChange={(e) => setDepositInput(e.target.value)}
+                                        className="input-dark !px-4 !py-2"
+                                        aria-label="Deposit amount in ALGO"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleDeposit}
+                                        disabled={isDepositing}
+                                        className="rounded-2xl border-4 border-neo-ink bg-neo-green px-4 py-2 font-black shadow-[5px_5px_0_#111] disabled:opacity-50"
+                                    >
+                                        {isDepositing ? '...' : 'Add'}
+                                    </button>
+                                </div>
+                                <p className="mt-3 text-xs font-bold text-neo-ink/60">Funds are verified on Algorand Testnet before the balance updates.</p>
+                            </div>
+
+                            <div className="rounded-[2rem] border-4 border-neo-ink bg-neo-yellow p-4 shadow-[8px_8px_0_#111111]">
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-60">Service pricing</p>
+                                <h3 className="mt-1 text-2xl font-black">
+                                    {service.price_algo ? `${service.price_algo} ALGO` : 'Pay per use'}
+                                </h3>
+                                <p className="mt-2 text-sm font-bold text-neo-ink/70">Contract #{paymentInfo?.app_id || 'syncing'} keeps each run metered.</p>
+                            </div>
+
+                            <div className="rounded-[2rem] border-4 border-neo-ink bg-white p-4 shadow-[8px_8px_0_#111111] xl:hidden">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.16em]">Recent usage</h3>
+                                    <button type="button" onClick={() => setIsSidebarOpen(true)} className="text-xs font-black text-neo-blue">
+                                        View all
+                                    </button>
+                                </div>
+                                <div className="space-y-2">
+                                    {usageRows.slice(0, 3).map((row) => (
+                                        <button
+                                            key={`mobile-${row.id}`}
+                                            type="button"
+                                            onClick={() => row.conversationId && loadConversation(row.conversationId)}
+                                            className="w-full rounded-2xl border-4 border-neo-ink bg-[#fff7df] p-3 text-left"
+                                        >
+                                            <div className="flex justify-between gap-2 text-sm font-black">
+                                                <span className="truncate">{row.label}</span>
+                                                <span>${Number(row.cost).toFixed(4)}</span>
+                                            </div>
+                                            <p className="text-xs font-bold text-neo-ink/60">{row.tokens} tokens · {row.date}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </main>
             </div>
         </div>
     );
