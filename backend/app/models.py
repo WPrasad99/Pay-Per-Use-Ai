@@ -11,6 +11,8 @@ class ServiceOut(BaseModel):
     price_algo: float
     price_microalgo: int
     example_prompt: str
+    provider: Optional[str] = None
+    model: Optional[str] = None
 
 class PaymentInfoOut(BaseModel):
     service_id: str
