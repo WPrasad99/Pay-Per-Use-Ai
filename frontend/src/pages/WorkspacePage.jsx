@@ -9,7 +9,7 @@ import {
     getPaymentInfo,
     getServices,
     mintNFT,
-    sendChat,
+    streamChat,
     transferNFT,
     getUserProfile,
     getUserAnalytics,
@@ -421,11 +421,58 @@ const WorkspacePage = () => {
                 const updated = await getConversationMessages(wallet, result.conversation_id);
                 setMessages(updated.messages || []);
             } else {
-                const result = await sendChat(service.id, wallet, userPrompt, conversationId, null);
-                setConversationId(result.conversation_id);
-                setMessages(result.messages || []);
-                setTotalTokens(result.total_tokens_session || 0);
-                setTotalCost(result.total_cost_session || 0);
+                const res = await streamChat(service.id, wallet, userPrompt, conversationId, null);
+                
+                // Add a placeholder message for the assistant
+                setMessages((prev) => [
+                    ...prev,
+                    { role: 'assistant', content: '', tokens_used: 0, cost_usd: 0 }
+                ]);
+                
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = '';
+                
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    const chunkStr = decoder.decode(value, { stream: true });
+                    const lines = chunkStr.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.slice(6).trim();
+                            if (!dataStr) continue;
+                            
+                            try {
+                                const data = JSON.parse(dataStr);
+                                if (data.error) {
+                                    throw new Error(data.error);
+                                }
+                                if (data.chunk) {
+                                    fullText += data.chunk;
+                                    setMessages((prev) => {
+                                        const newMsgs = [...prev];
+                                        newMsgs[newMsgs.length - 1].content = fullText;
+                                        return newMsgs;
+                                    });
+                                }
+                                if (data.done) {
+                                    setConversationId(data.conversation_id);
+                                    setMessages(data.messages || []);
+                                    setTotalTokens(data.total_tokens_session || 0);
+                                    setTotalCost(data.total_cost_session || 0);
+                                }
+                            } catch (e) {
+                                // If we explicitly threw the error from the backend payload, re-throw it to catch block
+                                if (dataStr.includes('"error"')) {
+                                    throw new Error(JSON.parse(dataStr).error);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             getConversationHistory(wallet, service.id).then(setHistory).catch(() => {});
