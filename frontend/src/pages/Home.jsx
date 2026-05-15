@@ -204,7 +204,7 @@ const Home = () => {
             </div>
 
             {/* STATS */}
-            <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
               {TRUST_STATS.map((stat) => (
                 <div
                   key={stat.label}
