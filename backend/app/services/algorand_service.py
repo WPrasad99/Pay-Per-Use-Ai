@@ -439,6 +439,8 @@ async def execute_service_request(user_wallet: str, service_id: str) -> tuple[bo
         atc = AtomicTransactionComposer()
         signer = AccountTransactionSigner(private_key)
         
+        print(f"DEBUG: execute_service_request for {user_wallet} on {service_id}")
+        
         boxes = [
             (app_id, b"sb_" + user_addr),
             (app_id, b"se_" + user_addr),
@@ -466,10 +468,12 @@ async def execute_service_request(user_wallet: str, service_id: str) -> tuple[bo
         print(f"Contract request_service failed: {e}")
         if "SESSION_EXPIRED" in err_str:
             return False, "SESSION_EXPIRED"
-        if "NO_SESSION" in err_str or "NOSESSION" in err_str:
-            return False, "NO_SESSION"
-        if "INSUFFICIENT_BALANCE" in err_str or "INSUFFICIENT BALANCE" in err_str:
-            return False, "INSUFFICIENT_BALANCE"
         if "SESSION_LIMIT_EXCEEDED" in err_str or "LIMIT_EXCEEDED" in err_str:
             return False, "SESSION_LIMIT_EXCEEDED"
-        return False, "UNKNOWN"
+        if "INSUFFICIENT_BALANCE" in err_str or "INSUFFICIENT BALANCE" in err_str:
+            return False, "INSUFFICIENT_BALANCE"
+        if "NO_SESSION" in err_str or "NOSESSION" in err_str:
+            return False, "NO_SESSION"
+        if "ASSERT FAILED" in err_str or "LOGIC EVAL ERROR" in err_str:
+            return False, "SESSION_LIMIT_EXCEEDED"
+        return False, f"CONTRACT_ERROR: {str(e)[:100]}"

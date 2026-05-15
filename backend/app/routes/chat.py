@@ -120,7 +120,7 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
             success, reason = await execute_service_request(data.wallet_address, data.service_id)
             
             if not success:
-                error_detail = "SESSION_AUTH_FAILED"
+                error_detail = reason # Use the raw reason if it's a contract error
                 if reason == "SESSION_EXPIRED":
                     error_detail = "SESSION_EXPIRED"
                 elif reason in ("NO_SESSION", "SESSION_LIMIT_EXCEEDED"):

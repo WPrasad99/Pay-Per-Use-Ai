@@ -49,6 +49,51 @@ SERVICE_CATALOG = {
         "provider": "huggingface",
         "model": "Qwen/Qwen2.5-72B-Instruct",
         "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
+    },
+    # Backward compatibility aliases for old service IDs
+    "summarizer": {
+        "id": "summarizer",
+        "name": "Llama 3.3 (Groq)",
+        "description": "Lightning-fast general purpose reasoning model powered by Groq.",
+        "price_algo": 0.1,
+        "price_microalgo": 100_000,
+        "example_prompt": "Explain the significance of the Turing Test.",
+        "provider": "groq",
+        "model": "llama-3.3-70b-versatile",
+        "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
+    },
+    "saas_designer": {
+        "id": "saas_designer",
+        "name": "GPT-4o Mini (OpenAI)",
+        "description": "Fast and intelligent multi-purpose assistant from OpenAI.",
+        "price_algo": 0.2,
+        "price_microalgo": 200_000,
+        "example_prompt": "Write a Python script to scrape a website.",
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
+    },
+    "impact_reviewer": {
+        "id": "impact_reviewer",
+        "name": "Gemini 1.5 Flash",
+        "description": "Google's lightweight, fast, and highly capable multimodal model.",
+        "price_algo": 0.15,
+        "price_microalgo": 150_000,
+        "example_prompt": "Draft a professional email to a client.",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
+    },
+    "qwen_chat": {
+        "id": "qwen_chat",
+        "name": "Qwen 2.5 (HuggingFace)",
+        "description": "Powerful open-weights model capable of deep technical insights.",
+        "price_algo": 0.1,
+        "price_microalgo": 100_000,
+        "example_prompt": "Explain the concept of quantum entanglement simply.",
+        "provider": "huggingface",
+        "model": "Qwen/Qwen2.5-72B-Instruct",
+        "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
     }
 }
 

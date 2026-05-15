@@ -142,7 +142,7 @@ const WorkspacePage = () => {
         getPaymentInfo(service.id).then((info) => {
             setPaymentInfo(info);
         }).catch(() => {});
-        getConversationHistory(wallet, service.id).then(setHistory).catch(() => {});
+        getConversationHistory(wallet, null).then(setHistory).catch(() => {});
         getUserProfile(wallet).then(setUserProfile).catch(() => {});
         getUserAnalytics(wallet).then(setUserAnalytics).catch(() => {});
     }, [service, wallet]);
@@ -195,10 +195,7 @@ const WorkspacePage = () => {
 
     const usageRows = useMemo(() => {
         if (!history.length) {
-            return [
-                { id: 'draft', label: 'Draft workspace', tokens: 840, cost: 0.012, date: 'Preview' },
-                { id: 'review', label: 'Quality pass', tokens: 1260, cost: 0.019, date: 'Preview' },
-            ];
+            return [];
         }
 
         return history.slice(0, 5).map((item, index) => ({
@@ -260,7 +257,8 @@ const WorkspacePage = () => {
             });
 
             const expiryTime = Math.floor(Date.now() / 1000) + 24 * 60 * 60; // 24h
-            const maxSpend = 100000; // 0.1 ALGO (Must match or be less than balance for ARC-0060/x402)
+            const depositAmount = 1000000; // 1 ALGO buffer for seamless prompting
+            const maxSpend = (paymentInfo?.balance_microalgo || 0) + depositAmount; // Authorize entire balance
 
             const dummySigner = algosdk.makeBasicAccountTransactionSigner({
                 addr: wallet,
@@ -269,12 +267,12 @@ const WorkspacePage = () => {
 
             const atc = new algosdk.AtomicTransactionComposer();
 
-            // Add a 0.1 ALGO payment + deposit call to satisfy the Minimum Balance Requirement (MBR) 
+            // Add a 1 ALGO payment + deposit call to satisfy the MBR and fund the user's prompts
             // for the on-chain boxes. This is required by the Algorand network to store session data.
             const payTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
                 sender: wallet,
                 receiver: paymentInfo.contract_address,
-                amount: 100000, // 0.1 ALGO
+                amount: depositAmount, // 1 ALGO
                 suggestedParams: params,
             });
 
@@ -476,13 +474,14 @@ const WorkspacePage = () => {
                 }
             }
 
-            getConversationHistory(wallet, service.id).then(setHistory).catch(() => {});
+            getConversationHistory(wallet, null).then(setHistory).catch(() => {});
         } catch (err) {
             setError(err.message || 'Request failed');
             setMessages((prev) => prev.slice(0, -1));
             setPrompt(userPrompt);
         } finally {
             setIsLoading(false);
+            setIsStartingSession(false);
             setPayingStatus('');
         }
     };
@@ -496,7 +495,9 @@ const WorkspacePage = () => {
                 setConversationId(null);
                 setMessages([]);
             }
-            getConversationHistory(wallet, service?.id).then(setHistory).catch(() => {});
+            // Refresh history and analytics
+            getConversationHistory(wallet, null).then(setHistory).catch(() => {});
+            getUserAnalytics(wallet).then(setUserAnalytics).catch(() => {});
         } catch (err) {
             setError('Failed to delete chat: ' + err.message);
         }
@@ -531,41 +532,28 @@ const WorkspacePage = () => {
             </div>
 
             <div className="mt-5 flex-1 flex flex-col min-h-0">
-                {/* AI Model Switcher */}
-                <p className="font-black text-xs uppercase tracking-widest opacity-60 mb-2">AI Model</p>
-                <div className="space-y-1.5 mb-5">
-                    {allServices.map((s) => {
-                        const badge = PROVIDER_BADGE[s.id];
-                        const isActive = s.id === service?.id;
-                        return (
-                            <button
-                                key={s.id}
-                                type="button"
-                                onClick={() => {
-                                    setService(s);
-                                    setMessages([]);
-                                    setConversationId(null);
-                                    setIsSidebarOpen(false);
-                                }}
-                                className={`w-full flex items-center gap-2 rounded-xl border-2 border-[#111] px-3 py-2 text-left text-xs font-black shadow-[3px_3px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none ${
-                                    isActive ? 'bg-yellow-200' : 'bg-white'
-                                }`}
-                            >
-                                <span className="text-sm">{ICONS[s.id] || '✨'}</span>
-                                <span className="flex-1 truncate">{s.name}</span>
-                                {badge && (
-                                    <span className={`shrink-0 rounded-full border border-[#111] px-1.5 py-0.5 text-[8px] font-black ${badge.color}`}>
-                                        {badge.label.split(' · ')[0]}
-                                    </span>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-
-                <div className="flex items-center justify-between gap-3">
-                    <p className="font-black text-xs uppercase tracking-widest opacity-60">History</p>
-                    <span className="rounded-full bg-[#111] px-2 py-1 text-[10px] font-black text-white">{usageRows.length}</span>
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                        <p className="font-black text-xs uppercase tracking-widest opacity-60">History</p>
+                        <span className="rounded-full bg-[#111] px-2 py-1 text-[10px] font-black text-white">{usageRows.length}</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setMessages([]);
+                            setConversationId(null);
+                            navigate('/dashboard');
+                            if (isMobile) setIsSidebarOpen(false);
+                        }}
+                        className="flex items-center gap-1 rounded-lg border-2 border-[#111] bg-cyan-300 px-2.5 py-1 text-[10px] font-black shadow-[2px_2px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+                        title="Start a new chat"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        NEW
+                    </button>
                 </div>
                 <div className="mt-2 space-y-2 flex-1 overflow-y-auto pr-1">
                     {usageRows.map((row) => (
@@ -577,7 +565,7 @@ const WorkspacePage = () => {
                                     row.conversationId === conversationId ? 'bg-green-200' : 'bg-white'
                                 }`}
                             >
-                                <span className="block truncate pr-6 font-black">{row.label}</span>
+                                <span className="block truncate pr-8 font-black">{row.label}</span>
                                 <span className="mt-1 flex items-center justify-between gap-2 text-[11px] font-bold opacity-60">
                                     <span>{row.tokens} tokens</span>
                                     <span>${Number(row.cost).toFixed(4)}</span>
@@ -586,10 +574,12 @@ const WorkspacePage = () => {
                             <button
                                 type="button"
                                 onClick={(e) => handleDeleteConversation(e, row.conversationId)}
-                                className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700 transition-opacity bg-white rounded-md border border-[#111]"
+                                className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1.5 bg-white hover:bg-red-500 hover:text-white transition-all rounded-lg border-2 border-[#111] shadow-[2px_2px_0px_#111] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none flex items-center justify-center"
                                 title="Delete Chat"
                             >
-                                ✕
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                </svg>
                             </button>
                         </div>
                     ))}
@@ -692,28 +682,59 @@ const WorkspacePage = () => {
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#fff7df]/80 backdrop-blur-sm" onClick={() => !isStartingSession && setIsSessionModalOpen(false)} />
                     <div className="animate-fadeUp relative w-full max-w-sm rounded-2xl border-4 border-[#111] bg-white p-6 shadow-[8px_8px_0px_#111]">
-                        <h2 className="text-xl font-black mb-2">🚀 Start Smart Session?</h2>
-                        <p className="text-sm font-bold opacity-70 mb-6">
-                            Approving a session allows us to process micro-payments automatically for 24 hours. No manual approval for every message!
-                        </p>
-                        <div className="flex gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setIsSessionModalOpen(false)}
-                                disabled={isStartingSession}
-                                className="flex-1 rounded-xl border-2 border-[#111] bg-white py-2.5 text-sm font-black shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none"
-                            >
-                                Not Now
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleStartSession}
-                                disabled={isStartingSession}
-                                className="flex-1 rounded-xl border-2 border-[#111] bg-neo-blue py-2.5 text-sm font-black text-white shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none disabled:opacity-50"
-                            >
-                                {isStartingSession ? 'Waiting...' : 'Approve'}
-                            </button>
-                        </div>
+                        {sessionStatus === 'active' ? (
+                            <>
+                                <h2 className="text-xl font-black mb-2">🛑 End Smart Session?</h2>
+                                <p className="text-sm font-bold opacity-70 mb-6">
+                                    Your session is currently active. Ending it will clear your session locally so you can easily start a new one.
+                                </p>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsSessionModalOpen(false)}
+                                        className="flex-1 rounded-xl border-2 border-[#111] bg-white py-2.5 text-sm font-black shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSessionStatus('inactive');
+                                            setSessionExpiry(null);
+                                            setIsSessionModalOpen(false);
+                                        }}
+                                        className="flex-1 rounded-xl border-2 border-[#111] bg-pink-200 py-2.5 text-sm font-black shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none"
+                                    >
+                                        End Session
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <h2 className="text-xl font-black mb-2">🚀 Start Smart Session?</h2>
+                                <p className="text-sm font-bold opacity-70 mb-6">
+                                    Approving a session allows us to process micro-payments automatically for 24 hours. No manual approval for every message!
+                                </p>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsSessionModalOpen(false)}
+                                        disabled={isStartingSession}
+                                        className="flex-1 rounded-xl border-2 border-[#111] bg-white py-2.5 text-sm font-black shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none"
+                                    >
+                                        Not Now
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleStartSession}
+                                        disabled={isStartingSession}
+                                        className="flex-1 rounded-xl border-2 border-[#111] bg-neo-blue py-2.5 text-sm font-black text-white shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none disabled:opacity-50"
+                                    >
+                                        {isStartingSession ? 'Waiting...' : 'Approve'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
@@ -809,7 +830,7 @@ const WorkspacePage = () => {
                                 <span className="hidden opacity-30 md:inline">•</span>
                                 
                                 <div 
-                                    onClick={() => sessionStatus !== 'active' && setIsSessionModalOpen(true)}
+                                    onClick={() => setIsSessionModalOpen(true)}
                                     className={`flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-[#111] px-2 py-1 text-[10px] shadow-[2px_2px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none md:text-xs ${
                                         sessionStatus === 'active' ? 'bg-green-200' : sessionStatus === 'expired' ? 'bg-pink-200' : 'bg-yellow-200'
                                     }`}
@@ -844,10 +865,15 @@ const WorkspacePage = () => {
                             }`}
                         >
                             <div className="flex items-center gap-3">
-                                <span>{error ? '⚠️' : '⏳'}</span>
+                                <span className="text-lg">{error ? '🚫' : '⏳'}</span>
                                 <span className="flex-1">{error || payingStatus}</span>
                                 {error && (
-                                    <button type="button" onClick={() => setError(null)} className="font-black" aria-label="Dismiss error">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setError(null)} 
+                                        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full border-2 border-[#111] bg-white hover:bg-[#111] hover:text-white transition-colors font-black" 
+                                        aria-label="Dismiss error"
+                                    >
                                         ✕
                                     </button>
                                 )}
@@ -866,7 +892,7 @@ const WorkspacePage = () => {
                                 </div>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full animate-fadeUp delay-100">
-                                    {allServices.filter(Boolean).map((s) => {
+                                    {allServices.filter(s => ['llama3', 'gpt4o_mini', 'gemini_flash', 'qwen25'].includes(s?.id)).map((s) => {
                                         const badge = PROVIDER_BADGE[s.id];
                                         return (
                                             <button
@@ -948,14 +974,13 @@ const WorkspacePage = () => {
                                         const selected = allServices.find(s => s.id === e.target.value);
                                         if (selected) {
                                             setService(selected);
-                                            setMessages([]);
-                                            setConversationId(null);
+                                            // Allow changing models within the same chat without clearing messages
                                         }
                                     }}
                                     className="hidden h-11 cursor-pointer appearance-none rounded-lg border-2 border-[#111] bg-yellow-200 px-3 pr-8 text-xs font-black shadow-[3px_3px_0px_#111] outline-none transition-all focus:border-[#111] md:block md:h-12 md:border-4 md:px-4 md:pr-10 md:text-sm bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[right_12px_center] bg-no-repeat"
                                     disabled={isLoading}
                                 >
-                                    {allServices.map((s) => {
+                                    {allServices.filter(s => ['llama3', 'gpt4o_mini', 'gemini_flash', 'qwen25'].includes(s?.id)).map((s) => {
                                         const badge = PROVIDER_BADGE[s.id];
                                         return (
                                             <option key={s.id} value={s.id}>
