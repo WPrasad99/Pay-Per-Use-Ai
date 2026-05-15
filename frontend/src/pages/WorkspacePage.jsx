@@ -16,24 +16,24 @@ import {
 } from '../api/client';
 
 const ICONS = {
-    summarizer: '⚡',
-    saas_designer: '🚀',
-    impact_reviewer: '🎯',
-    qwen_chat: '🧠',
+    llama3: '⚡',
+    gpt4o_mini: '🚀',
+    gemini_flash: '🎯',
+    qwen25: '🧠',
 };
 
 // Provider badge colours for each service
 const PROVIDER_BADGE = {
-    summarizer:      { label: 'Groq · Llama 3',       color: 'bg-pink-200' },
-    saas_designer:   { label: 'OpenAI · GPT-4o',      color: 'bg-yellow-200' },
-    impact_reviewer: { label: 'Gemini 1.5 Flash',     color: 'bg-green-200' },
-    qwen_chat:       { label: 'HuggingFace · Qwen 2.5', color: 'bg-blue-100' },
+    llama3:       { label: 'Groq',       color: 'bg-pink-200' },
+    gpt4o_mini:   { label: 'OpenAI',      color: 'bg-yellow-200' },
+    gemini_flash: { label: 'Google',     color: 'bg-green-200' },
+    qwen25:       { label: 'HuggingFace', color: 'bg-blue-100' },
 };
 
 const QUICK_PROMPTS = [
-    'Summarize the main trade-offs in bullet points.',
-    'Turn this into a polished SaaS landing page section.',
-    'Review this and suggest the highest-impact improvements.',
+    'Explain the significance of the Turing Test.',
+    'Write a Python script to scrape a website.',
+    'Draft a professional email to a client.',
 ];
 
 const ALGOD_API = 'https://testnet-api.algonode.cloud';
@@ -92,12 +92,12 @@ const WorkspacePage = () => {
             .catch((err) => {
                 console.error('Failed to fetch services:', err);
                 setService({
-                    id: 'summarizer',
-                    name: 'Quick Summarizer',
-                    description: 'Extract key trade-offs and bullet points instantly.',
+                    id: 'llama3',
+                    name: 'Llama 3.3 (Groq)',
+                    description: 'Lightning-fast general purpose reasoning model powered by Groq.',
                     price_algo: 0.1,
                     price_microalgo: 100000,
-                    example_prompt: 'Summarize the main trade-offs in bullet points.',
+                    example_prompt: 'Explain the significance of the Turing Test.',
                 });
             })
             .finally(() => setServiceLoading(false));

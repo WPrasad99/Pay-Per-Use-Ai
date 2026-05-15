@@ -6,49 +6,49 @@ from openai import AsyncOpenAI
 from app.config import settings
 
 SERVICE_CATALOG = {
-    "summarizer": {
-        "id": "summarizer",
-        "name": "Quick Summarizer",
-        "description": "Extract key trade-offs and bullet points instantly.",
+    "llama3": {
+        "id": "llama3",
+        "name": "Llama 3.3 (Groq)",
+        "description": "Lightning-fast general purpose reasoning model powered by Groq.",
         "price_algo": 0.1,
         "price_microalgo": 100_000,
-        "example_prompt": "Summarize the main trade-offs in bullet points.",
+        "example_prompt": "Explain the significance of the Turing Test.",
         "provider": "groq",
         "model": "llama-3.3-70b-versatile",
-        "system_prompt": "You are a concise analyst. Summarize complex topics into high-impact bullet points focusing on trade-offs."
+        "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
     },
-    "saas_designer": {
-        "id": "saas_designer",
-        "name": "SaaS Copywriter",
-        "description": "Turn rough ideas into polished SaaS landing page sections.",
+    "gpt4o_mini": {
+        "id": "gpt4o_mini",
+        "name": "GPT-4o Mini (OpenAI)",
+        "description": "Fast and intelligent multi-purpose assistant from OpenAI.",
         "price_algo": 0.2,
         "price_microalgo": 200_000,
-        "example_prompt": "Turn this into a polished SaaS landing page section.",
+        "example_prompt": "Write a Python script to scrape a website.",
         "provider": "openai",
         "model": "gpt-4o-mini",
-        "system_prompt": "You are an elite SaaS copywriter. Create high-converting, polished landing page copy from user inputs."
+        "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
     },
-    "impact_reviewer": {
-        "id": "impact_reviewer",
-        "name": "Impact Reviewer",
-        "description": "Get critical feedback and high-impact improvement suggestions.",
+    "gemini_flash": {
+        "id": "gemini_flash",
+        "name": "Gemini 1.5 Flash",
+        "description": "Google's lightweight, fast, and highly capable multimodal model.",
         "price_algo": 0.15,
         "price_microalgo": 150_000,
-        "example_prompt": "Review this and suggest the highest-impact improvements.",
+        "example_prompt": "Draft a professional email to a client.",
         "provider": "gemini",
         "model": "gemini-1.5-flash",
-        "system_prompt": "You are a strategic advisor. Review user content and provide the 3 highest-impact improvements possible."
+        "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
     },
-    "qwen_chat": {
-        "id": "qwen_chat",
-        "name": "Qwen Expert",
-        "description": "Harness the power of Qwen via HuggingFace for specialized reasoning.",
+    "qwen25": {
+        "id": "qwen25",
+        "name": "Qwen 2.5 (HuggingFace)",
+        "description": "Powerful open-weights model capable of deep technical insights.",
         "price_algo": 0.1,
         "price_microalgo": 100_000,
         "example_prompt": "Explain the concept of quantum entanglement simply.",
         "provider": "huggingface",
         "model": "Qwen/Qwen2.5-72B-Instruct",
-        "system_prompt": "You are the Qwen AI expert. Provide deep technical insights and clear explanations."
+        "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
     }
 }
 
