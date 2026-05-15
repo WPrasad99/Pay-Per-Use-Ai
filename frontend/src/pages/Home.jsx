@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LiveTicker from "../components/LiveTicker";
-
+import { motion } from "framer-motion";
+import Reveal from "../components/Reveal";
 
 const SERVICES_PREVIEW = [
     { icon: '🔍', name: 'Code Reviewer', desc: 'Security, performance, and PR-ready code audit summaries.', price: '0.5', tag: 'Engineering' },
@@ -50,6 +51,36 @@ const ABOUT_FEATURES = [
 ];
 
 
+
+
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.12,
+    },
+  },
+};
+
+const item = {
+  hidden: {
+    opacity: 0,
+    y: 40,
+    rotate: -6,
+    scale: 0.9,
+  },
+  show: {
+    opacity: 1,
+    y: 0,
+    rotate: 0,
+    scale: 1,
+  },
+};
+
+
+
 const ROADMAP = [
     'Industry templates for legal, HR, finance, sales, and support teams',
     'Team workspaces with roles, budgets, and monthly spend limits',
@@ -89,6 +120,7 @@ const Home = () => {
                 <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-[45px] grid-cols-1 lg:grid-cols-[1.06fr_0.94fr]">
 
                     {/* LEFT */}
+                    
                     <div>
                         <div className='mt-2 md:mt-5'>
                         <div className="mb-6 inline-flex items-center gap-2 border-4 border-neo-ink bg-white px-4 py-2 font-black uppercase tracking-[0.18em] shadow-brutal-sm">
@@ -149,301 +181,393 @@ const Home = () => {
 
 
             {/* ABOUT */}
+            <Reveal>
 <section id="about" className="px-4 sm:px-5 py-20 md:px-8">
-  <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl">
 
-    {/* HEADER */}
-    <h2 className="text-3xl md:text-6xl font-black">
-      About PayPerAI
-    </h2>
+        {/* HEADER */}
+        <h2 className="text-3xl md:text-6xl font-black">
+          About PayPerAI
+        </h2>
 
-    <p className="mt-4 text-lg md:text-xl font-semibold text-neo-muted max-w-3xl">
-      A decentralized AI infrastructure platform that lets you access multiple AI models
-      using a blockchain-powered pay-per-use system.
-    </p>
+        <p className="mt-4 text-lg md:text-xl font-semibold text-neo-muted max-w-3xl">
+          A decentralized AI infrastructure platform that lets you access multiple AI models
+          using blockchain-powered pay-per-use smart sessions.
+        </p>
 
-    {/* CARDS */}
-    <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5">
-      {ABOUT_FEATURES.map((item) => (
-        <div
-          key={item.title}
-          className="neo-card bg-white p-6 transition hover:-translate-y-2"
+        {/* CARDS */}
+        <motion.div
+          className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5"
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.2 }}
         >
-          <div className="text-4xl">{item.icon}</div>
+          {ABOUT_FEATURES.map((itemData) => (
+            <motion.div
+              key={itemData.title}
+              className="neo-card bg-white p-6 transition hover:-translate-y-2"
+              variants={item}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="text-4xl">{itemData.icon}</div>
 
-          <h3 className="mt-4 text-xl font-black">
-            {item.title}
-          </h3>
+              <h3 className="mt-4 text-xl font-black">
+                {itemData.title}
+              </h3>
 
-          <p className="mt-2 text-neo-muted font-semibold">
-            {item.desc}
-          </p>
-        </div>
-      ))}
-    </div>
+              <p className="mt-2 text-neo-muted font-semibold">
+                {itemData.desc}
+              </p>
+            </motion.div>
+          ))}
+        </motion.div>
 
-  </div>
-</section>
+      </div>
+    </section>
+</Reveal>
 
 
 
 
             {/* HOW IT WORKS + INFO PANEL */}
-<section id="how-it-works" className="px-4 py-20 sm:px-6 md:px-8">
-  <div className="mx-auto max-w-7xl">
-    <div className="grid gap-16 lg:grid-cols-2">
-      {/* LEFT SIDE */}
-      <div>
-        <h2 className="text-4xl md:text-6xl font-black tracking-tight">
-          Three steps. Zero SaaS drama.
-        </h2>
+<motion.section
+      id="how-it-works"
+      className="px-4 py-20 sm:px-6 md:px-8"
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      viewport={{ once: true, amount: 0.2 }}
+    >
+      <div className="mx-auto max-w-7xl">
 
-        <div className="mt-16 flex flex-col gap-12">
-          {STEPS.map((step, index) => (
-            <div
-              key={step.num}
-              className="grid grid-cols-[70px_1fr] gap-5"
+        <div className="grid gap-16 lg:grid-cols-2">
+
+          {/* LEFT SIDE */}
+          <div>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tight">
+              Three steps. Zero SaaS drama.
+            </h2>
+
+            <motion.div
+              className="mt-16 flex flex-col gap-12"
+              variants={container}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.2 }}
             >
-              {/* Number + Line */}
-              <div className="flex flex-col items-center">
-                <div
-                  className="
-                    flex h-14 w-14 items-center justify-center
-                    rounded-lg
-                    border-[3px] border-black
-                    text-lg font-black
-                    shadow-[4px_4px_0px_#000]
-                    bg-yellow-100
-                  "
+              {STEPS.map((step, index) => (
+                <motion.div
+                  key={step.num}
+                  className="grid grid-cols-[70px_1fr] gap-5"
+                  variants={item}
+                  whileHover={{ scale: 1.01 }}
                 >
-                  {step.num}
+                  {/* Number + Line */}
+                  <div className="flex flex-col items-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-lg border-[3px] border-black text-lg font-black shadow-[4px_4px_0px_#000] bg-yellow-100">
+                      {step.num}
+                    </div>
+
+                    {index !== STEPS.length - 1 && (
+                      <div className="mt-3 h-full w-[4px] bg-black/20 rounded-full" />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div>
+                    <div className="inline-block rounded-lg border-[3px] border-black bg-white px-5 py-2 shadow-[4px_4px_0px_#000]">
+                      <h3 className="text-xl md:text-2xl font-black">
+                        {step.title}
+                      </h3>
+                    </div>
+
+                    <div className="mt-4 rounded-lg border-[3px] border-black bg-[#f3f3f3] p-6 shadow-[5px_5px_0px_#000]">
+                      <div className="mb-4 text-4xl">{step.icon}</div>
+
+                      <p className="text-base leading-relaxed font-semibold text-black/80">
+                        {step.desc}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+
+          {/* RIGHT SIDE */}
+          <div className="lg:pt-8">
+
+            <motion.h3
+              className="text-4xl md:text-5xl font-black tracking-tight"
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
+              The Math
+            </motion.h3>
+
+            <motion.div
+              className="mt-10 rounded-lg border-[4px] border-black bg-[#f3f3f3] p-8 shadow-[8px_8px_0px_#000]"
+              initial={{ opacity: 0, x: 40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <p className="text-lg italic font-semibold">
+                AI Request Flow
+              </p>
+
+              <div className="mt-5 border-b-[3px] border-black" />
+
+              {/* ROW 1 */}
+              <motion.div
+                className="mt-10"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                viewport={{ once: true }}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-2xl font-bold">
+                    Choose AI Worker
+                  </span>
+
+                  <div className="rounded-lg border-[3px] border-black bg-[#b7f5c7] px-5 py-3 font-black shadow-[3px_3px_0px_#000]">
+                    SELECT
+                  </div>
                 </div>
+                <div className="mt-5 border-b-2 border-dashed border-black/30" />
+              </motion.div>
 
-                {index !== STEPS.length - 1 && (
-                  <div className="mt-3 h-full w-[4px] bg-black/20 rounded-full" />
-                )}
-              </div>
+              {/* ROW 2 */}
+              <motion.div
+                className="mt-10"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                viewport={{ once: true }}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-2xl font-bold">
+                    Request Verification
+                  </span>
 
-              {/* Content */}
-              <div>
-                <div
-                  className="
-                    inline-block
-                    rounded-lg
-                    border-[3px]
-                    border-black
-                    bg-white
-                    px-5
-                    py-2
-                    shadow-[4px_4px_0px_#000]
-                  "
-                >
-                  <h3 className="text-xl md:text-2xl font-black">
-                    {step.title}
-                  </h3>
+                  <div className="rounded-lg border-[3px] border-black bg-[#9fc9ff] px-5 py-3 font-black shadow-[3px_3px_0px_#000]">
+                    usage weight
+                  </div>
                 </div>
+                <div className="mt-5 border-b-2 border-dashed border-black/30" />
+              </motion.div>
 
-                <div
-                  className="
-                    mt-4
-                    rounded-lg
-                    border-[3px]
-                    border-black
-                    bg-[#f3f3f3]
-                    p-6
-                    shadow-[5px_5px_0px_#000]
-                  "
-                >
-                  <div className="mb-4 text-4xl">{step.icon}</div>
+              {/* ROW 3 */}
+              <motion.div
+                className="mt-10"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                viewport={{ once: true }}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-2xl font-bold">
+                    Max Context Limit
+                  </span>
 
-                  <p className="text-base leading-relaxed font-semibold text-black/80">
-                    {step.desc}
-                  </p>
+                  <div className="rounded-lg border-[3px] border-black bg-[#ffb3b3] px-5 py-3 font-black shadow-[3px_3px_0px_#000]">
+                    scaling cap x 10
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+                <div className="mt-5 border-b-2 border-dashed border-black/30" />
+              </motion.div>
+
+            </motion.div>
+
+            {/* WARNING */}
+            <motion.div
+              className="mt-8 flex items-start gap-4"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
+              <div className="text-3xl">⚠</div>
+
+              <p className="max-w-xl text-lg font-bold italic text-[#ff9fa8]">
+                Missed usage limits reduce system priority and may restrict future requests.
+              </p>
+            </motion.div>
+
+          </div>
         </div>
       </div>
-
-      {/* RIGHT SIDE */}
-      <div className="lg:pt-8">
-        {/* Heading */}
-        <div
-          className="
-            inline-block
-          "
-        >
-          <h3 className="text-4xl md:text-5xl font-black tracking-tight">
-            The Math
-          </h3>
-        </div>
-
-        {/* Main Box */}
-        <div
-          className="
-            mt-10
-            rounded-lg
-            border-[4px]
-            border-black
-            bg-[#f3f3f3]
-            p-8
-            shadow-[8px_8px_0px_#000]
-          "
-        >
-          {/* Small Title */}
-          <p className="text-lg italic font-semibold">
-           AI Request Flow
-          </p>
-
-          <div className="mt-5 border-b-[3px] border-black" />
-
-          {/* Row */}
-          <div className="mt-10">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-2xl font-bold">Choose AI Worker</span>
-
-              <div
-                className="
-                  rounded-lg
-                  border-[3px]
-                  border-black
-                  bg-[#b7f5c7]
-                  px-5
-                  py-3
-                  font-black
-                  shadow-[3px_3px_0px_#000]
-                "
-              >
-                SELECT
-              </div>
-            </div>
-
-            <div className="mt-5 border-b-2 border-dashed border-black/30" />
-          </div>
-
-          {/* Row */}
-          <div className="mt-10">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-2xl font-bold">Request Verification</span>
-
-              <div
-                className="
-                  rounded-lg
-                  border-[3px]
-                  border-black
-                  bg-[#9fc9ff]
-                  px-5
-                  py-3
-                  font-black
-                  shadow-[3px_3px_0px_#000]
-                "
-              >
-               usage weight
-              </div>
-            </div>
-
-            <div className="mt-5 border-b-2 border-dashed border-black/30" />
-          </div>
-
-
-          {/* Row */}
-          <div className="mt-10">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-2xl font-bold">Max Context Limit</span>
-
-              <div
-                className="
-                  rounded-lg
-                  border-[3px]
-                  border-black
-                  bg-[#ffb3b3]
-                  px-5
-                  py-3
-                  font-black
-                  shadow-[3px_3px_0px_#000]
-                "
-              >
-                scaling cap x 10
-              </div>
-            </div>
-
-            <div className="mt-5 border-b-2 border-dashed border-black/30" />
-          </div>
-        </div>
-
-        {/* Footer Warning */}
-        <div className="mt-8 flex items-start gap-4">
-          <div className="text-3xl">⚠</div>
-
-          <p className="max-w-xl text-lg font-bold italic text-[#ff9fa8]">
-           Missed usage limits reduce system priority and may restrict future requests.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
+    </motion.section>
 
 {/* LIVE TICKER */}
 <div>
 <LiveTicker variant="dark" />
 </div>
-            {/* SERVICES */}
-            <section id="services-preview" className="px-4 sm:px-5 py-20 md:px-8">
-                <div className="mx-auto max-w-7xl text-center">
-                    <h2 className="text-3xl md:text-6xl font-black">AI micro-services</h2>
 
-                    <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-                        {SERVICES_PREVIEW.map((service) => (
-                            <div key={service.name} className="neo-card bg-white p-5 transition hover:-translate-y-2">
-                                <div className="text-3xl">{service.icon}</div>
-                                <h3 className="mt-3 font-black">{service.name}</h3>
-                                <p className="mt-2 text-sm text-neo-muted">{service.desc}</p>
-                                <div className="mt-4 font-black">{service.price} ALGO</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
+
+{/* SERVICES PREVIEW */}
+           <section id="services-preview" className="px-4 sm:px-5 py-20 md:px-8">
+  <div className="mx-auto max-w-7xl text-center">
+    
+    <h2 className="text-3xl md:text-6xl font-black">
+      AI micro-services
+    </h2>
+
+    <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+
+      {SERVICES_PREVIEW.map((service, index) => {
+        
+        // LEFT / RIGHT / CENTER LOGIC
+        const isLeft = index % 2 === 0;
+        const isRight = index % 2 !== 0;
+
+        const animation = {
+          hidden: {
+            opacity: 0,
+            x: isLeft ? -60 : isRight ? 60 : 0,
+          },
+          show: {
+            opacity: 1,
+            x: 0,
+          },
+        };
+
+        return (
+          <motion.div
+            key={service.name}
+            className="neo-card bg-white p-5"
+            variants={animation}
+            initial="hidden"
+            whileInView="show"
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            viewport={{ once: true, amount: 0.2 }}
+            whileHover={{ scale: 1.05 }}
+          >
+            <div className="text-3xl">{service.icon}</div>
+
+            <h3 className="mt-3 font-black">
+              {service.name}
+            </h3>
+
+            <p className="mt-2 text-sm text-neo-muted">
+              {service.desc}
+            </p>
+
+            <div className="mt-4 font-black">
+              {service.price} ALGO
+            </div>
+          </motion.div>
+        );
+      })}
+
+    </div>
+  </div>
+</section>
+
+
 
             {/* FEATURES */}
-            <section id="why-us" className="px-4 sm:px-5 py-20 md:px-8">
-                <div className="mx-auto max-w-7xl">
-                    <h2 className="text-3xl md:text-6xl font-black">
-                        Trust signals that matter
-                    </h2>
+             <section id="why-us" className="px-4 sm:px-5 py-20 md:px-8">
+              
+      <div className="mx-auto max-w-7xl">
 
-                    <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {FEATURES.map((f) => (
-                            <div key={f.title} className="neo-card bg-white p-6 transition hover:scale-105">
-                                <div className="text-2xl">{f.icon}</div>
-                                <h3 className="mt-3 text-xl font-black">{f.title}</h3>
-                                <p className="mt-2 text-neo-muted">{f.desc}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
+        {/* TITLE */}
+        <h2 className="text-3xl md:text-6xl font-black">
+          Trust signals that matter
+        </h2>
+
+        {/* GRID */}
+        <motion.div
+          className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.2 }}
+        >
+          {FEATURES.map((f) => (
+            <motion.div
+              key={f.title}
+              className="neo-card bg-white p-6 transition"
+              variants={item}
+              whileHover={{
+                scale: 1.05,
+                rotate: 0,
+                boxShadow: "6px 6px 0px #000",
+              }}
+              transition={{ type: "spring", stiffness: 200 }}
+            >
+              <div className="text-2xl">{f.icon}</div>
+
+              <h3 className="mt-3 text-xl font-black">
+                {f.title}
+              </h3>
+
+              <p className="mt-2 text-neo-muted">
+                {f.desc}
+              </p>
+            </motion.div>
+          ))}
+        </motion.div>
+
+      </div>
+    </section>
+
+
 
             {/* ROADMAP */}
-            <section id="final-round" className="px-4 sm:px-5 py-20 md:px-8">
-                <div className="mx-auto max-w-7xl">
-                    <h2 className="text-3xl md:text-6xl font-black">
-                        What we refine next
-                    </h2>
+           <section id="final-round" className="px-4 sm:px-5 py-20 md:px-8">
+      <div className="mx-auto max-w-7xl">
 
-                    <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {ROADMAP.map((item, i) => (
-                            <div key={item} className="neo-card bg-white p-4 flex gap-3 transition hover:translate-x-1">
-                                <span className="font-black">{i + 1}.</span>
-                                <p className="font-semibold">{item}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
+        <h2 className="text-3xl md:text-6xl font-black">
+          What we refine next
+        </h2>
+
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {ROADMAP.map((item, i) => {
+            const isEven = i % 2 === 0;
+
+            return (
+              <motion.div
+                key={item}
+                className="neo-card bg-white p-4 flex gap-3"
+                
+                /* SIMPLE SAFE ANIMATION */
+                initial={{
+                  opacity: 0,
+                  x: isEven ? -60 : 60,
+                }}
+                whileInView={{
+                  opacity: 1,
+                  x: 0,
+                }}
+                transition={{
+                  duration: 0.5,
+                  ease: "easeOut",
+                }}
+                viewport={{ once: true, amount: 0.2 }}
+
+                /* HOVER EFFECT */
+                whileHover={{
+                  x: isEven ? 5 : -5,
+                  scale: 1.02,
+                }}
+              >
+                <span className="font-black">{i + 1}.</span>
+                <p className="font-semibold">{item}</p>
+              </motion.div>
+            );
+          })}
+
+        </div>
+
+      </div>
+    </section>
 
         </div>
     );

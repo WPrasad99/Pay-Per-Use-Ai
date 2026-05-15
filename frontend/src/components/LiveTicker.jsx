@@ -12,7 +12,7 @@ export default function LiveTicker({ variant = "dark" }) {
 
   return (
     <section
-      className={`w-full overflow-hidden border-y-2 border-black py-3 ${
+      className={`w-full overflow-hidden border-y-2 border-black py-2 ${
         isDark ? "bg-black" : "bg-yellow-200"
       }`}
     >
