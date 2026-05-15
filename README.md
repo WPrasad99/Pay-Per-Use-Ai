@@ -17,12 +17,12 @@
       <img src="https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
     </a>
     <a href="https://openai.com/">
-      <img src="https://img.shields.io/badge/OpenAI-GPT--4o%20%7C%20DALL--E%203-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI" />
+      <img src="https://img.shields.io/badge/Multi--Model-AI-A855F7?style=for-the-badge&logo=openai&logoColor=white" alt="Multi-Model" />
     </a>
   </p>
 
   <p align="center">
-    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&duration=3000&pause=1000&color=A855F7&center=true&vCenter=true&width=435&lines=Pay+Per+Use;No+Subscriptions;Real-Time+AI+Streaming;On-Chain+Proof+of+Intelligence" alt="Typing SVG" />
+    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&duration=3000&pause=1000&color=A855F7&center=true&vCenter=true&width=435&lines=Pay+Per+Use;No+Subscriptions;Multi-Model+AI;On-Chain+Smart+Sessions" alt="Typing SVG" />
   </p>
 </div>
 
@@ -30,9 +30,9 @@
 
 ## 📖 About The Project
 
-**PayPerAI** is a state-of-the-art decentralized platform bridging the gap between premium Web2 AI tools and Web3 decentralized finance. We solve the issue of bloated monthly AI subscriptions by introducing a frictionless **Pay-Per-Use** model powered by the **Algorand Blockchain**. 
+**PayPerAI** is a state-of-the-art decentralized platform bridging the gap between premium AI models and Web3 finance. We solve the issue of bloated monthly AI subscriptions by introducing a frictionless **Pay-Per-Use** model powered by the **Algorand Blockchain**. 
 
-Users connect their wallets, authorize a 24-hour smart contract session, and get instantly charged *only for the exact AI tokens they consume*. No credit cards. No lock-ins.
+Users connect their wallets, authorize a smart contract session, and get instantly charged *only for the exact tokens they consume*. No credit cards. No lock-ins. Switch between world-class models like Llama 3, GPT-4o, and Gemini 1.5 in a single conversation.
 
 ---
 
@@ -41,75 +41,57 @@ Users connect their wallets, authorize a 24-hour smart contract session, and get
 <table align="center">
   <tr>
     <td width="50%">
-      <h3>⚡ Real-Time AI Streaming (SSE)</h3>
-      <p>Experience ultra-fast, character-by-character AI typing exactly like ChatGPT. No waiting for long queries—responses stream directly to your UI while the backend seamlessly calculates costs and updates the blockchain in the background.</p>
+      <h3>🧠 Multi-Model Intelligence</h3>
+      <p>Switch seamlessly between <b>Llama 3.3 (Groq)</b>, <b>GPT-4o Mini</b>, <b>Gemini 1.5 Flash</b>, and <b>Qwen 2.5</b>. Change models mid-conversation without losing your chat context—the ultimate playground for power users.</p>
     </td>
     <td width="50%">
-      <h3>🧠 AI Image Studio (DALL-E 3)</h3>
-      <p>Generate world-class, high-fidelity AI art directly within the platform. Our integration ensures every prompt results in an absolute masterpiece.</p>
+      <h3>⚡ Seamless Real-Time Streaming</h3>
+      <p>Ultra-fast, character-by-character responses powered by Server-Sent Events (SSE). Experience Web2 performance with Web3 security as on-chain deductions happen in the background.</p>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <h3>⏱️ Smart Session Management</h3>
-      <p>A flawless Web3 UX: Authorize a 24-hour session via Pera Wallet just <b>once</b>. Enjoy auto-renewal logic, a live session countdown timer, and automatic UI prompts when your session expires. No more signing transactions for every single chat message!</p>
+      <h3>⏱️ Pro Smart Sessions</h3>
+      <p>Authorize once, chat forever. Our optimized Smart Sessions use a <b>1 ALGO buffer</b> to enable "unlimited" prompting for 24 hours. No manual approval for every message—just pure, uninterrupted flow.</p>
     </td>
     <td width="50%">
       <h3>💎 1-Click NFT Minting</h3>
-      <p>Transform your AI creations into permanent on-chain ARC-69 assets with zero technical friction. Minted instantly and delivered straight to your Pera Wallet.</p>
+      <p>Transform your AI interactions and images into permanent on-chain ARC-69 assets with one click. Delivered instantly to your Pera Wallet as an immutable proof of creation.</p>
     </td>
   </tr>
 </table>
 
 ---
 
-## 🚦 Live Demo & Quick Start
+## 🚀 Architectural Innovations
 
-> 🔗 **Live URL:** **[https://debuggers-united.sandy.vercel.app](https://debuggers-united.sandy.vercel.app)**
-> 
-> *No local setup required. Optimized for Algorand TestNet.*
+### 1. Hybrid Multi-Model Chat Engine
+Unlike other platforms that lock you into one model per page, PayPerAI allows you to **change the model on-the-fly**. You can start a conversation with Llama 3 for speed and switch to GPT-4o for complex logic—all within the same persistent thread.
 
-### The 5-Step Magic Workflow
+### 2. High-Performance Smart Sessions (ARC-0060)
+We've optimized the Algorand Smart Session model for maximum UX:
+- **Balance-Aware Authorization:** Sessions now authorize your entire available escrow balance, preventing "out of session funds" errors during deep research.
+- **Manual Control:** New "End Session" functionality gives users complete control over their on-chain session state.
+- **Auto-Sync History:** A unified history system that tracks your intelligence usage across every model you interact with.
 
-1. 🦊 **Connect Wallet:** Click "Connect Wallet" and scan the WalletConnect QR with your Pera app. *(Switch your Pera app to TestNet!)*
-2. 🤖 **Pick an Expert AI:** Choose from our arsenal (Code Reviewer, Business Evaluator, Image Studio, etc.)
-3. 💰 **Authorize Session:** First time? Deposit a small ALGO escrow and sign **once** to open a 24-hour session.
-4. 💬 **Stream Answers:** Chat with the AI and watch the response stream in real-time. Token costs auto-deduct transparently.
-5. 🖼️ **Mint Art:** Go to Image Studio, generate a DALL-E 3 masterpiece, and click "Mint as NFT" to get your ARC-69 asset.
-
----
-
-## 🚀 Key Architectural Innovations
-
-### 1. The Seamless "Smart Session" Engine
-Unlike traditional dApps that force you to sign a pop-up for *every single interaction*, PayPerAI uses an advanced Escrow + Session model:
-- You authorize a **24-hour session max-spend** via the Algorand Smart Contract (`start_session`).
-- As you chat, the backend validates your session on-chain and streams the AI response.
-- Costs are tallied in the background and synced to the blockchain seamlessly.
-- **Result:** Web2 UX speed with Web3 security.
-
-### 2. On-Chain Proof of Intelligence 🧬
-Every AI response triggers a **fire-and-forget Algorand note transaction** embedding a SHA-256 hash of the AI output on-chain. 
-- Immutably proves **who** requested the AI response, **what** was generated, and **when**.
-
-### 3. Dynamic BoxMap Smart Contract (Puya/Python)
-Our contract utilizes Algorand's latest `BoxMap` technology to handle dynamic pricing and session expiry natively:
-- `request_service_v2()` — Validates session expiry and balance limits.
-- `start_session()` — Initializes the 24-hour timer.
-- Fully ABI-compliant and indexer-readable.
+### 3. Neo-Brutalism Workspace
+A premium, state-of-the-art UI designed for the modern developer:
+- **Clean Sidebar:** Deduplicated model lists for a focused experience.
+- **Interactive Header:** Live session countdowns and status indicators.
+- **Dynamic Quick Prompts:** Start your session with pre-configured expert templates.
 
 ---
 
-## 🎯 User Workflow (End-to-End Flow)
+## 🎯 User Workflow (The Magic Flow)
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
-│  1. CONNECT  →  Scan QR with Pera (MainNet), switch to TestNet   │
-│  2. BROWSE   →  Choose from 6 AI services on the Services page   │
-│  3. AUTHORIZE→  Sign once for a 24-hour smart contract session   │
-│  4. USE      →  Chat with AI (Streaming) → costs auto-deducted   │
-│  5. MINT     →  One-click: AI Art → ARC-69 NFT → your wallet     │
-│  6. VERIFY   →  Check Testnet Explorer for Proof-of-Intelligence │
+│  1. CONNECT  →  Connect Pera Wallet (TestNet)                    │
+│  2. DEPOSIT  →  Add a small ALGO buffer to your smart escrow     │
+│  3. APPROVE  →  Sign ONCE for an unlimited 24h smart session     │
+│  4. CHAT     →  Stream responses from GPT, Llama, or Gemini      │
+│  5. SWITCH   →  Change models mid-chat to get the best answer    │
+│  6. MINT     →  Save your AI masterpieces as on-chain NFTs       │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -119,19 +101,21 @@ Our contract utilizes Algorand's latest `BoxMap` technology to handle dynamic pr
 
 ```mermaid
 graph TD
-    A[Frontend: React + Vite] -->|WalletConnect| B[Pera Wallet Mobile]
-    A -->|SSE Streams + REST| C[FastAPI Backend]
+    A[Frontend: React + Vite] -->|Pera Wallet SDK| B[Smart Session Contract]
+    A -->|SSE Streams| C[FastAPI Gateway]
     
-    C -->|1. Check Session & Balance| D[(Algorand Smart Contract)]
-    C -->|2. Stream GPT-4o / DALL-E| E[OpenAI API]
-    C -->|3. Mint NFT / Proof of Intel| F[Algorand TestNet]
+    C -->|Orchestration| D{Multi-Model Hub}
+    D -->|Inference| E[Groq / Llama 3]
+    D -->|Inference| F[OpenAI / GPT-4o]
+    D -->|Inference| G[Google / Gemini]
     
-    D -->|BoxMap Data| G[Indexer / RPC]
-    G --> C
+    C -->|Token Billing| B
+    B -->|Box Storage| H[Algorand Ledger]
     
     style A fill:#1e1e1e,stroke:#A855F7,stroke-width:2px,color:#fff
     style C fill:#009688,stroke:#fff,stroke-width:2px,color:#fff
-    style D fill:#000,stroke:#fff,stroke-width:2px,color:#fff
+    style B fill:#000,stroke:#fff,stroke-width:2px,color:#fff
+    style D fill:#A855F7,stroke:#fff,stroke-width:2px,color:#fff
 ```
 
 ---
@@ -139,57 +123,21 @@ graph TD
 ## 💻 Tech Stack
 
 <div align="center">
-  <img src="https://skillicons.dev/icons?i=react,vite,tailwind,python,fastapi,postgres,docker" />
+  <img src="https://skillicons.dev/icons?i=react,vite,tailwind,python,fastapi,postgres,algorand" />
 </div>
 
-| Layer               | Technology                               | Purpose                                                       |
+| Layer               | Technology                               | Key Features                                                  |
 | ------------------- | ---------------------------------------- | ------------------------------------------------------------- |
-| **Smart Contract**  | Algorand Puya/Python (ARC4)              | On-chain sessions, BoxMap escrow, automated verification      |
-| **Backend API**     | Python FastAPI                           | SSE Streaming, AI orchestration, NFT minting pipeline         |
-| **Frontend**        | React 18 + TailwindCSS + Vite            | Dark mode, glowing UI, real-time streaming, session timers    |
-| **Wallet SDK**      | @perawallet/connect + algosdk v3         | QR connection, atomic transaction grouping                    |
-| **AI Models**       | OpenAI GPT-4o & DALL-E 3                 | Advanced multi-turn conversation & image generation           |
-
----
-
-## ⚙️ Setup & Run Instructions
-
-### 1. Clone & Setup Backend
-```bash
-git clone https://github.com/WPrasad99/Pay-Per-Use-Ai.git
-cd Pay-Per-Use-Ai/backend
-python -m venv venv
-# Activate venv: `venv\Scripts\activate` (Win) or `source venv/bin/activate` (Mac/Linux)
-pip install -r requirements.txt
-```
-
-### 2. Configure `.env` (in `/backend`)
-```env
-OPENAI_API_KEY=sk-your-key
-ALGORAND_NETWORK=testnet
-ALGOD_URL=https://testnet-api.algonode.cloud
-PLATFORM_WALLET_ADDRESS=YOUR_WALLET
-PLATFORM_WALLET_MNEMONIC=your 25 words...
-ALGORAND_APP_ID=YOUR_APP_ID
-```
-
-### 3. Run It!
-**Backend:**
-```bash
-python -m uvicorn app.main:app --reload --port 8000
-```
-**Frontend:**
-```bash
-cd ../frontend
-npm install
-npm run dev
-```
+| **Blockchain**      | Algorand (ARC-0060)                      | Smart Sessions, BoxMap Escrow, Atomic Groups                  |
+| **AI Backend**      | FastAPI + Groq + OpenAI                  | Low-latency streaming, Token-based billing                    |
+| **Frontend**        | React 18 + Neo-Brutalism CSS             | Multi-model switcher, Session management UI                   |
+| **Infrastructure**  | Docker + PostgreSQL                      | Scalable message history & User analytics                     |
 
 ---
 
 <div align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=009688&height=120&section=footer" width="100%" />
-  <h2>🚀 <b>Team Pay-Per-UseAI</b> 🚀</h2>
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=A855F7&height=120&section=footer" width="100%" />
+  <h2>🚀 <b>Team PayPerAI</b> 🚀</h2>
   <p><i>Building the decentralized future of AI economies.</i></p>
   <br/>
   <a href="https://github.com/WPrasad99/Pay-Per-Use-Ai">
