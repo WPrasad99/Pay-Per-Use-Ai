@@ -1,5 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { peraWallet } from '../config/peraWallet';
+import { getUserProfile, getNonce, verifySiwa, registerUser } from '../api/client';
+
+// Read the persisted wallet (same 24h logic as Navbar)
+const getPersistedWallet = () => {
+    const addr = localStorage.getItem('wallet_address');
+    const expiry = localStorage.getItem('wallet_expiry');
+    if (!addr || !expiry) return null;
+    if (Date.now() > parseInt(expiry, 10)) {
+        localStorage.removeItem('wallet_address');
+        localStorage.removeItem('wallet_expiry');
+        return null;
+    }
+    return addr;
+};
+
+const persistWallet = (addr) => {
+    localStorage.setItem('wallet_address', addr);
+    localStorage.setItem('wallet_expiry', (Date.now() + 24 * 60 * 60 * 1000).toString());
+    sessionStorage.setItem('wallet_address', addr);
+};
 import LiveTicker from "../components/LiveTicker";
 import { motion } from "framer-motion";
 import Reveal from "../components/Reveal";
@@ -89,15 +110,66 @@ const TRUST_STATS = [
 ];
 
 const Home = () => {
-    const [isWalletConnected, setIsWalletConnected] = useState(false);
+    const [isWalletConnected, setIsWalletConnected] = useState(() => !!getPersistedWallet());
     const [mounted, setMounted] = useState(false);
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [onboardingData, setOnboardingData] = useState({ name: '', dob: '', email: '' });
+    const [isRegistering, setIsRegistering] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        setIsWalletConnected(!!sessionStorage.getItem('wallet_address'));
-
-        // trigger fade-in after mount
+        setIsWalletConnected(!!getPersistedWallet());
         setMounted(true);
     }, []);
+
+    const handleConnect = async () => {
+        if (isConnecting) return;
+        // If already connected, just go to workspace
+        if (getPersistedWallet()) {
+            navigate('/dashboard');
+            return;
+        }
+        setIsConnecting(true);
+        try {
+            let accounts = [];
+            try { accounts = await peraWallet.reconnectSession(); } catch (_) {}
+            if (!accounts || accounts.length === 0) accounts = await peraWallet.connect();
+            if (!accounts || accounts.length === 0) throw new Error('Connection cancelled.');
+            peraWallet.connector?.on('disconnect', () => {
+                localStorage.removeItem('wallet_address');
+                localStorage.removeItem('wallet_expiry');
+                sessionStorage.clear();
+                setIsWalletConnected(false);
+            });
+            const addr = accounts[0];
+            const { nonce } = await getNonce(addr);
+            const message = `PayPerAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
+            const msgBytes = new TextEncoder().encode(message);
+            const signedData = await peraWallet.signData([{ data: msgBytes, message }], addr);
+            const sigBytes = signedData[0] instanceof Uint8Array
+                ? signedData[0]
+                : new Uint8Array(Object.values(signedData[0]));
+            const sigB64 = btoa(Array.from(sigBytes, b => String.fromCharCode(b)).join(''));
+            await verifySiwa(addr, message, sigB64);
+            persistWallet(addr);
+            setIsWalletConnected(true);
+            try {
+                await getUserProfile(addr);
+                navigate('/dashboard');
+            } catch (err) {
+                if (err.status === 404 || (err.message && err.message.toLowerCase().includes('not found'))) {
+                    setShowOnboarding(true);
+                } else throw err;
+            }
+        } catch (err) {
+            if (err?.data?.type !== 'CONNECT_MODAL_CLOSED') {
+                alert('Connection failed: ' + (err.message || 'Unknown error'));
+            }
+        } finally {
+            setIsConnecting(false);
+        }
+    };
 
     return (
         <div
