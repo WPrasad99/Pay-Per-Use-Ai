@@ -80,6 +80,9 @@ const Navbar = () => {
             peraWallet.connector?.on('disconnect', handleDisconnectWalletClick);
             const addr = accounts[0];
 
+            // Give the mobile wallet 1 second to transition states before asking for signature
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             // Step 2: Get nonce from backend
             setConnectStatus('Getting verification challenge...');
             const { nonce } = await getNonce(addr);
