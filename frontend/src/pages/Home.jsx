@@ -24,6 +24,30 @@ const FEATURES = [
     { icon: '🧾', title: 'Enterprise-ready transparency', desc: 'Clear pricing, transaction proof, and explainable flow help build industry trust.' },
 ];
 
+const ABOUT_FEATURES = [
+  {
+    icon: "⚡",
+    title: "Multi-Model Intelligence",
+    desc: "Switch seamlessly between GPT-4o, Gemini 1.5, Llama 3, and Qwen inside one persistent conversation without losing context.",
+  },
+  {
+    icon: "🔗",
+    title: "Smart Sessions",
+    desc: "Authorize once and interact continuously for 24 hours using blockchain-based session management with zero repeated approvals.",
+  },
+  {
+    icon: "💸",
+    title: "Usage-Based Billing",
+    desc: "Pay only for the exact AI tokens you consume instead of expensive monthly subscriptions.",
+  },
+  {
+    icon: "🚀",
+    title: "Future AI Economy",
+    desc: "A decentralized infrastructure for AI orchestration, NFT ownership, and wallet-native intelligence systems.",
+  },
+];
+
+
 const ROADMAP = [
     'Industry templates for legal, HR, finance, sales, and support teams',
     'Team workspaces with roles, budgets, and monthly spend limits',
@@ -127,6 +151,47 @@ const Home = () => {
 
                 </div>
             </section>
+
+
+            {/* ABOUT */}
+<section id="about" className="px-4 sm:px-5 py-20 md:px-8">
+  <div className="mx-auto max-w-7xl">
+
+    {/* HEADER */}
+    <h2 className="text-3xl md:text-6xl font-black">
+      About PayPerAI
+    </h2>
+
+    <p className="mt-4 text-lg md:text-xl font-semibold text-neo-muted max-w-3xl">
+      A decentralized AI infrastructure platform that lets you access multiple AI models
+      using a blockchain-powered pay-per-use system.
+    </p>
+
+    {/* CARDS */}
+    <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5">
+      {ABOUT_FEATURES.map((item) => (
+        <div
+          key={item.title}
+          className="neo-card bg-white p-6 transition hover:-translate-y-2"
+        >
+          <div className="text-4xl">{item.icon}</div>
+
+          <h3 className="mt-4 text-xl font-black">
+            {item.title}
+          </h3>
+
+          <p className="mt-2 text-neo-muted font-semibold">
+            {item.desc}
+          </p>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</section>
+
+
+
 
             {/* HOW IT WORKS */}
             <section id="how-it-works" className="px-4 sm:px-5 py-20 md:px-8">
