@@ -81,14 +81,6 @@ const item = {
 
 
 
-const ROADMAP = [
-    'Industry templates for legal, HR, finance, sales, and support teams',
-    'Team workspaces with roles, budgets, and monthly spend limits',
-    'Invoice export with transaction IDs for accounting and audits',
-    'BYOK / model choice layer so companies can choose cost vs quality',
-    'Document upload, knowledge base, and private project memory',
-    'Admin analytics: cost per task, saved hours, and department usage',
-];
 
 const TRUST_STATS = [
     { value: '0', label: 'subscription lock-in' },
@@ -527,55 +519,54 @@ const Home = () => {
 
 
 
-            {/* ROADMAP */}
-           <section id="final-round" className="px-4 sm:px-5 py-20 md:px-8">
-      <div className="mx-auto max-w-7xl">
+            {/* NEW CTA SECTION */}
+            <section className="px-4 sm:px-5 py-24 md:py-32 md:px-8 overflow-hidden">
+                <div className="mx-auto max-w-4xl flex flex-col items-center justify-center gap-10 md:gap-14">
+                    
+                    {/* JOIN NOW */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 30, rotate: -6 }}
+                        whileInView={{ opacity: 1, y: 0, rotate: -2 }}
+                        transition={{ duration: 0.6, type: 'spring' }}
+                        viewport={{ once: true }}
+                        className="w-full sm:w-[80%] bg-[#b7f5c7] border-[4px] border-black shadow-[8px_8px_0px_#000] p-6 md:p-8 transform -rotate-2 text-center"
+                    >
+                        <h2 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-widest uppercase text-black">
+                            Join Now.
+                        </h2>
+                    </motion.div>
 
-        <h2 className="text-3xl md:text-6xl font-black">
-          What we refine next
-        </h2>
+                    {/* Middle Text */}
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.6, delay: 0.1 }}
+                        viewport={{ once: true }}
+                        className="bg-white border-[3px] border-black px-6 py-8 md:px-12 md:py-10 transform rotate-1 text-center max-w-2xl w-full"
+                    >
+                        <p className="text-xl md:text-2xl font-bold leading-relaxed text-black">
+                            Build reputation in a trustless ecosystem.<br />
+                            Give your agents the capital they deserve.
+                        </p>
+                    </motion.div>
 
-        <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* CONNECT WALLET BUTTON */}
+                    <motion.button 
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                        viewport={{ once: true }}
+                        onClick={handleConnect}
+                        disabled={isConnecting}
+                        className="w-full sm:w-[80%] bg-[#9fc9ff] border-[4px] border-black shadow-[8px_8px_0px_#000] p-6 md:p-8 text-center transition-all duration-150 hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[12px_12px_0px_#000] active:translate-x-2 active:translate-y-2 active:shadow-none disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        <span className="text-3xl md:text-5xl lg:text-6xl font-black tracking-widest uppercase text-black">
+                            {isConnecting ? 'Connecting...' : isWalletConnected ? 'Open Workspace' : 'Connect Wallet'}
+                        </span>
+                    </motion.button>
 
-          {ROADMAP.map((item, i) => {
-            const isEven = i % 2 === 0;
-
-            return (
-              <motion.div
-                key={item}
-                className="neo-card bg-white p-4 flex gap-3"
-                
-                /* SIMPLE SAFE ANIMATION */
-                initial={{
-                  opacity: 0,
-                  x: isEven ? -60 : 60,
-                }}
-                whileInView={{
-                  opacity: 1,
-                  x: 0,
-                }}
-                transition={{
-                  duration: 0.5,
-                  ease: "easeOut",
-                }}
-                viewport={{ once: true, amount: 0.2 }}
-
-                /* HOVER EFFECT */
-                whileHover={{
-                  x: isEven ? 5 : -5,
-                  scale: 1.02,
-                }}
-              >
-                <span className="font-black">{i + 1}.</span>
-                <p className="font-semibold">{item}</p>
-              </motion.div>
-            );
-          })}
-
-        </div>
-
-      </div>
-    </section>
+                </div>
+            </section>
 
         </div>
     );
