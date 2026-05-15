@@ -84,7 +84,7 @@ async def verify_signature(data: VerifyIn, response: Response):
     token = create_access_token(data.wallet_address)
     response.set_cookie(
         key="access_token", value=token,
-        httponly=True, samesite="lax", secure=False,
+        httponly=True, samesite="none", secure=True,
         max_age=86400, path="/",
     )
     return {"wallet_address": data.wallet_address, "authenticated": True}
@@ -92,5 +92,5 @@ async def verify_signature(data: VerifyIn, response: Response):
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("access_token", path="/", samesite="none", secure=True)
     return {"message": "Logged out successfully"}
