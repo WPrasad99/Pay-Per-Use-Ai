@@ -81,7 +81,7 @@ const Home = () => {
         >
 
             {/* HERO */}
-            <section className="relative min-h-screen px-4 sm:px-5 pt-24 pb-16 md:px-8 flex items-center">
+            <section className="relative min-h-screen px-4 sm:px-5 pt-32 pb-16 md:px-8 flex items-center">
                 <div className="neo-grid absolute inset-0 opacity-70" />
 
                 <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-[45px] grid-cols-1 lg:grid-cols-[1.06fr_0.94fr]">
