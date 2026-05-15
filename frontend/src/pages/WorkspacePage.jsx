@@ -13,6 +13,7 @@ import {
     transferNFT,
     getUserProfile,
     getUserAnalytics,
+    deleteConversation,
 } from '../api/client';
 
 const ICONS = {
@@ -486,6 +487,21 @@ const WorkspacePage = () => {
         }
     };
 
+    const handleDeleteConversation = async (e, id) => {
+        e.stopPropagation();
+        if (!confirm('Are you sure you want to delete this chat history?')) return;
+        try {
+            await deleteConversation(id);
+            if (conversationId === id) {
+                setConversationId(null);
+                setMessages([]);
+            }
+            getConversationHistory(wallet, service?.id).then(setHistory).catch(() => {});
+        } catch (err) {
+            setError('Failed to delete chat: ' + err.message);
+        }
+    };
+
     const Sidebar = ({ isMobile = false }) => (
         <div className="flex min-h-full flex-col bg-white text-[#111]">
             <div className="flex items-start justify-between gap-3">
@@ -553,20 +569,29 @@ const WorkspacePage = () => {
                 </div>
                 <div className="mt-2 space-y-2 flex-1 overflow-y-auto pr-1">
                     {usageRows.map((row) => (
-                        <button
-                            key={row.id}
-                            type="button"
-                            onClick={() => row.conversationId && loadConversation(row.conversationId)}
-                            className={`w-full rounded-xl border-2 border-[#111] p-2 text-left text-sm shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-1 md:border-4 ${
-                                row.conversationId === conversationId ? 'bg-green-200' : 'bg-white'
-                            }`}
-                        >
-                            <span className="block truncate font-black">{row.label}</span>
-                            <span className="mt-1 flex items-center justify-between gap-2 text-[11px] font-bold opacity-60">
-                                <span>{row.tokens} tokens</span>
-                                <span>${Number(row.cost).toFixed(4)}</span>
-                            </span>
-                        </button>
+                        <div key={row.id} className="relative group flex items-stretch">
+                            <button
+                                type="button"
+                                onClick={() => row.conversationId && loadConversation(row.conversationId)}
+                                className={`w-full rounded-xl border-2 border-[#111] p-2 text-left text-sm shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-1 md:border-4 ${
+                                    row.conversationId === conversationId ? 'bg-green-200' : 'bg-white'
+                                }`}
+                            >
+                                <span className="block truncate pr-6 font-black">{row.label}</span>
+                                <span className="mt-1 flex items-center justify-between gap-2 text-[11px] font-bold opacity-60">
+                                    <span>{row.tokens} tokens</span>
+                                    <span>${Number(row.cost).toFixed(4)}</span>
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(e) => handleDeleteConversation(e, row.conversationId)}
+                                className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700 transition-opacity bg-white rounded-md border border-[#111]"
+                                title="Delete Chat"
+                            >
+                                ✕
+                            </button>
+                        </div>
                     ))}
                 </div>
                 
