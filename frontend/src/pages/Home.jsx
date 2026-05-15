@@ -119,9 +119,6 @@ const Home = () => {
             });
             const addr = accounts[0];
 
-            // Give the mobile wallet 1 second to transition states before asking for signature
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
             const { nonce } = await getNonce(addr);
             const message = `PayPerAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
             const msgBytes = new TextEncoder().encode(message);
