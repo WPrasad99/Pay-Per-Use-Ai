@@ -11,6 +11,7 @@
     "@perawallet/connect": "^1.5.2",
     "algosdk": "^3.5.2",
     "buffer": "^6.0.3",
+    "lucide-react": "^1.16.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.23.1"
