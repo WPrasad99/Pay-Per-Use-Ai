@@ -1,26 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { peraWallet } from '../config/peraWallet';
-import { getUserProfile, getNonce, verifySiwa, registerUser } from '../api/client';
-
-// Read the persisted wallet (same 24h logic as Navbar)
-const getPersistedWallet = () => {
-    const addr = localStorage.getItem('wallet_address');
-    const expiry = localStorage.getItem('wallet_expiry');
-    if (!addr || !expiry) return null;
-    if (Date.now() > parseInt(expiry, 10)) {
-        localStorage.removeItem('wallet_address');
-        localStorage.removeItem('wallet_expiry');
-        return null;
-    }
-    return addr;
-};
-
-const persistWallet = (addr) => {
-    localStorage.setItem('wallet_address', addr);
-    localStorage.setItem('wallet_expiry', (Date.now() + 24 * 60 * 60 * 1000).toString());
-    sessionStorage.setItem('wallet_address', addr);
-};
+import { Link } from 'react-router-dom';
 
 const SERVICES_PREVIEW = [
     { icon: '🔍', name: 'Code Reviewer', desc: 'Security, performance, and PR-ready code audit summaries.', price: '0.5', tag: 'Engineering' },
@@ -85,67 +64,15 @@ const TRUST_STATS = [
 ];
 
 const Home = () => {
-    const [isWalletConnected, setIsWalletConnected] = useState(() => !!getPersistedWallet());
+    const [isWalletConnected, setIsWalletConnected] = useState(false);
     const [mounted, setMounted] = useState(false);
-    const [isConnecting, setIsConnecting] = useState(false);
-    const [showOnboarding, setShowOnboarding] = useState(false);
-    const [onboardingData, setOnboardingData] = useState({ name: '', dob: '', email: '' });
-    const [isRegistering, setIsRegistering] = useState(false);
-    const navigate = useNavigate();
 
     useEffect(() => {
-        setIsWalletConnected(!!getPersistedWallet());
+        setIsWalletConnected(!!sessionStorage.getItem('wallet_address'));
+
+        // trigger fade-in after mount
         setMounted(true);
     }, []);
-
-    const handleConnect = async () => {
-        if (isConnecting) return;
-        // If already connected, just go to workspace
-        if (getPersistedWallet()) {
-            navigate('/dashboard');
-            return;
-        }
-        setIsConnecting(true);
-        try {
-            let accounts = [];
-            try { accounts = await peraWallet.reconnectSession(); } catch (_) {}
-            if (!accounts || accounts.length === 0) accounts = await peraWallet.connect();
-            if (!accounts || accounts.length === 0) throw new Error('Connection cancelled.');
-            peraWallet.connector?.on('disconnect', () => {
-                localStorage.removeItem('wallet_address');
-                localStorage.removeItem('wallet_expiry');
-                sessionStorage.clear();
-                setIsWalletConnected(false);
-            });
-            const addr = accounts[0];
-
-            const { nonce } = await getNonce(addr);
-            const message = `PayPerAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
-            const msgBytes = new TextEncoder().encode(message);
-            const signedData = await peraWallet.signData([{ data: msgBytes, message }], addr);
-            const sigBytes = signedData[0] instanceof Uint8Array
-                ? signedData[0]
-                : new Uint8Array(Object.values(signedData[0]));
-            const sigB64 = btoa(Array.from(sigBytes, b => String.fromCharCode(b)).join(''));
-            await verifySiwa(addr, message, sigB64);
-            persistWallet(addr);
-            setIsWalletConnected(true);
-            try {
-                await getUserProfile(addr);
-                navigate('/dashboard');
-            } catch (err) {
-                if (err.status === 404 || (err.message && err.message.toLowerCase().includes('not found'))) {
-                    setShowOnboarding(true);
-                } else throw err;
-            }
-        } catch (err) {
-            if (err?.data?.type !== 'CONNECT_MODAL_CLOSED') {
-                alert('Connection failed: ' + (err.message || 'Unknown error'));
-            }
-        } finally {
-            setIsConnecting(false);
-        }
-    };
 
     return (
         <div
@@ -177,13 +104,9 @@ const Home = () => {
                         </p>
 
                         <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                            <button
-                                onClick={handleConnect}
-                                disabled={isConnecting}
-                                className="btn-primary disabled:opacity-60"
-                            >
-                                {isConnecting ? 'Connecting...' : isWalletConnected ? 'Open workspace →' : 'Connect wallet →'}
-                            </button>
+                            <Link to="/" className="btn-primary">
+                                {isWalletConnected ? 'Open workspace →' : 'Connect wallet →'}
+                            </Link>
                             <a href="#final-round" className="btn-secondary">
                                 Product roadmap
                             </a>
@@ -270,25 +193,202 @@ const Home = () => {
 
 
 
-            {/* HOW IT WORKS */}
-            <section id="how-it-works" className="px-4 sm:px-5 py-20 md:px-8">
-                <div className="mx-auto max-w-7xl">
-                    <h2 className="text-3xl md:text-6xl font-black">
-                        Three steps. Zero SaaS drama.
-                    </h2>
+            {/* HOW IT WORKS + INFO PANEL */}
+<section id="how-it-works" className="px-4 py-20 sm:px-6 md:px-8">
+  <div className="mx-auto max-w-7xl">
+    <div className="grid gap-16 lg:grid-cols-2">
+      {/* LEFT SIDE */}
+      <div>
+        <h2 className="text-4xl md:text-6xl font-black tracking-tight">
+          Three steps. Zero SaaS drama.
+        </h2>
 
-                    <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
-                        {STEPS.map((step) => (
-                            <div key={step.num} className="neo-card bg-white p-6 transition hover:-translate-y-2">
-                                <div className="text-4xl">{step.icon}</div>
-                                <h3 className="mt-4 text-xl font-black">{step.title}</h3>
-                                <p className="mt-2 text-neo-muted font-semibold">{step.desc}</p>
-                            </div>
-                        ))}
-                    </div>
+        <div className="mt-16 flex flex-col gap-12">
+          {STEPS.map((step, index) => (
+            <div
+              key={step.num}
+              className="grid grid-cols-[70px_1fr] gap-5"
+            >
+              {/* Number + Line */}
+              <div className="flex flex-col items-center">
+                <div
+                  className="
+                    flex h-14 w-14 items-center justify-center
+                    rounded-lg
+                    border-[3px] border-black
+                    text-lg font-black
+                    shadow-[4px_4px_0px_#000]
+                    bg-yellow-100
+                  "
+                >
+                  {step.num}
                 </div>
-            </section>
 
+                {index !== STEPS.length - 1 && (
+                  <div className="mt-3 h-full w-[4px] bg-black/20 rounded-full" />
+                )}
+              </div>
+
+              {/* Content */}
+              <div>
+                <div
+                  className="
+                    inline-block
+                    rounded-lg
+                    border-[3px]
+                    border-black
+                    bg-white
+                    px-5
+                    py-2
+                    shadow-[4px_4px_0px_#000]
+                  "
+                >
+                  <h3 className="text-xl md:text-2xl font-black">
+                    {step.title}
+                  </h3>
+                </div>
+
+                <div
+                  className="
+                    mt-4
+                    rounded-lg
+                    border-[3px]
+                    border-black
+                    bg-[#f3f3f3]
+                    p-6
+                    shadow-[5px_5px_0px_#000]
+                  "
+                >
+                  <div className="mb-4 text-4xl">{step.icon}</div>
+
+                  <p className="text-base leading-relaxed font-semibold text-black/80">
+                    {step.desc}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* RIGHT SIDE */}
+      <div className="lg:pt-8">
+        {/* Heading */}
+        <div
+          className="
+            inline-block
+          "
+        >
+          <h3 className="text-4xl md:text-5xl font-black tracking-tight">
+            The Math
+          </h3>
+        </div>
+
+        {/* Main Box */}
+        <div
+          className="
+            mt-10
+            rounded-lg
+            border-[4px]
+            border-black
+            bg-[#f3f3f3]
+            p-8
+            shadow-[8px_8px_0px_#000]
+          "
+        >
+          {/* Small Title */}
+          <p className="text-lg italic font-semibold">
+           AI Request Flow
+          </p>
+
+          <div className="mt-5 border-b-[3px] border-black" />
+
+          {/* Row */}
+          <div className="mt-10">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-2xl font-bold">Choose AI Worker</span>
+
+              <div
+                className="
+                  rounded-lg
+                  border-[3px]
+                  border-black
+                  bg-[#b7f5c7]
+                  px-5
+                  py-3
+                  font-black
+                  shadow-[3px_3px_0px_#000]
+                "
+              >
+                SELECT
+              </div>
+            </div>
+
+            <div className="mt-5 border-b-2 border-dashed border-black/30" />
+          </div>
+
+          {/* Row */}
+          <div className="mt-10">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-2xl font-bold">Request Verification</span>
+
+              <div
+                className="
+                  rounded-lg
+                  border-[3px]
+                  border-black
+                  bg-[#9fc9ff]
+                  px-5
+                  py-3
+                  font-black
+                  shadow-[3px_3px_0px_#000]
+                "
+              >
+               usage weight
+              </div>
+            </div>
+
+            <div className="mt-5 border-b-2 border-dashed border-black/30" />
+          </div>
+
+
+          {/* Row */}
+          <div className="mt-10">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-2xl font-bold">Max Context Limit</span>
+
+              <div
+                className="
+                  rounded-lg
+                  border-[3px]
+                  border-black
+                  bg-[#ffb3b3]
+                  px-5
+                  py-3
+                  font-black
+                  shadow-[3px_3px_0px_#000]
+                "
+              >
+                scaling cap x 10
+              </div>
+            </div>
+
+            <div className="mt-5 border-b-2 border-dashed border-black/30" />
+          </div>
+        </div>
+
+        {/* Footer Warning */}
+        <div className="mt-8 flex items-start gap-4">
+          <div className="text-3xl">⚠</div>
+
+          <p className="max-w-xl text-lg font-bold italic text-[#ff9fa8]">
+           Missed usage limits reduce system priority and may restrict future requests.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
             {/* SERVICES */}
             <section id="services-preview" className="px-4 sm:px-5 py-20 md:px-8">
                 <div className="mx-auto max-w-7xl text-center">
