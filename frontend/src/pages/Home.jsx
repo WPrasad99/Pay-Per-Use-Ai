@@ -536,14 +536,11 @@ const Home = () => {
               viewport={{ once: true }}
               className="flex items-center justify-center"
             >
-              <div className="relative w-full max-w-lg">
-                <div className="absolute inset-0 translate-x-4 translate-y-4 border-[4px] border-black bg-[#b7f5c7] rounded-2xl" />
-                <img
-                  src="./services.png"
-                  alt="PayPerAI dashboard demo"
-                  className="relative z-10 w-full rounded-2xl border-[4px] border-black object-contain"
-                />
-              </div>
+              <img
+                src="/services.png"
+                alt="PayPerAI dashboard demo"
+                className="w-full h-auto object-contain"
+              />
             </motion.div>
 
           </div>
