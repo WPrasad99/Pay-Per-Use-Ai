@@ -374,6 +374,22 @@
   animation: fadeIn 0.8s ease-in;
 }
 
+
+.ticker-track {
+  width: max-content;
+  animation: ticker-scroll 25s linear infinite;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0%);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 /* Custom scrollbar */
 
 ::-webkit-scrollbar {

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import LiveTicker from "../components/LiveTicker";
+
 
 const SERVICES_PREVIEW = [
     { icon: '🔍', name: 'Code Reviewer', desc: 'Security, performance, and PR-ready code audit summaries.', price: '0.5', tag: 'Engineering' },
@@ -138,6 +140,12 @@ const Home = () => {
 </div>
                 </div>
             </section>
+
+
+            {/* LIVETICKER */}
+<div>
+ <LiveTicker variant="light" />
+</div>
 
 
             {/* ABOUT */}
@@ -376,6 +384,12 @@ const Home = () => {
     </div>
   </div>
 </section>
+
+
+{/* LIVE TICKER */}
+<div>
+<LiveTicker variant="dark" />
+</div>
             {/* SERVICES */}
             <section id="services-preview" className="px-4 sm:px-5 py-20 md:px-8">
                 <div className="mx-auto max-w-7xl text-center">
