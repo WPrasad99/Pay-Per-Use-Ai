@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # App
     app_secret_key: str = "replace-with-a-long-random-string-minimum-32-chars"
     session_expiry_seconds: int = 600
-    cors_origins: str = "http://localhost:5173,http://localhost:5174,https://debuggers-united-sandy.vercel.app"
+    cors_origins: str = "http://localhost:5173,http://localhost:4173,https://pay-per-use-ai.vercel.app"
 
     platform_base_url: str = "http://localhost:8000"
 
