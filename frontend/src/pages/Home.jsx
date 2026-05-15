@@ -404,6 +404,7 @@ const Home = () => {
       </div>
     </motion.section>
 
+
 {/* LIVE TICKER */}
 <div>
 <LiveTicker variant="dark" />
@@ -468,6 +469,12 @@ const Home = () => {
     </div>
   </div>
 </section>
+
+
+    {/* LIVETICKER */}
+<div>
+ <LiveTicker variant="light" />
+</div>
 
 
 
