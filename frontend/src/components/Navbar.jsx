@@ -3,9 +3,39 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { peraWallet } from '../config/peraWallet';
 import { getUserProfile, getNonce, verifySiwa, authLogout, registerUser } from '../api/client';
 
+// ── Persistent wallet helpers (24-hour expiry in localStorage) ──
+const WALLET_KEY = 'wallet_address';
+const WALLET_EXPIRY_KEY = 'wallet_expiry';
+const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+const getPersistedWallet = () => {
+    const addr = localStorage.getItem(WALLET_KEY);
+    const expiry = localStorage.getItem(WALLET_EXPIRY_KEY);
+    if (!addr || !expiry) return null;
+    if (Date.now() > parseInt(expiry, 10)) {
+        localStorage.removeItem(WALLET_KEY);
+        localStorage.removeItem(WALLET_EXPIRY_KEY);
+        sessionStorage.removeItem(WALLET_KEY);
+        return null;
+    }
+    return addr;
+};
+
+const persistWallet = (addr) => {
+    localStorage.setItem(WALLET_KEY, addr);
+    localStorage.setItem(WALLET_EXPIRY_KEY, (Date.now() + SESSION_DURATION_MS).toString());
+    sessionStorage.setItem(WALLET_KEY, addr);
+};
+
+const clearWallet = () => {
+    localStorage.removeItem(WALLET_KEY);
+    localStorage.removeItem(WALLET_EXPIRY_KEY);
+    sessionStorage.clear();
+};
+
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [accountAddress, setAccountAddress] = useState(sessionStorage.getItem('wallet_address'));
+    const [accountAddress, setAccountAddress] = useState(() => getPersistedWallet());
     const [isConnecting, setIsConnecting] = useState(false);
     const [connectStatus, setConnectStatus] = useState('');
     const [showOnboarding, setShowOnboarding] = useState(false);
@@ -15,13 +45,22 @@ const Navbar = () => {
     const navigate  = useNavigate();
 
     useEffect(() => {
+        const storedAddr = getPersistedWallet();
         peraWallet.reconnectSession().then((accounts) => {
             peraWallet.connector?.on('disconnect', handleDisconnectWalletClick);
             if (peraWallet.isConnected && accounts.length) {
                 const addr = accounts[0];
-                if (sessionStorage.getItem('wallet_address') === addr) setAccountAddress(addr);
+                if (storedAddr === addr) {
+                    persistWallet(addr); // refresh the 24h expiry
+                    setAccountAddress(addr);
+                }
+            } else if (storedAddr) {
+                // Restore from localStorage even if peraWallet session expired
+                setAccountAddress(storedAddr);
             }
-        }).catch(() => {});
+        }).catch(() => {
+            if (storedAddr) setAccountAddress(storedAddr);
+        });
     }, []);
 
     const handleConnectWalletClick = async (e) => {
@@ -62,8 +101,8 @@ const Navbar = () => {
             const sigB64 = btoa(Array.from(sigBytes, b => String.fromCharCode(b)).join(''));
             await verifySiwa(addr, message, sigB64);
 
-            // Step 5: Save and navigate
-            sessionStorage.setItem('wallet_address', addr);
+            // Step 5: Save persistently (24h) and navigate
+            persistWallet(addr);
             setAccountAddress(addr);
             try {
                 await getUserProfile(addr);
@@ -106,7 +145,7 @@ const Navbar = () => {
         try { await peraWallet.disconnect(); }  catch (_) {}
         try { await authLogout(); }             catch (_) {}
         setAccountAddress(null);
-        sessionStorage.clear();
+        clearWallet();
         navigate('/');
     };
 
