@@ -25,13 +25,6 @@ import LiveTicker from "../components/LiveTicker";
 import { motion } from "framer-motion";
 import Reveal from "../components/Reveal";
 
-const SERVICES_PREVIEW = [
-  { icon: '🔍', name: 'Code Reviewer', desc: 'Security, performance, and PR-ready code audit summaries.', price: '0.5', tag: 'Engineering' },
-  { icon: '📊', name: 'Data Analyst', desc: 'Turn CSVs, numbers, and messy notes into boardroom insights.', price: '2.0', tag: 'Operations' },
-  { icon: '📧', name: 'Sales Writer', desc: 'Personalized cold outreach, follow-ups, and objection handlers.', price: '0.5', tag: 'Revenue' },
-  { icon: '🧾', name: 'Policy Summarizer', desc: 'Readable summaries for documents, SOPs, and compliance drafts.', price: '1.0', tag: 'Admin' },
-  { icon: '🤖', name: 'Humanize Text', desc: 'Clean, natural business writing without subscription lock-in.', price: '0.5', tag: 'Content' },
-];
 
 const STEPS = [
   { num: '01', title: 'Pick a task, not a plan', desc: 'Choose the AI worker you need for one job: code, analysis, writing, support, or content.', icon: '🎯' },
@@ -475,64 +468,88 @@ const Home = () => {
       </div>
 
 
-      {/* SERVICES PREVIEW */}
-      <section id="services-preview" className="px-4 sm:px-5 py-20 md:px-8">
-        <div className="mx-auto max-w-7xl text-center">
+      {/* SERVICES PREVIEW — two-column: models left, image right */}
+      <section id="services-preview" className="px-4 sm:px-5 py-20 md:px-8 overflow-hidden">
+        <div className="mx-auto max-w-7xl">
 
-          <h2 className="text-3xl md:text-6xl font-black">
-            AI micro-services
-          </h2>
+          {/* HEADER */}
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-6xl font-black">AI micro-services</h2>
+            <p className="mt-4 text-lg font-semibold text-neo-muted">Powered by the world's best models. Billed per task.</p>
+          </div>
 
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
-            {SERVICES_PREVIEW.map((service, index) => {
+            {/* LEFT — Creative staggered model cards */}
+            <div className="relative flex flex-col gap-5">
+              <div className="inline-flex items-center gap-2 border-[3px] border-black bg-[#b7f5c7] px-4 py-2 font-black uppercase tracking-widest text-sm shadow-[3px_3px_0px_#000] self-start mb-2">
+                <span className="h-2 w-2 rounded-full bg-black" />
+                Models we power
+              </div>
 
-              // LEFT / RIGHT / CENTER LOGIC
-              const isLeft = index % 2 === 0;
-              const isRight = index % 2 !== 0;
+              <motion.div initial={{ opacity: 0, x: -60, rotate: -4 }} whileInView={{ opacity: 1, x: 0, rotate: -2 }} transition={{ duration: 0.6, type: 'spring' }} viewport={{ once: true }} whileHover={{ rotate: 0, scale: 1.03 }} className="border-[4px] border-black bg-[#fffde7] shadow-[6px_6px_0px_#000] p-5 flex items-center gap-4 -rotate-2">
+                <span className="text-4xl">🤖</span>
+                <div>
+                  <div className="text-2xl font-black tracking-tight">GPT-4o</div>
+                  <div className="text-sm font-semibold text-neo-muted">OpenAI · Reasoning & Writing</div>
+                </div>
+                <div className="ml-auto border-[3px] border-black bg-[#b7f5c7] px-3 py-1 font-black text-xs shadow-[2px_2px_0px_#000]">LIVE</div>
+              </motion.div>
 
-              const animation = {
-                hidden: {
-                  opacity: 0,
-                  x: isLeft ? -60 : isRight ? 60 : 0,
-                },
-                show: {
-                  opacity: 1,
-                  x: 0,
-                },
-              };
+              <motion.div initial={{ opacity: 0, x: -60, rotate: 3 }} whileInView={{ opacity: 1, x: 0, rotate: 2 }} transition={{ duration: 0.6, delay: 0.1, type: 'spring' }} viewport={{ once: true }} whileHover={{ rotate: 0, scale: 1.03 }} className="border-[4px] border-black bg-[#e8f4fd] shadow-[6px_6px_0px_#000] p-5 flex items-center gap-4 rotate-2 self-end w-[90%]">
+                <span className="text-4xl">✨</span>
+                <div>
+                  <div className="text-2xl font-black tracking-tight">Gemini 1.5</div>
+                  <div className="text-sm font-semibold text-neo-muted">Google · Vision & Analysis</div>
+                </div>
+                <div className="ml-auto border-[3px] border-black bg-[#9fc9ff] px-3 py-1 font-black text-xs shadow-[2px_2px_0px_#000]">LIVE</div>
+              </motion.div>
 
-              return (
-                <motion.div
-                  key={service.name}
-                  className="neo-card bg-white p-5"
-                  variants={animation}
-                  initial="hidden"
-                  whileInView="show"
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <div className="text-3xl">{service.icon}</div>
+              <motion.div initial={{ opacity: 0, x: -60, rotate: -2 }} whileInView={{ opacity: 1, x: 0, rotate: -1 }} transition={{ duration: 0.6, delay: 0.2, type: 'spring' }} viewport={{ once: true }} whileHover={{ rotate: 0, scale: 1.03 }} className="border-[4px] border-black bg-[#fce4ec] shadow-[6px_6px_0px_#000] p-5 flex items-center gap-4 -rotate-1">
+                <span className="text-4xl">🦙</span>
+                <div>
+                  <div className="text-2xl font-black tracking-tight">Llama 3</div>
+                  <div className="text-sm font-semibold text-neo-muted">Meta · Open-source Power</div>
+                </div>
+                <div className="ml-auto border-[3px] border-black bg-[#ffb3b3] px-3 py-1 font-black text-xs shadow-[2px_2px_0px_#000]">LIVE</div>
+              </motion.div>
 
-                  <h3 className="mt-3 font-black">
-                    {service.name}
-                  </h3>
+              <motion.div initial={{ opacity: 0, x: -60, rotate: 4 }} whileInView={{ opacity: 1, x: 0, rotate: 2 }} transition={{ duration: 0.6, delay: 0.3, type: 'spring' }} viewport={{ once: true }} whileHover={{ rotate: 0, scale: 1.03 }} className="border-[4px] border-black bg-white shadow-[6px_6px_0px_#000] p-5 flex items-center gap-4 rotate-2 self-end w-[85%]">
+                <span className="text-4xl">🌐</span>
+                <div>
+                  <div className="text-2xl font-black tracking-tight">Qwen</div>
+                  <div className="text-sm font-semibold text-neo-muted">Alibaba · Multilingual AI</div>
+                </div>
+                <div className="ml-auto border-[3px] border-black bg-[#b7f5c7] px-3 py-1 font-black text-xs shadow-[2px_2px_0px_#000]">LIVE</div>
+              </motion.div>
 
-                  <p className="mt-2 text-sm text-neo-muted">
-                    {service.desc}
-                  </p>
+              <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.45 }} viewport={{ once: true }} className="border-[3px] border-dashed border-black/40 p-4 text-center font-black text-neo-muted text-sm tracking-widest">
+                + More models coming soon
+              </motion.div>
+            </div>
 
-                  <div className="mt-4 font-black">
-                    {service.price} ALGO
-                  </div>
-                </motion.div>
-              );
-            })}
+            {/* RIGHT — Dashboard image */}
+            <motion.div
+              initial={{ opacity: 0, x: 80 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, type: 'spring' }}
+              viewport={{ once: true }}
+              className="flex items-center justify-center"
+            >
+              <div className="relative w-full max-w-lg">
+                <div className="absolute inset-0 translate-x-4 translate-y-4 border-[4px] border-black bg-[#b7f5c7] rounded-2xl" />
+                <img
+                  src="./services.png"
+                  alt="PayPerAI dashboard demo"
+                  className="relative z-10 w-full rounded-2xl border-[4px] border-black object-contain"
+                />
+              </div>
+            </motion.div>
 
           </div>
         </div>
       </section>
+
 
 
 
