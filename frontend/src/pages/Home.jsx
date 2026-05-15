@@ -471,12 +471,6 @@ const Home = () => {
 </section>
 
 
-    {/* LIVETICKER */}
-<div>
- <LiveTicker variant="light" />
-</div>
-
-
 
             {/* FEATURES */}
              <section id="why-us" className="px-4 sm:px-5 py-20 md:px-8">
@@ -523,6 +517,13 @@ const Home = () => {
 
       </div>
     </section>
+
+
+    {/* LIVETICKER */}
+<div>
+ <LiveTicker variant="light" />
+</div>
+
 
 
 
