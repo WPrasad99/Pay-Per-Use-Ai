@@ -155,6 +155,7 @@ const Navbar = () => {
         { to: '/#how-it-works',    label: 'How It Works' },
         { to: '/#services-preview',label: 'Services' },
         { to: '/#why-us',          label: 'Why Us' },
+        { to: '/#join-us',         label: 'Join Us' },
     ];
 
     const scrollToSection = (e, hash) => {

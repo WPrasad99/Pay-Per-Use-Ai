@@ -237,50 +237,83 @@ const Home = () => {
       </div>
 
 
-      {/* ABOUT */}
+      {/* ABOUT — Two-column: Creative points left, YT Video right */}
       <Reveal>
-        <section id="about" className="px-4 sm:px-5 py-20 md:px-8">
+        <section id="about" className="px-4 sm:px-5 py-24 md:px-8 bg-neo-cream border-t-[4px] border-black scroll-mt-32">
           <div className="mx-auto max-w-7xl">
+            <div className="grid grid-cols-1 lg:grid-cols-[0.85fr_1.15fr] gap-12 items-center">
+              
+              {/* LEFT: CONTENT & POINTS */}
+              <div className="order-2 lg:order-1">
+                <div className="inline-flex items-center gap-2 border-[3px] border-black bg-white px-3 py-1 font-black uppercase tracking-[0.2em] text-[10px] shadow-[2px_2px_0px_#000] mb-6">
+                   MISSION REPORT
+                </div>
+                
+                <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-[0.9]">
+                  About PayPerAI
+                </h2>
+                
 
-            {/* HEADER */}
-            <h2 className="text-3xl md:text-6xl font-black">
-              About PayPerAI
-            </h2>
-
-            <p className="mt-4 text-lg md:text-xl font-semibold text-neo-muted max-w-3xl">
-              A decentralized AI infrastructure platform that lets you access multiple AI models
-              using blockchain-powered pay-per-use smart sessions.
-            </p>
-
-            {/* CARDS */}
-            <motion.div
-              className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5"
-              variants={container}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.2 }}
-            >
-              {ABOUT_FEATURES.map((itemData) => (
-                <motion.div
-                  key={itemData.title}
-                  className="neo-card bg-white p-6 transition hover:-translate-y-2"
-                  variants={item}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
+                <motion.div 
+                  className="mt-10 flex flex-col gap-4"
+                  variants={container}
+                  initial="hidden"
+                  whileInView="show"
+                  viewport={{ once: true }}
                 >
-                  <div className="text-4xl">{itemData.icon}</div>
-
-                  <h3 className="mt-4 text-xl font-black">
-                    {itemData.title}
-                  </h3>
-
-                  <p className="mt-2 text-neo-muted font-semibold">
-                    {itemData.desc}
-                  </p>
+                  {ABOUT_FEATURES.map((itemData, idx) => (
+                    <motion.div
+                      key={itemData.title}
+                      className={`group neo-card bg-white p-4 flex items-start gap-4 transition hover:-translate-x-2 duration-300 ${idx % 2 !== 0 ? 'ml-0 lg:ml-6' : ''}`}
+                      variants={item}
+                    >
+                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border-[3px] border-black shadow-[3px_3px_0px_#000] transition-transform group-hover:rotate-6 ${
+                        idx === 0 ? 'bg-[#b7f5c7]' : idx === 1 ? 'bg-[#9fc9ff]' : 'bg-[#fffde7]'
+                      }`}>
+                        <span className="text-2xl">{itemData.icon}</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black uppercase tracking-tight">{itemData.title}</h3>
+                        <p className="mt-1 text-neo-muted font-semibold leading-snug text-sm">{itemData.desc}</p>
+                      </div>
+                    </motion.div>
+                  ))}
                 </motion.div>
-              ))}
-            </motion.div>
+              </div>
 
+              {/* RIGHT: VIDEO */}
+              <div className="order-1 lg:order-2 flex flex-col items-center">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, rotate: 2 }}
+                  whileInView={{ opacity: 1, scale: 1, rotate: -1 }}
+                  transition={{ duration: 0.6, type: 'spring' }}
+                  viewport={{ once: true }}
+                  className="relative w-full aspect-video border-[4px] border-black bg-white shadow-[12px_12px_0px_#000] overflow-hidden rounded-xl group"
+                >
+                   <iframe 
+                    className="w-full h-full grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500"
+                    src="https://www.youtube.com/embed/QmCzqssu4M0" 
+                    title="PayPerAI Explainer Video"
+                    frameBorder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; compute-pressure" 
+                    allowFullScreen
+                  ></iframe>
+                </motion.div>
+                
+                {/* Decorative sub-label for video */}
+                <motion.div 
+                  initial={{ y: 20, opacity: 0 }}
+                  whileInView={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  viewport={{ once: true }}
+                  className="mt-10 inline-flex items-center gap-3 border-[3px] border-black bg-[#ffb3b3] px-6 py-2 font-black uppercase tracking-widest text-sm shadow-[4px_4px_0px_#000] rotate-1 hover:rotate-0 transition-transform cursor-default"
+                >
+                  <span className="h-3 w-3 animate-pulse rounded-full bg-red-600 ring-2 ring-black" />
+                  Live Explainer
+                </motion.div>
+              </div>
+
+            </div>
           </div>
         </section>
       </Reveal>
@@ -291,7 +324,7 @@ const Home = () => {
       {/* HOW IT WORKS + INFO PANEL */}
       <motion.section
         id="how-it-works"
-        className="px-4 py-20 sm:px-6 md:px-8"
+        className="px-4 py-20 sm:px-6 md:px-8 scroll-mt-32"
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -303,12 +336,14 @@ const Home = () => {
 
             {/* LEFT SIDE */}
             <div>
-              <h2 className="text-4xl md:text-6xl font-black tracking-tight">
-                Three steps. Zero SaaS drama.
-              </h2>
+              <div className="inline-block border-[4px] border-black bg-neo-cream px-6 md:px-10 py-6 shadow-[10px_10px_0px_#000] -rotate-1 mb-8">
+                <h2 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[0.9]">
+                  Three steps.<br /> Zero SaaS drama.
+                </h2>
+              </div>
 
               <motion.div
-                className="mt-16 flex flex-col gap-12"
+                className="mt-8 flex flex-col gap-6"
                 variants={container}
                 initial="hidden"
                 whileInView="show"
@@ -317,33 +352,33 @@ const Home = () => {
                 {STEPS.map((step, index) => (
                   <motion.div
                     key={step.num}
-                    className="grid grid-cols-[70px_1fr] gap-5"
+                    className="grid grid-cols-[50px_1fr] gap-4"
                     variants={item}
                     whileHover={{ scale: 1.01 }}
                   >
                     {/* Number + Line */}
                     <div className="flex flex-col items-center">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-lg border-[3px] border-black text-lg font-black shadow-[4px_4px_0px_#000] bg-yellow-100">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg border-[3px] border-black text-base font-black shadow-[3px_3px_0px_#000] bg-yellow-100">
                         {step.num}
                       </div>
 
                       {index !== STEPS.length - 1 && (
-                        <div className="mt-3 h-full w-[4px] bg-black/20 rounded-full" />
+                        <div className="mt-2 h-full w-[4px] bg-black/20 rounded-full" />
                       )}
                     </div>
 
                     {/* Content */}
                     <div>
-                      <div className="inline-block rounded-lg border-[3px] border-black bg-white px-5 py-2 shadow-[4px_4px_0px_#000]">
-                        <h3 className="text-xl md:text-2xl font-black">
+                      <div className="inline-block rounded-lg border-[3px] border-black bg-white px-3 py-1 shadow-[3px_3px_0px_#000]">
+                        <h3 className="text-lg md:text-xl font-black uppercase">
                           {step.title}
                         </h3>
                       </div>
 
-                      <div className="mt-4 rounded-lg border-[3px] border-black bg-[#f3f3f3] p-6 shadow-[5px_5px_0px_#000]">
-                        <div className="mb-4 text-4xl">{step.icon}</div>
+                      <div className="mt-3 rounded-lg border-[3px] border-black bg-[#f3f3f3] p-4 shadow-[4px_4px_0px_#000]">
+                        <div className="mb-2 text-2xl">{step.icon}</div>
 
-                        <p className="text-base leading-relaxed font-semibold text-black/80">
+                        <p className="text-sm leading-relaxed font-semibold text-black/80">
                           {step.desc}
                         </p>
                       </div>
@@ -356,15 +391,17 @@ const Home = () => {
             {/* RIGHT SIDE */}
             <div className="lg:pt-8">
 
-              <motion.h3
-                className="text-4xl md:text-5xl font-black tracking-tight"
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5 }}
-                viewport={{ once: true }}
-              >
-                The Math
-              </motion.h3>
+              <div className="inline-block border-[4px] border-black bg-white px-8 py-4 shadow-[8px_8px_0px_#000] rotate-1 mb-6">
+                <motion.h3
+                  className="text-4xl md:text-5xl font-black tracking-tight"
+                  initial={{ opacity: 0, x: 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5 }}
+                  viewport={{ once: true }}
+                >
+                  The Math
+                </motion.h3>
+              </div>
 
               <motion.div
                 className="mt-10 rounded-lg border-[4px] border-black bg-[#f3f3f3] p-8 shadow-[8px_8px_0px_#000]"
@@ -469,12 +506,14 @@ const Home = () => {
 
 
       {/* SERVICES PREVIEW — two-column: models left, image right */}
-      <section id="services-preview" className="px-4 sm:px-5 py-20 md:px-8 overflow-hidden">
+      <section id="services-preview" className="px-4 sm:px-5 py-20 md:px-8 overflow-hidden scroll-mt-32">
         <div className="mx-auto max-w-7xl">
 
           {/* HEADER */}
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-6xl font-black">AI micro-services</h2>
+            <div className="inline-block border-[4px] border-black bg-[#9fc9ff] px-8 py-4 shadow-[10px_10px_0px_#000] rotate-1 mb-6">
+              <h2 className="text-3xl md:text-6xl font-black">AI micro-services</h2>
+            </div>
             <p className="mt-4 text-lg font-semibold text-neo-muted">Powered by the world's best models. Billed per task.</p>
           </div>
 
@@ -551,7 +590,7 @@ const Home = () => {
 
 
       {/* FEATURES */}
-      <section id="why-us" className="px-4 sm:px-5 py-20 md:px-8">
+      <section id="why-us" className="px-4 sm:px-5 py-20 md:px-8 scroll-mt-32">
 
         <div className="mx-auto max-w-7xl">
 
@@ -606,7 +645,7 @@ const Home = () => {
 
 
       {/* NEW CTA SECTION */}
-      <section className="px-4 sm:px-5 py-24 md:py-32 md:px-8 overflow-hidden">
+      <section id="join-us" className="px-4 sm:px-5 py-24 md:py-32 md:px-8 overflow-hidden scroll-mt-32">
         <div className="mx-auto max-w-4xl flex flex-col items-center justify-center gap-10 md:gap-14">
 
           {/* JOIN NOW */}
