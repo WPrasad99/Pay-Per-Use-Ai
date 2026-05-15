@@ -210,8 +210,8 @@ const Navbar = () => {
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 px-4 py-4">
-            <div className="max-w-6xl mx-auto floating-nav rounded-2xl px-6 py-3 flex items-center justify-between">
-                <Link to='/' className="flex items-center gap-2 group">
+            <div className="max-w-7xl mx-auto floating-nav rounded-2xl px-6 py-3 flex items-center justify-between">
+                <Link to="/" className="flex items-center gap-2 group">
                     <span className="text-xl font-black tracking-[-0.04em] text-neo-ink transition-colors group-hover:text-neo-blue">
                         PayPerAI
                     </span>
@@ -251,7 +251,7 @@ const Navbar = () => {
 
             {/* Mobile menu */}
             {isOpen && (
-                <div className="md:hidden mt-2 mx-auto max-w-6xl floating-nav rounded-2xl p-6 space-y-4 animate-fade-in">
+                <div className="md:hidden mt-2 mx-auto max-w-7xl floating-nav rounded-2xl p-6 space-y-4 animate-fade-in">
                     {navLinks.map(link =>
                         link.isRoute ? (
                             <Link key={link.label} to={link.to}
