@@ -126,7 +126,6 @@ const Home = () => {
                 ? signedData[0]
                 : new Uint8Array(Object.values(signedData[0]));
             const sigB64 = btoa(Array.from(sigBytes, b => String.fromCharCode(b)).join(''));
-            const { verifySiwa } = await import('../api/client');
             await verifySiwa(addr, message, sigB64);
             persistWallet(addr);
             setIsWalletConnected(true);
