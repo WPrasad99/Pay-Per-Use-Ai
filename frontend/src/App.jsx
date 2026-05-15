@@ -18,7 +18,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route path="/dashboard" element={<Navigate to="/dashboard/code_review" replace />} />
+          <Route path="/dashboard" element={<WorkspacePage />} />
           <Route path="/dashboard/:serviceId" element={<WorkspacePage />} />
           <Route path="/shared/:id" element={<SharedChatPage />} />
         </Routes>

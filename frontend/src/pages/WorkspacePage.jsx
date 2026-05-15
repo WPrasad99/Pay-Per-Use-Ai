@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSiwa } from '../hooks/useSiwa';
 import {
     depositWalletFunds,
@@ -41,16 +41,14 @@ const ALGOD_API = 'https://testnet-api.algonode.cloud';
 const formatMicroAlgo = (microAlgo) => (Number(microAlgo || 0) / 1_000_000).toFixed(3);
 
 const WorkspacePage = () => {
-    const { serviceId } = useParams();
-    const location = useLocation();
     const navigate = useNavigate();
     const { signOut } = useSiwa();
     const wallet = sessionStorage.getItem('wallet_address');
     const messagesEndRef = useRef(null);
     const peraWalletRef = useRef(null);
 
-    const [service, setService] = useState(location.state?.service || null);
-    const [serviceLoading, setServiceLoading] = useState(!location.state?.service);
+    const [service, setService] = useState(null);
+    const [serviceLoading, setServiceLoading] = useState(true);
     const [conversationId, setConversationId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [prompt, setPrompt] = useState('');
@@ -83,26 +81,27 @@ const WorkspacePage = () => {
             navigate('/');
             return;
         }
-
-        // Fetch all services and set the current one
         setServiceLoading(true);
         getServices()
             .then((services) => {
                 setAllServices(services);
-                const found = services.find((s) => s.id === serviceId);
-                if (found) {
-                    setService(found);
-                } else if (!serviceId && services.length > 0) {
-                    // Default to first service if none specified
-                    navigate(`/dashboard/${services[0].id}`, { replace: true });
+                if (services.length > 0) {
+                    setService(services[0]); // Always start with the first service
                 }
             })
             .catch((err) => {
                 console.error('Failed to fetch services:', err);
-                navigate('/services');
+                setService({
+                    id: 'summarizer',
+                    name: 'Quick Summarizer',
+                    description: 'Extract key trade-offs and bullet points instantly.',
+                    price_algo: 0.1,
+                    price_microalgo: 100000,
+                    example_prompt: 'Summarize the main trade-offs in bullet points.',
+                });
             })
             .finally(() => setServiceLoading(false));
-    }, [wallet, serviceId, navigate]);
+    }, [wallet, navigate]);
 
     const checkSessionStatus = useCallback(async () => {
         if (!wallet || !paymentInfo?.app_id) return;
@@ -469,8 +468,40 @@ const WorkspacePage = () => {
             </div>
 
             <div className="mt-5 flex-1 flex flex-col min-h-0">
+                {/* AI Model Switcher */}
+                <p className="font-black text-xs uppercase tracking-widest opacity-60 mb-2">AI Model</p>
+                <div className="space-y-1.5 mb-5">
+                    {allServices.map((s) => {
+                        const badge = PROVIDER_BADGE[s.id];
+                        const isActive = s.id === service?.id;
+                        return (
+                            <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => {
+                                    setService(s);
+                                    setMessages([]);
+                                    setConversationId(null);
+                                    setIsSidebarOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-2 rounded-xl border-2 border-[#111] px-3 py-2 text-left text-xs font-black shadow-[3px_3px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none ${
+                                    isActive ? 'bg-yellow-200' : 'bg-white'
+                                }`}
+                            >
+                                <span className="text-sm">{ICONS[s.id] || '✨'}</span>
+                                <span className="flex-1 truncate">{s.name}</span>
+                                {badge && (
+                                    <span className={`shrink-0 rounded-full border border-[#111] px-1.5 py-0.5 text-[8px] font-black ${badge.color}`}>
+                                        {badge.label.split(' · ')[0]}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+
                 <div className="flex items-center justify-between gap-3">
-                    <p className="font-black text-sm">History</p>
+                    <p className="font-black text-xs uppercase tracking-widest opacity-60">History</p>
                     <span className="rounded-full bg-[#111] px-2 py-1 text-[10px] font-black text-white">{usageRows.length}</span>
                 </div>
                 <div className="mt-2 space-y-2 flex-1 overflow-y-auto pr-1">
@@ -696,7 +727,13 @@ const WorkspacePage = () => {
                 <main className="flex h-[100dvh] flex-col overflow-hidden">
                     <div className="flex shrink-0 items-center justify-between gap-3 border-b-4 border-[#111] bg-white p-3 font-black">
                             <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-sm md:text-base">
-                                <span className="truncate">{service.name}</span>
+                                <span className="text-base">{ICONS[service?.id] || '✨'}</span>
+                                <span className="truncate font-black">{service?.name || 'Workspace'}</span>
+                                {service && PROVIDER_BADGE[service.id] && (
+                                    <span className={`hidden shrink-0 rounded-full border border-[#111] px-2 py-0.5 text-[9px] font-black md:inline ${PROVIDER_BADGE[service.id].color}`}>
+                                        {PROVIDER_BADGE[service.id].label}
+                                    </span>
+                                )}
                                 <span className="hidden opacity-30 md:inline">•</span>
                                 
                                 <div 
@@ -757,15 +794,19 @@ const WorkspacePage = () => {
                                 </div>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full animate-fadeUp delay-100">
-                                    {(allServices.length > 0 ? allServices.slice(0, 4) : [service]).filter(Boolean).map((s) => {
+                                    {allServices.filter(Boolean).map((s) => {
                                         const badge = PROVIDER_BADGE[s.id];
                                         return (
                                             <button
                                                 key={s.id}
                                                 type="button"
-                                                onClick={() => navigate(`/dashboard/${s.id}`)}
+                                                onClick={() => {
+                                                    setService(s);
+                                                    setMessages([]);
+                                                    setConversationId(null);
+                                                }}
                                                 className={`rounded-xl border-2 border-[#111] p-4 text-left shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-1 active:translate-x-1 active:translate-y-1 active:shadow-none md:border-4 ${
-                                                    s.id === serviceId ? 'bg-yellow-100' : 'bg-white'
+                                                    s.id === service?.id ? 'bg-yellow-100' : 'bg-white'
                                                 }`}
                                             >
                                                 <div className="flex items-center justify-between gap-2 mb-2">
@@ -822,20 +863,27 @@ const WorkspacePage = () => {
                             <textarea
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
-                                placeholder={messages.length === 0 ? 'Type prompt...' : 'Type a follow-up...'}
+                                placeholder={sessionStatus !== 'active' ? 'Start a session to continue...' : (messages.length === 0 ? 'Type prompt...' : 'Type a follow-up...')}
                                 className="h-11 min-w-0 flex-1 resize-none rounded-lg border-2 border-[#111] bg-white px-3 py-2 text-sm outline-none md:h-12 md:border-4 md:text-base"
-                                disabled={isLoading}
+                                disabled={isLoading || sessionStatus !== 'active'}
                                 maxLength={2000}
                             />
                             
                             <div className="flex items-center gap-2">
                                 <select
-                                    value={serviceId}
-                                    onChange={(e) => navigate(`/dashboard/${e.target.value}`)}
+                                    value={service?.id || ''}
+                                    onChange={(e) => {
+                                        const selected = allServices.find(s => s.id === e.target.value);
+                                        if (selected) {
+                                            setService(selected);
+                                            setMessages([]);
+                                            setConversationId(null);
+                                        }
+                                    }}
                                     className="hidden h-11 cursor-pointer appearance-none rounded-lg border-2 border-[#111] bg-yellow-200 px-3 pr-8 text-xs font-black shadow-[3px_3px_0px_#111] outline-none transition-all focus:border-[#111] md:block md:h-12 md:border-4 md:px-4 md:pr-10 md:text-sm bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[right_12px_center] bg-no-repeat"
                                     disabled={isLoading}
                                 >
-                                    {allServices.slice(0, 4).map((s) => {
+                                    {allServices.map((s) => {
                                         const badge = PROVIDER_BADGE[s.id];
                                         return (
                                             <option key={s.id} value={s.id}>
@@ -847,7 +895,7 @@ const WorkspacePage = () => {
 
                                 <button
                                     type="submit"
-                                    disabled={isLoading || !prompt.trim()}
+                                    disabled={isLoading || !prompt.trim() || sessionStatus !== 'active'}
                                     className="h-11 whitespace-nowrap rounded-lg border-2 border-[#111] bg-green-200 px-4 text-sm font-black shadow-[3px_3px_0px_#111] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 md:h-12 md:border-4 md:px-5 md:text-base"
                                 >
                                     {isLoading ? 'Wait...' : 'Send'}

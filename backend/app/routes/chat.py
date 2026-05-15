@@ -95,30 +95,7 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
     # Save user message
     await add_message(conversation_id, "user", data.prompt.strip())
 
-    # ── On-chain Session Deduction via Smart Contract ──
-    from app.services.algorand_service import execute_service_request
-    success, reason = await execute_service_request(data.wallet_address, data.service_id)
-    
-    if not success:
-        if reason == "SESSION_EXPIRED":
-            raise HTTPException(
-                status_code=402,
-                detail="SESSION_EXPIRED",
-                headers={"X-Session-Status": "expired"}
-            )
-        if reason in ("NO_SESSION", "SESSION_LIMIT_EXCEEDED"):
-            raise HTTPException(
-                status_code=402,
-                detail="NO_SESSION",
-                headers={"X-Session-Status": "none"}
-            )
-        if reason == "INSUFFICIENT_BALANCE":
-            raise HTTPException(
-                status_code=402,
-                detail="INSUFFICIENT_BALANCE",
-                headers={"X-Session-Status": "low_balance"}
-            )
-        raise HTTPException(status_code=402, detail="SESSION_AUTH_FAILED")
+
 
     # Fetch full conversation history for context
     all_messages = await get_conversation_messages(conversation_id)
@@ -137,6 +114,21 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n"
                     
             ai_text = "".join(ai_text_chunks)
+            
+            # ── On-chain Session Deduction via Smart Contract ──
+            from app.services.algorand_service import execute_service_request
+            success, reason = await execute_service_request(data.wallet_address, data.service_id)
+            
+            if not success:
+                error_detail = "SESSION_AUTH_FAILED"
+                if reason == "SESSION_EXPIRED":
+                    error_detail = "SESSION_EXPIRED"
+                elif reason in ("NO_SESSION", "SESSION_LIMIT_EXCEEDED"):
+                    error_detail = "NO_SESSION"
+                elif reason == "INSUFFICIENT_BALANCE":
+                    error_detail = "INSUFFICIENT_BALANCE"
+                yield f"data: {json.dumps({'error': error_detail})}\n\n"
+                return
             
             cost_usd = round(tokens_used * COST_PER_TOKEN, 13)
             cost_algo = cost_usd / 0.20
