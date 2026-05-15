@@ -84,7 +84,7 @@ const Home = () => {
             <section className="relative min-h-screen px-4 sm:px-5 pt-24 pb-16 md:px-8 flex items-center">
                 <div className="neo-grid absolute inset-0 opacity-70" />
 
-                <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 grid-cols-1 lg:grid-cols-[1.06fr_0.94fr]">
+                <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-[45px] grid-cols-1 lg:grid-cols-[1.06fr_0.94fr]">
 
                     {/* LEFT */}
                     <div>
@@ -129,26 +129,13 @@ const Home = () => {
                     </div>
 
                     {/* RIGHT */}
-                    <div className="neo-card bg-neo-ink p-4 text-white shadow-brutal-lg">
-                        <h2 className="text-xl md:text-2xl font-black">Pay only for tasks</h2>
-
-                        <div className="mt-5 space-y-4">
-                            {SERVICES_PREVIEW.slice(0, 3).map((service) => (
-                                <div
-                                    key={service.name}
-                                    className="flex items-center gap-3 rounded-2xl bg-white p-3 text-neo-ink transition hover:translate-x-1"
-                                >
-                                    <div className="text-2xl">{service.icon}</div>
-                                    <div className="flex-1">
-                                        <p className="font-black text-sm">{service.name}</p>
-                                       <p className="text-xs text-neo-muted whitespace-normal break-words">{service.desc}</p>
-                                    </div>
-                                    <div className="font-black text-sm">{service.price}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
+                   <div className="w-full flex justify-center">
+    <img
+        className="object-contain w-full max-w-5xl scale-[1.4] md:scale-150"
+        src="./hero image (2).png"
+        alt="Hero section image"
+    />
+</div>
                 </div>
             </section>
 
