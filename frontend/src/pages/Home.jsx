@@ -478,7 +478,7 @@ const Home = () => {
             <p className="mt-4 text-lg font-semibold text-neo-muted">Powered by the world's best models. Billed per task.</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-[0.85fr_1.15fr] gap-12 items-center">
 
             {/* LEFT — Creative staggered model cards */}
             <div className="relative flex flex-col gap-5">
@@ -539,7 +539,7 @@ const Home = () => {
               <img
                 src="/services.png"
                 alt="PayPerAI dashboard demo"
-                className="w-full h-auto object-contain"
+                className="w-full h-auto object-contain scale-110 md:scale-125 transition-transform duration-500"
               />
             </motion.div>
 
