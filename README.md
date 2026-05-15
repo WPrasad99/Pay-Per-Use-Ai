@@ -63,6 +63,15 @@ Users connect their wallets, authorize a smart contract session, and get instant
 
 ---
 
+## 🚦 Live Demo & Quick Start
+
+> 🔗 **Live Frontend:** **[https://pay-per-use-ai.vercel.app/](https://pay-per-use-ai.vercel.app/)**
+> 🔗 **Live Backend API:** **[https://pay-per-use-ai.onrender.com/docs](https://pay-per-use-ai.onrender.com/docs)**
+> 
+> *No local setup required. Optimized for Algorand TestNet.*
+
+---
+
 ## 🚀 Architectural Innovations
 
 ### 1. Hybrid Multi-Model Chat Engine
