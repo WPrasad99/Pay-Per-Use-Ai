@@ -618,7 +618,7 @@ const Home = () => {
           >
             <p className="text-xl md:text-2xl font-bold leading-relaxed text-black">
               No subscriptions. No friction.<br />
-              Just secure, machine-to-machine payments for actual compute delivered.
+              Just secure, machine-to-machine payments.
             </p>
           </motion.div>
 
