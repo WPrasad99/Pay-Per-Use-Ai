@@ -14,7 +14,7 @@ SERVICE_CATALOG = {
         "price_microalgo": 100_000,
         "example_prompt": "Summarize the main trade-offs in bullet points.",
         "provider": "groq",
-        "model": "llama3-70b-8192",
+        "model": "llama-3.3-70b-versatile",
         "system_prompt": "You are a concise analyst. Summarize complex topics into high-impact bullet points focusing on trade-offs."
     },
     "saas_designer": {
