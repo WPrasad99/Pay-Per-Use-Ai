@@ -62,6 +62,7 @@ const WorkspacePage = () => {
     const [payingStatus, setPayingStatus] = useState('');
     const [sessionStatus, setSessionStatus] = useState('inactive'); // inactive, active, expired
     const [sessionExpiry, setSessionExpiry] = useState(null);
+    const [sessionBalance, setSessionBalance] = useState(0);
     const [, setTick] = useState(0); // Used to force re-render for countdown
     const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
     const [isStartingSession, setIsStartingSession] = useState(false);
@@ -130,6 +131,8 @@ const WorkspacePage = () => {
                 const now = Math.floor(Date.now() / 1000);
                 
                 setSessionExpiry(expiry);
+                setSessionBalance(balance);
+                
                 // Require at least 5000 microAlgos to be considered 'active'
                 if (expiry > now && balance > 5000) {
                     setSessionStatus('active');
@@ -343,6 +346,64 @@ const WorkspacePage = () => {
             setPayingStatus('');
         } catch (e) {
             setError(`Session failed: ${e.message}`);
+        } finally {
+            setIsStartingSession(false);
+        }
+    };
+
+    const handleEndSessionAndWithdraw = async () => {
+        try {
+            setIsStartingSession(true);
+            setError(null);
+            const { PeraWalletConnect } = await import('@perawallet/connect');
+            const algosdk = (await import('algosdk')).default;
+
+            if (!peraWalletRef.current) {
+                peraWalletRef.current = new PeraWalletConnect({ shouldShowSignTxnToast: true });
+            }
+            const pw = peraWalletRef.current;
+            let accounts = await pw.reconnectSession();
+            if (!accounts.length) accounts = await pw.connect();
+
+            const client = new algosdk.Algodv2('', ALGOD_API, '');
+            const params = await client.getTransactionParams().do();
+            const appId = parseInt(paymentInfo.app_id);
+
+            const method = new algosdk.ABIMethod({
+                name: 'end_session_and_withdraw',
+                args: [],
+                returns: { type: 'uint64' },
+            });
+
+            const dummySigner = algosdk.makeBasicAccountTransactionSigner({ addr: wallet, sk: new Uint8Array(64) });
+            const atc = new algosdk.AtomicTransactionComposer();
+            atc.addMethodCall({
+                appID: appId,
+                method,
+                methodArgs: [],
+                sender: wallet,
+                suggestedParams: params,
+                signer: dummySigner,
+                boxes: [
+                    { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('b_'), ...algosdk.decodeAddress(wallet).publicKey]) },
+                    { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('sb_'), ...algosdk.decodeAddress(wallet).publicKey]) },
+                    { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('se_'), ...algosdk.decodeAddress(wallet).publicKey]) },
+                ],
+            });
+
+            const group = atc.buildGroup().map(t => t.txn);
+            const signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
+            
+            setPayingStatus('Ending session & returning funds...');
+            const { txId } = await client.sendRawTransaction(signed).do();
+            await algosdk.waitForConfirmation(client, txId, 4);
+            
+            setSessionStatus('inactive');
+            setSessionBalance(0);
+            setIsSessionModalOpen(false);
+            setPayingStatus('');
+        } catch (e) {
+            setError(`Refund failed: ${e.message}`);
         } finally {
             setIsStartingSession(false);
         }
@@ -697,28 +758,44 @@ const WorkspacePage = () => {
                     <div className="animate-fadeUp relative w-full max-w-sm rounded-2xl border-4 border-[#111] bg-white p-6 shadow-[8px_8px_0px_#111]">
                         {sessionStatus === 'active' ? (
                             <>
-                                <h2 className="text-xl font-black mb-2">🛑 End Smart Session?</h2>
-                                <p className="text-sm font-bold opacity-70 mb-6">
-                                    Your session is currently active. Ending it will clear your session locally so you can easily start a new one.
-                                </p>
-                                <div className="flex gap-3">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h2 className="text-xl font-black">⚡ Active Session</h2>
+                                    <span className="rounded-full bg-green-200 px-2 py-0.5 text-[10px] font-black border border-[#111]">ACTIVE</span>
+                                </div>
+                                <div className="mb-6 space-y-3">
+                                    <div className="rounded-xl border-2 border-[#111] bg-yellow-100 p-3 shadow-[3px_3px_0px_#111]">
+                                        <p className="text-[10px] font-black uppercase opacity-60">Session Balance</p>
+                                        <p className="text-xl font-black">{formatMicroAlgo(sessionBalance)} ALGO</p>
+                                    </div>
+                                    <div className="rounded-xl border-2 border-[#111] bg-cyan-100 p-3 shadow-[3px_3px_0px_#111]">
+                                        <p className="text-[10px] font-black uppercase opacity-60">Time Remaining</p>
+                                        <p className="text-sm font-black">{remainingTime || 'Calculating...'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
                                     <button
                                         type="button"
-                                        onClick={() => setIsSessionModalOpen(false)}
-                                        className="flex-1 rounded-xl border-2 border-[#111] bg-white py-2.5 text-sm font-black shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none"
+                                        onClick={handleStartSession}
+                                        disabled={isStartingSession}
+                                        className="w-full rounded-xl border-2 border-[#111] bg-green-200 py-3 text-sm font-black shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none"
                                     >
-                                        Cancel
+                                        {isStartingSession ? 'Waiting...' : '+ Top Up 1 ALGO'}
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setSessionStatus('inactive');
-                                            setSessionExpiry(null);
-                                            setIsSessionModalOpen(false);
-                                        }}
-                                        className="flex-1 rounded-xl border-2 border-[#111] bg-pink-200 py-2.5 text-sm font-black shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none"
+                                        onClick={handleEndSessionAndWithdraw}
+                                        disabled={isStartingSession}
+                                        className="w-full rounded-xl border-2 border-[#111] bg-pink-200 py-3 text-sm font-black shadow-[4px_4px_0px_#111] active:translate-y-1 active:shadow-none"
                                     >
-                                        End Session
+                                        {isStartingSession ? 'Processing...' : 'End Session & Refund'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsSessionModalOpen(false)}
+                                        className="w-full text-center text-xs font-black opacity-40 hover:opacity-100 py-2"
+                                    >
+                                        Close
                                     </button>
                                 </div>
                             </>

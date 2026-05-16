@@ -533,3 +533,64 @@ async def settle_service_cost(user_wallet: str, service_id: str, cost_microalgo:
         if "NO_SESSION" in err_str or "NOSESSION" in err_str:
             return False, "NO_SESSION"
         return False, f"CONTRACT_ERROR: {str(e)[:100]}"
+
+
+async def auto_refund_session(user_wallet: str) -> bool:
+    """
+    Calls the smart contract to refund unspent ALGO for an expired session.
+    Only callable by the platform owner (backend).
+    """
+    try:
+        import algosdk
+        from algosdk.v2client.algod import AlgodClient
+        from algosdk.atomic_transaction_composer import AtomicTransactionComposer, AccountTransactionSigner
+        from algosdk import abi
+        import asyncio
+
+        algod_url = settings.algod_url
+        algod_token = settings.algod_token
+        app_id = int(settings.algorand_app_id)
+        platform_mnemonic = settings.platform_wallet_mnemonic
+
+        algod_client = AlgodClient(algod_token, algod_url)
+        private_key = algosdk.mnemonic.to_private_key(platform_mnemonic)
+        sender = algosdk.account.address_from_private_key(private_key)
+        signer = AccountTransactionSigner(private_key)
+
+        params = algod_client.suggested_params()
+        atc = AtomicTransactionComposer()
+
+        # ABI definition for auto_refund_session (matches contract.py)
+        method = abi.Method(
+            name="auto_refund_session",
+            args=[{"type": "address", "name": "target_user"}],
+            returns={"type": "uint64"}
+        )
+
+        user_addr_bytes = algosdk.encoding.decode_address(user_wallet)
+
+        # Boxes required: sb_, se_, b_ for the user to reset state
+        box_set = [
+            (app_id, b"sb_" + user_addr_bytes),
+            (app_id, b"se_" + user_addr_bytes),
+            (app_id, b"b_" + user_addr_bytes),
+        ]
+
+        atc.add_method_call(
+            app_id=app_id,
+            method=method,
+            sender=sender,
+            sp=params,
+            signer=signer,
+            method_args=[user_wallet],
+            boxes=box_set
+        )
+
+        await asyncio.to_thread(atc.execute, algod_client, 4)
+        print(f"Auto-refunded session for {user_wallet}")
+        return True
+    except Exception as e:
+        # Ignore if session not expired or already refunded
+        if "SESSION_NOT_EXPIRED" not in str(e):
+            print(f"Auto-refund failed for {user_wallet}: {e}")
+        return False

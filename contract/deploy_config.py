@@ -1,71 +1,77 @@
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
-from algosdk.v2client.algod import AlgodClient
-from algosdk.v2client.indexer import IndexerClient
-from algokit_utils import get_account_from_mnemonic, ApplicationClient
-from algokit_utils.application_specification import ApplicationSpecification
+from algokit_utils import (
+    AlgorandClient,
+    AppFactoryCreateMethodCallParams,
+)
+from algokit_utils.applications.app_spec.arc56 import Arc56Contract
 
 def deploy():
     """
-    Deploys or updates the PayPerAI smart contract to Algorand Testnet.
+    Deploys the PayPerAI smart contract to Algorand Testnet using modern Algokit AppFactory.
     """
-    load_dotenv()
+    # Load .env from backend to get the latest credentials
+    backend_env = Path(__file__).parent.parent / "backend" / ".env"
+    load_dotenv(backend_env)
     
     mnemonic = os.getenv("PLATFORM_WALLET_MNEMONIC")
-    algod_url = os.getenv("ALGOD_URL", "https://testnet-api.algonode.cloud")
-    algod_token = os.getenv("ALGOD_TOKEN", "")
-    existing_app_id = os.getenv("ALGORAND_APP_ID", "0")
-    
     if not mnemonic:
-        raise ValueError("PLATFORM_WALLET_MNEMONIC is missing in .env")
+        # Fallback to local .env
+        load_dotenv()
+        mnemonic = os.getenv("PLATFORM_WALLET_MNEMONIC")
 
-    # Connect to the network
-    algod_client = AlgodClient(algod_token, algod_url)
-    indexer_client = IndexerClient("", "https://testnet-idx.algonode.cloud")
-    deployer = get_account_from_mnemonic(mnemonic)
+    if not mnemonic:
+        print("[ERROR] PLATFORM_WALLET_MNEMONIC missing")
+        return
+
+    # 1. Connect to Testnet
+    algorand = AlgorandClient.testnet()
+    # Use keyword argument for from_mnemonic
+    deployer = algorand.account.from_mnemonic(mnemonic=mnemonic)
     
-    artifact_path = Path("artifacts") / "PayPerAI.arc32.json"
-    
+    # 2. Load the ARC-56 Contract Spec
+    artifact_path = Path(__file__).parent / "smart_contracts" / "pay_per_ai" / "PayPerAI.arc56.json"
     if not artifact_path.exists():
-        raise FileNotFoundError(f"Contract artifact not found at {artifact_path}. Please run compile first.")
+        print(f"[ERROR] Artifact not found at {artifact_path}. Run compile first.")
+        return
         
     with open(artifact_path, "r") as f:
         app_spec_json = f.read()
+    
+    app_spec = Arc56Contract.from_json(app_spec_json)
 
-    app_spec = ApplicationSpecification.from_json(app_spec_json)
-
-    app_id = int(existing_app_id) if existing_app_id and existing_app_id.isdigit() else 0
-
-    # Setup the Application Client
-    app_client = ApplicationClient(
-        algod_client=algod_client,
-        indexer_client=indexer_client,
+    # 3. Setup the AppFactory
+    factory = algorand.client.get_app_factory(
         app_spec=app_spec,
-        signer=deployer,
-        sender=deployer.address,
-        creator=deployer.address,
-        app_id=app_id
+        default_sender=deployer.address,
+        default_signer=deployer.signer
     )
+
+    print(f"Deploying PayPerAI to Testnet as {deployer.address}...")
     
     try:
-        # Create a new application
-        response = app_client.create()
-        print(f"[DEBUG] Response: {response}")
-        print("[OK] Contract created successfully!")
-        # Attempt to find app_id in various possible locations
-        app_id = getattr(response, "app_id", None)
-        if app_id is None and hasattr(response, "tx_info"):
-             app_id = response.tx_info.get("application-index")
+        # 4. Deploy (Create)
+        create_params = AppFactoryCreateMethodCallParams(
+            method='create',
+            args=[]
+        )
+        app_client, create_resp = factory.send.create(create_params)
         
+        app_id = create_resp.app_id
+        app_address = create_resp.app_address
+        
+        print("\n" + "="*40)
+        print("SUCCESS: Contract Deployed!")
         print(f"APP_ID: {app_id}")
-        if app_id:
-            import algosdk.logic
-            app_address = algosdk.logic.get_application_address(app_id)
-            print(f"Contract Address: {app_address}")
-        print("→ Add APP_ID to backend/.env as ALGORAND_APP_ID")
+        print(f"Contract Address: {app_address}")
+        print("="*40)
+        print(f"-> ACTION: Update ALGORAND_APP_ID={app_id} in backend/.env")
+        print("="*40)
+        
     except Exception as e:
-        print(f"Deployment failed: {e}")
+        print(f"\n[DEPLOY FAILED]: {e}")
         import traceback
         traceback.print_exc()
 

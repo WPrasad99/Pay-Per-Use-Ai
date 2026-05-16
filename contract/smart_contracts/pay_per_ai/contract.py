@@ -101,6 +101,57 @@ class PayPerAI(ARC4Contract):
             return self.balances[address]
         return UInt64(0)
 
+    @algopy.arc4.abimethod
+    def end_session_and_withdraw(self) -> UInt64:
+        """
+        User manually ends their session and withdraws all unspent ALGO from their escrow.
+        """
+        caller = Txn.sender
+        assert caller in self.balances, "NO_BALANCE"
+        amount = self.balances[caller]
+        assert amount > UInt64(0), "ZERO_BALANCE"
+        
+        # Reset session limits
+        if caller in self.session_balances:
+            self.session_balances[caller] = UInt64(0)
+            self.session_expiries[caller] = UInt64(0)
+            
+        # Reset balance
+        self.balances[caller] = UInt64(0)
+        
+        # Send funds back to user
+        algopy.itxn.Payment(
+            receiver=caller,
+            amount=amount,
+        ).submit()
+        
+        return amount
+
+    @algopy.arc4.abimethod
+    def auto_refund_session(self, target_user: Account) -> UInt64:
+        """
+        Backend (owner) automatically refunds an expired session.
+        Returns unspent ALGO directly to the user's wallet.
+        """
+        assert Txn.sender == self.owner.value, "UNAUTHORIZED"
+        assert target_user in self.balances, "NO_BALANCE"
+        
+        # Ensure session is actually expired
+        if target_user in self.session_expiries:
+            assert Global.latest_timestamp > self.session_expiries[target_user], "SESSION_NOT_EXPIRED"
+            self.session_balances[target_user] = UInt64(0)
+            self.session_expiries[target_user] = UInt64(0)
+            
+        amount = self.balances[target_user]
+        if amount > UInt64(0):
+            self.balances[target_user] = UInt64(0)
+            algopy.itxn.Payment(
+                receiver=target_user,
+                amount=amount,
+            ).submit()
+            
+        return amount
+
     # ────────────────────────────────────────────────────────
     # §2 — PAY-PER-USE SERVICE (SESSION BASED)
     # ────────────────────────────────────────────────────────
