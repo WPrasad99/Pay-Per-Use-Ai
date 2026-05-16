@@ -202,9 +202,15 @@ const Home = () => {
               >
                 {isConnecting ? 'Connecting...' : isWalletConnected ? 'Open workspace →' : 'Connect wallet →'}
               </button>
-              <a href="#final-round" className="btn-secondary">
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="btn-secondary"
+              >
                 Product roadmap
-              </a>
+              </button>
             </div>
 
             {/* STATS */}
