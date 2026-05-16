@@ -194,6 +194,13 @@ CREATE TABLE IF NOT EXISTS query_log (
     tokens_used INTEGER DEFAULT 0,
     completed_at TIMESTAMPTZ
 );
+
+-- SIWA Nonces
+CREATE TABLE IF NOT EXISTS siwa_nonces (
+    wallet_address TEXT PRIMARY KEY,
+    nonce TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL
+);
 """
 
 INDEXES_SQL = """
@@ -641,6 +648,34 @@ async def get_user(wallet_address: str) -> Optional[dict]:
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM users WHERE wallet_address = $1", wallet_address)
         return dict(row) if row else None
+
+
+# ────────────────────────────────────────────────────────
+# SIWA NONCES
+# ────────────────────────────────────────────────────────
+
+async def save_nonce(wallet_address: str, nonce: str, expires_at: datetime):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """INSERT INTO siwa_nonces(wallet_address, nonce, expires_at)
+               VALUES ($1, $2, $3)
+               ON CONFLICT (wallet_address) DO UPDATE SET
+                   nonce = EXCLUDED.nonce,
+                   expires_at = EXCLUDED.expires_at""",
+            wallet_address, nonce, expires_at
+        )
+
+async def get_nonce(wallet_address: str) -> Optional[dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM siwa_nonces WHERE wallet_address = $1", wallet_address)
+        return dict(row) if row else None
+
+async def delete_nonce(wallet_address: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM siwa_nonces WHERE wallet_address = $1", wallet_address)
 
 
 # ────────────────────────────────────────────────────────

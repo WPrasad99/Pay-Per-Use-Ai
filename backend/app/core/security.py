@@ -29,30 +29,34 @@ from app.config import settings
 # ── Constants ──────────────────────────────────────────────
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
-NONCE_STORE: dict[str, str] = {}
-NONCE_EXPIRY: dict[str, float] = {}
-
-
 # ── Nonce helpers ────────────────────────────────────────────
+# Now uses PostgreSQL (database.py) instead of in-memory dicts to support multi-worker environments.
 
-def generate_nonce(wallet_address: str) -> str:
+async def generate_nonce(wallet_address: str) -> str:
+    from app.database import save_nonce
     nonce = secrets.token_hex(16)
-    NONCE_STORE[wallet_address] = nonce
-    NONCE_EXPIRY[wallet_address] = datetime.now(timezone.utc).timestamp() + 300
+    expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+    await save_nonce(wallet_address, nonce, expiry)
     return nonce
 
 
-def get_pending_nonce(wallet_address: str) -> Optional[str]:
-    return NONCE_STORE.get(wallet_address)
+async def get_pending_nonce(wallet_address: str) -> Optional[str]:
+    from app.database import get_nonce
+    data = await get_nonce(wallet_address)
+    return data["nonce"] if data else None
 
 
-def get_pending_nonce_expiry(wallet_address: str) -> Optional[float]:
-    return NONCE_EXPIRY.get(wallet_address)
+async def get_pending_nonce_expiry(wallet_address: str) -> Optional[float]:
+    from app.database import get_nonce
+    data = await get_nonce(wallet_address)
+    if data and data["expires_at"]:
+        return data["expires_at"].timestamp()
+    return None
 
 
-def consume_nonce(wallet_address: str):
-    NONCE_STORE.pop(wallet_address, None)
-    NONCE_EXPIRY.pop(wallet_address, None)
+async def consume_nonce(wallet_address: str):
+    from app.database import delete_nonce
+    await delete_nonce(wallet_address)
 
 
 # ── Signed Transaction Verification ─────────────────────────

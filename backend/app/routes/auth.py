@@ -54,19 +54,19 @@ def verify_message_signature(wallet_address: str, message: str, sig_b64: str) ->
 async def get_nonce(wallet: str):
     if not wallet or len(wallet) != 58:
         raise HTTPException(status_code=400, detail="Invalid wallet address")
-    nonce = generate_nonce(wallet)
+    nonce = await generate_nonce(wallet)
     return {"nonce": nonce, "wallet_address": wallet}
 
 
 @router.post("/verify")
 async def verify_signature(data: VerifyIn, response: Response):
     # 1. Check nonce exists and is fresh
-    nonce = get_pending_nonce(data.wallet_address)
+    nonce = await get_pending_nonce(data.wallet_address)
     if nonce is None:
         raise HTTPException(status_code=400, detail="No pending sign-in. Request a nonce first.")
-    expiry = get_pending_nonce_expiry(data.wallet_address)
+    expiry = await get_pending_nonce_expiry(data.wallet_address)
     if expiry and datetime.now(timezone.utc).timestamp() > expiry:
-        consume_nonce(data.wallet_address)
+        await consume_nonce(data.wallet_address)
         raise HTTPException(status_code=400, detail="Nonce expired. Please try again.")
 
     # 2. Verify nonce is in the message
@@ -78,7 +78,7 @@ async def verify_signature(data: VerifyIn, response: Response):
         raise HTTPException(status_code=401, detail="Invalid signature. Wallet verification failed.")
 
     # 4. Consume nonce (anti-replay)
-    consume_nonce(data.wallet_address)
+    await consume_nonce(data.wallet_address)
 
     # 5. Issue JWT HttpOnly cookie
     token = create_access_token(data.wallet_address)
