@@ -176,21 +176,24 @@ const Navbar = () => {
 
     const ConnectBtn = ({ mobile = false }) =>
         accountAddress ? (
-            <>
+            <div className={`flex items-center gap-3${mobile ? ' flex-col w-full mt-4' : ''}`}>
                 <Link
                     to="/dashboard"
-                    className={`btn-primary text-sm !px-5 !py-2.5${mobile ? ' block text-center mt-4' : ''}`}
+                    className={`btn-primary text-sm !px-6 !py-2.5${mobile ? ' w-full text-center' : ''}`}
                     onClick={mobile ? () => setIsOpen(false) : undefined}
                 >
-                    Dashboard
+                    Open Workspace
                 </Link>
                 <button
                     onClick={(ev) => { handleDisconnectWalletClick(ev); if (mobile) setIsOpen(false); }}
-                    className={`btn-secondary text-sm !px-4 !py-2.5${mobile ? ' w-full text-center mt-2' : ''}`}
+                    className={`btn-secondary text-sm !px-4 !py-2.5${mobile ? ' w-full text-center' : ''}`}
+                    title="Disconnect Wallet"
                 >
-                    Disconnect
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
                 </button>
-            </>
+            </div>
         ) : (
             <button
                 onClick={(ev) => { handleConnectWalletClick(ev); if (mobile) setIsOpen(false); }}
