@@ -244,12 +244,13 @@ async def stream_ai_response_with_context(service_id: str, messages: list[dict])
         from huggingface_hub import AsyncInferenceClient
         client = AsyncInferenceClient(token=settings.hf_api_key)
         total_content = ""
-        async for chunk in client.chat_completion(
+        stream = await client.chat_completion(
             model=model,
             messages=api_messages,
             max_tokens=1500,
             stream=True
-        ):
+        )
+        async for chunk in stream:
             if chunk.choices[0].delta.content:
                 content = chunk.choices[0].delta.content
                 total_content += content
