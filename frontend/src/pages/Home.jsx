@@ -195,9 +195,13 @@ const Home = () => {
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
-              <Link to="/" className="btn-primary">
-                {isWalletConnected ? 'Open workspace →' : 'Connect wallet →'}
-              </Link>
+              <button 
+                onClick={handleConnect}
+                disabled={isConnecting}
+                className="btn-primary"
+              >
+                {isConnecting ? 'Connecting...' : isWalletConnected ? 'Open workspace →' : 'Connect wallet →'}
+              </button>
               <a href="#final-round" className="btn-secondary">
                 Product roadmap
               </a>
