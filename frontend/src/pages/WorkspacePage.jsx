@@ -377,12 +377,16 @@ const WorkspacePage = () => {
 
             const dummySigner = algosdk.makeBasicAccountTransactionSigner({ addr: wallet, sk: new Uint8Array(64) });
             const atc = new algosdk.AtomicTransactionComposer();
+            
+            // Double the fee to cover the inner refund transaction (fee pooling)
+            const doubleFeeParams = { ...params, fee: 2000, flatFee: true };
+            
             atc.addMethodCall({
                 appID: appId,
                 method,
                 methodArgs: [],
                 sender: wallet,
-                suggestedParams: params,
+                suggestedParams: doubleFeeParams,
                 signer: dummySigner,
                 boxes: [
                     { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('b_'), ...algosdk.decodeAddress(wallet).publicKey]) },
