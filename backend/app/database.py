@@ -31,23 +31,30 @@ async def init_pool(database_url: str) -> asyncpg.Pool:
     Called once at application startup.
     """
     global _pool
-    import re
-    # Regex to handle: postgresql://user:password@host:port/dbname
-    pattern = r"postgresql://(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:/]+)(?::(?P<port>\d+))?/(?P<database>.+)"
-    match = re.match(pattern, database_url)
-    
-    if not match:
-        # Fallback to simple DSN if regex fails
-        _pool = await asyncpg.create_pool(dsn=database_url, min_size=2, max_size=10, command_timeout=30, statement_cache_size=0)
-        return _pool
-
     import urllib.parse as urlparse
+
+    # Parse URL properly using standard library
+    parsed = urlparse.urlparse(database_url)
+    
+    # Strip any query parameters from the database name (e.g. ?sslmode=require)
+    db_name = parsed.path.lstrip('/')
+    if '?' in db_name:
+        db_name = db_name.split('?')[0]
+    
+    # Extract query params for SSL handling
+    query_params = urlparse.parse_qs(parsed.query)
+    ssl_mode = query_params.get('sslmode', [None])[0]
+    
+    # In production (Render/Supabase), we usually need SSL
+    ssl_context = "require" if ssl_mode == "require" or "supabase.com" in parsed.netloc else None
+
     _pool = await asyncpg.create_pool(
-        user=match.group("user"),
-        password=urlparse.unquote(match.group("password")),
-        database=match.group("database"),
-        host=match.group("host"),
-        port=int(match.group("port")) if match.group("port") else 5432,
+        user=parsed.username,
+        password=urlparse.unquote(parsed.password) if parsed.password else None,
+        database=db_name,
+        host=parsed.hostname,
+        port=parsed.port or 5432,
+        ssl=ssl_context,
         min_size=2,
         max_size=10,
         command_timeout=30,
