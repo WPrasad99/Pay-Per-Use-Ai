@@ -36,7 +36,7 @@ SERVICE_CATALOG = {
         "price_microalgo": 150_000,
         "example_prompt": "Draft a professional email to a client.",
         "provider": "gemini",
-        "model": "gemini-2.5-flash",
+        "model": "gemini-1.5-flash",
         "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
     },
     "qwen25": {
@@ -81,7 +81,7 @@ SERVICE_CATALOG = {
         "price_microalgo": 150_000,
         "example_prompt": "Draft a professional email to a client.",
         "provider": "gemini",
-        "model": "gemini-2.5-flash",
+        "model": "gemini-1.5-flash",
         "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
     },
     "qwen_chat": {

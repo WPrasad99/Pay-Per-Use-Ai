@@ -36,6 +36,7 @@ async def init_pool(database_url: str) -> asyncpg.Pool:
         min_size=2,
         max_size=10,
         command_timeout=30,
+        statement_cache_size=0, # Required for PgBouncer / Render / Supabase
     )
     return _pool
 
