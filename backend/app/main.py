@@ -23,6 +23,35 @@ from app.routes.session import router as session_router
 from app.core.limiter import limiter
 
 
+async def refund_loop():
+    """
+    Background task that periodically checks for expired sessions
+    and calls the smart contract to return unspent ALGO to users.
+    """
+    from app.services.algorand_service import auto_refund_session
+    from app.database import get_pool
+    import time
+    
+    print("Background Task: Refund Loop started.")
+    while True:
+        try:
+            pool = await get_pool()
+            async with pool.acquire() as conn:
+                # We check all users who have registered to see if they have expired sessions on-chain
+                # In a large scale app, we would only check 'active' users from a sessions table.
+                users = await conn.fetch("SELECT wallet_address FROM users")
+                
+                for row in users:
+                    wallet = row['wallet_address']
+                    # This function internally checks for expiration before sending tx
+                    await auto_refund_session(wallet)
+                    
+        except Exception as e:
+            print(f"Refund loop error: {e}")
+            
+        await asyncio.sleep(300) # Check every 5 minutes
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle events spanning the duration of the App."""
@@ -31,15 +60,19 @@ async def lifespan(app: FastAPI):
     # Start blockchain event listener (oracle pattern)
     from app.services.event_listener import event_listener
     listener_task = asyncio.create_task(event_listener.start())
+    
+    # Start auto-refund background task
+    refund_task = asyncio.create_task(refund_loop())
 
     print("PayPerAI Backend running")
     print(f"Network: {settings.algorand_network}")
     print(f"Database: PostgreSQL")
     yield
 
-    # Cleanup: stop event listener
-    await event_listener.stop()
+    # Cleanup
+    event_listener.stop()
     listener_task.cancel()
+    refund_task.cancel()
 
     # Close database pool
     from app.database import close_pool
@@ -64,6 +97,7 @@ origins = [o.strip() for o in raw_origins if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,          # Required for cookies
     allow_methods=["*"],
     allow_headers=["*"],
