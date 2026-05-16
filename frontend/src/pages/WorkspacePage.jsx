@@ -235,6 +235,22 @@ const WorkspacePage = () => {
         return `${mins}m left`;
     }, [sessionExpiry, sessionStatus]);
 
+    // Helper to convert raw blockchain/wallet errors into user-friendly messages
+    const friendlyError = (e) => {
+        const msg = (e?.message || '').toLowerCase();
+        if (msg.includes('cancel') || msg.includes('rejected') || msg.includes('declined'))
+            return 'Transaction cancelled. You can try again anytime.';
+        if (msg.includes('wallet mismatch'))
+            return 'Wrong wallet connected. Please reconnect the correct one.';
+        if (msg.includes('insufficient') || msg.includes('below min'))
+            return 'Not enough ALGO. Please top up your wallet and try again.';
+        if (msg.includes('network') || msg.includes('fetch') || msg.includes('timeout'))
+            return 'Network error. Please check your connection and try again.';
+        if (msg.includes('logic eval') || msg.includes('opcode'))
+            return 'Smart contract rejected the transaction. Session may already be active or funds already withdrawn.';
+        return 'Something went wrong. Please try again.';
+    };
+
     const handleStartSession = async () => {
         try {
             setIsStartingSession(true);
@@ -244,20 +260,14 @@ const WorkspacePage = () => {
             const algosdk = (await import('algosdk')).default;
 
             if (!peraWalletRef.current) {
-                peraWalletRef.current = new PeraWalletConnect({
-                    shouldShowSignTxnToast: true,
-                });
+                peraWalletRef.current = new PeraWalletConnect({ shouldShowSignTxnToast: true });
             }
             const pw = peraWalletRef.current;
 
             let accounts = [];
-            try {
-                accounts = await pw.reconnectSession();
-            } catch (_) {}
-            if (!accounts || !accounts.length) {
-                accounts = await pw.connect();
-            }
-            if (accounts[0] !== wallet) throw new Error('Wallet mismatch. Please reconnect the correct wallet.');
+            try { accounts = await pw.reconnectSession(); } catch (_) {}
+            if (!accounts || !accounts.length) accounts = await pw.connect();
+            if (accounts[0] !== wallet) throw new Error('Wallet mismatch');
 
             const client = new algosdk.Algodv2('', ALGOD_API, '');
             const params = await client.getTransactionParams().do();
@@ -265,57 +275,38 @@ const WorkspacePage = () => {
 
             const sessionMethod = new algosdk.ABIMethod({
                 name: 'start_session',
-                args: [
-                    { type: 'uint64', name: 'max_spend' },
-                    { type: 'uint64', name: 'expiry_time' },
-                ],
+                args: [{ type: 'uint64', name: 'max_spend' }, { type: 'uint64', name: 'expiry_time' }],
                 returns: { type: 'bool' },
             });
-
-            const expiryTime = Math.floor(Date.now() / 1000) + 24 * 60 * 60; // 24h
-            const depositAmount = 1000000; // 1 ALGO buffer for seamless prompting
-            const maxSpend = (paymentInfo?.balance_microalgo || 0) + depositAmount; // Authorize entire balance
-
-            const dummySigner = algosdk.makeBasicAccountTransactionSigner({
-                addr: wallet,
-                sk: new Uint8Array(64),
-            });
-
-            const atc = new algosdk.AtomicTransactionComposer();
-
-            // Add a 1 ALGO payment + deposit call to satisfy the MBR and fund the user's prompts
-            // for the on-chain boxes. This is required by the Algorand network to store session data.
-            const payTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-                sender: wallet,
-                receiver: paymentInfo.contract_address,
-                amount: depositAmount, // 1 ALGO
-                suggestedParams: params,
-            });
-
             const depositMethod = new algosdk.ABIMethod({
                 name: 'deposit',
                 args: [{ type: 'pay', name: 'payment' }],
                 returns: { type: 'uint64' },
             });
 
-            atc.addMethodCall({
-                appID: appId,
-                method: depositMethod,
-                methodArgs: [{ txn: payTxn, signer: dummySigner }],
+            const expiryTime = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+            const depositAmount = 1000000;
+            const maxSpend = (paymentInfo?.balance_microalgo || 0) + depositAmount;
+            const dummySigner = algosdk.makeBasicAccountTransactionSigner({ addr: wallet, sk: new Uint8Array(64) });
+            const atc = new algosdk.AtomicTransactionComposer();
+
+            const payTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
                 sender: wallet,
+                receiver: paymentInfo.contract_address,
+                amount: depositAmount,
                 suggestedParams: params,
-                signer: dummySigner,
-                boxes: [{ appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('b_'), ...algosdk.decodeAddress(wallet).publicKey]) }],
             });
 
-            // Now start the session
             atc.addMethodCall({
-                appID: appId,
-                method: sessionMethod,
+                appID: appId, method: depositMethod,
+                methodArgs: [{ txn: payTxn, signer: dummySigner }],
+                sender: wallet, suggestedParams: params, signer: dummySigner,
+                boxes: [{ appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('b_'), ...algosdk.decodeAddress(wallet).publicKey]) }],
+            });
+            atc.addMethodCall({
+                appID: appId, method: sessionMethod,
                 methodArgs: [maxSpend, expiryTime],
-                sender: wallet,
-                suggestedParams: params,
-                signer: dummySigner,
+                sender: wallet, suggestedParams: params, signer: dummySigner,
                 boxes: [
                     { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('sb_'), ...algosdk.decodeAddress(wallet).publicKey]) },
                     { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('se_'), ...algosdk.decodeAddress(wallet).publicKey]) },
@@ -324,28 +315,22 @@ const WorkspacePage = () => {
             });
 
             const group = atc.buildGroup().map(t => t.txn);
-            const signed = await pw.signTransaction([
-                group.map(txn => ({ txn, signers: [wallet] }))
-            ]);
-            
+            const signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
+
             setPayingStatus('Sending to Algorand...');
             const { txId } = await client.sendRawTransaction(signed).do();
-            
-            setPayingStatus('Confirming session on-chain...');
+
+            setPayingStatus('Confirming on-chain...');
             await algosdk.waitForConfirmation(client, txId, 10);
-            
-            setPayingStatus('Syncing session state...');
-            // Poll for box state updates for up to 5 seconds
-            for (let i = 0; i < 5; i++) {
-                await new Promise(r => setTimeout(r, 1000));
-                const active = await checkSessionStatus();
-                if (active) break;
-            }
-            
-            // Seamless transition to active state, do not close modal
-            setPayingStatus('');
+
+            // Single immediate status sync — no slow polling loop
+            setPayingStatus('Session active! ✅');
+            await checkSessionStatus();
+            setTimeout(() => setPayingStatus(''), 800);
+
         } catch (e) {
-            setError(`Session failed: ${e.message}`);
+            setError(friendlyError(e));
+            setPayingStatus('');
         } finally {
             setIsStartingSession(false);
         }
@@ -362,7 +347,8 @@ const WorkspacePage = () => {
                 peraWalletRef.current = new PeraWalletConnect({ shouldShowSignTxnToast: true });
             }
             const pw = peraWalletRef.current;
-            let accounts = await pw.reconnectSession();
+            let accounts = [];
+            try { accounts = await pw.reconnectSession(); } catch (_) {}
             if (!accounts.length) accounts = await pw.connect();
 
             const client = new algosdk.Algodv2('', ALGOD_API, '');
@@ -371,23 +357,16 @@ const WorkspacePage = () => {
 
             const method = new algosdk.ABIMethod({
                 name: 'end_session_and_withdraw',
-                args: [],
-                returns: { type: 'uint64' },
+                args: [], returns: { type: 'uint64' },
             });
 
             const dummySigner = algosdk.makeBasicAccountTransactionSigner({ addr: wallet, sk: new Uint8Array(64) });
             const atc = new algosdk.AtomicTransactionComposer();
-            
-            // Double the fee to cover the inner refund transaction (fee pooling)
             const doubleFeeParams = { ...params, fee: 2000, flatFee: true };
-            
+
             atc.addMethodCall({
-                appID: appId,
-                method,
-                methodArgs: [],
-                sender: wallet,
-                suggestedParams: doubleFeeParams,
-                signer: dummySigner,
+                appID: appId, method, methodArgs: [],
+                sender: wallet, suggestedParams: doubleFeeParams, signer: dummySigner,
                 boxes: [
                     { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('b_'), ...algosdk.decodeAddress(wallet).publicKey]) },
                     { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('sb_'), ...algosdk.decodeAddress(wallet).publicKey]) },
@@ -397,22 +376,19 @@ const WorkspacePage = () => {
 
             const group = atc.buildGroup().map(t => t.txn);
             const signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
-            
-            setPayingStatus('Ending session & returning funds...');
+
+            setPayingStatus('Processing refund...');
             const { txId } = await client.sendRawTransaction(signed).do();
             await algosdk.waitForConfirmation(client, txId, 4);
-            
-            setPayingStatus('Refund Successful! Closing...');
+
+            // Immediately update UI and close modal — no extra delay needed
             setSessionStatus('inactive');
             setSessionBalance(0);
-            
-            // Wait 1.5s so user sees the success message before closing
-            setTimeout(() => {
-                setIsSessionModalOpen(false);
-                setPayingStatus('');
-            }, 1500);
+            setIsSessionModalOpen(false);
+            setPayingStatus('');
+
         } catch (e) {
-            setError(`Refund failed: ${e.message}`);
+            setError(friendlyError(e));
             setPayingStatus('');
         } finally {
             setIsStartingSession(false);
