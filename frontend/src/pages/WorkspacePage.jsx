@@ -342,7 +342,7 @@ const WorkspacePage = () => {
                 if (active) break;
             }
             
-            setIsSessionModalOpen(false);
+            // Seamless transition to active state, do not close modal
             setPayingStatus('');
         } catch (e) {
             setError(`Session failed: ${e.message}`);
@@ -402,12 +402,18 @@ const WorkspacePage = () => {
             const { txId } = await client.sendRawTransaction(signed).do();
             await algosdk.waitForConfirmation(client, txId, 4);
             
+            setPayingStatus('Refund Successful! Closing...');
             setSessionStatus('inactive');
             setSessionBalance(0);
-            setIsSessionModalOpen(false);
-            setPayingStatus('');
+            
+            // Wait 1.5s so user sees the success message before closing
+            setTimeout(() => {
+                setIsSessionModalOpen(false);
+                setPayingStatus('');
+            }, 1500);
         } catch (e) {
             setError(`Refund failed: ${e.message}`);
+            setPayingStatus('');
         } finally {
             setIsStartingSession(false);
         }
