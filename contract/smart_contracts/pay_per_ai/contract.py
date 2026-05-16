@@ -130,7 +130,7 @@ class PayPerAI(ARC4Contract):
         return algopy.arc4.Bool(True)
 
     @algopy.arc4.abimethod
-    def request_service_v2(self, user: Account, service_id: String) -> algopy.arc4.Bool:
+    def request_service_v2(self, user: Account, service_id: String, actual_cost: UInt64) -> algopy.arc4.Bool:
         """
         Backend calls this to deduct for an AI service using the user's active session.
         Contract validates balance and session expiry, deducts cost, and splits revenue.
@@ -143,9 +143,7 @@ class PayPerAI(ARC4Contract):
         assert user in self.session_balances, "NO_SESSION"
         assert Global.latest_timestamp <= self.session_expiries[user], "SESSION_EXPIRED"
 
-        # Validate service exists
-        assert service_id in self.service_prices, "INVALID_SERVICE"
-        price = self.service_prices[service_id]
+        price = actual_cost
 
         # Validate session balance and overall escrow balance
         assert self.session_balances[user] >= price, "SESSION_LIMIT_EXCEEDED"

@@ -49,17 +49,25 @@ def deploy():
     )
     
     try:
-        # Deploy on-chain
-        response = app_client.deploy(
-            on_schema_break="append",
-            on_update="update"
-        )
-        print("[OK] Contract deployed successfully!")
-        print(f"APP_ID: {response.app.app_id}")
-        print(f"Contract Address: {response.app.app_address}")
+        # Create a new application
+        response = app_client.create()
+        print(f"[DEBUG] Response: {response}")
+        print("[OK] Contract created successfully!")
+        # Attempt to find app_id in various possible locations
+        app_id = getattr(response, "app_id", None)
+        if app_id is None and hasattr(response, "tx_info"):
+             app_id = response.tx_info.get("application-index")
+        
+        print(f"APP_ID: {app_id}")
+        if app_id:
+            import algosdk.logic
+            app_address = algosdk.logic.get_application_address(app_id)
+            print(f"Contract Address: {app_address}")
         print("→ Add APP_ID to backend/.env as ALGORAND_APP_ID")
     except Exception as e:
         print(f"Deployment failed: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     deploy()

@@ -45,7 +45,8 @@ async def get_payment_info(service_id: str):
     qr.save(buffer, format="PNG")
     qr_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
     
-    amount_algo = service["price_algo"]
+    amount_microalgo = service.get("price_microalgo", 1000)
+    amount_algo = service.get("price_algo", 0.001)
     instructions = [
         "1. Open Pera Wallet on your phone and switch to Testnet",
         "2. Tap 'Send' and scan the QR code, or paste the contract address",
@@ -60,7 +61,7 @@ async def get_payment_info(service_id: str):
         service_id=service_id,
         app_id=app_id,
         contract_address=contract_address,
-        amount_microalgo=service["price_microalgo"],
+        amount_microalgo=amount_microalgo,
         amount_algo=amount_algo,
         qr_code_base64=qr_b64,
         instructions=instructions

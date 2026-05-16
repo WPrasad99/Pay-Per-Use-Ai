@@ -8,8 +8,10 @@ class ServiceOut(BaseModel):
     id: str
     name: str  
     description: str
-    price_algo: float
-    price_microalgo: int
+    price_input_microalgo: int
+    price_output_microalgo: int
+    price_algo: Optional[float] = 0.0
+    price_microalgo: Optional[int] = 0
     example_prompt: str
     provider: Optional[str] = None
     model: Optional[str] = None

@@ -10,8 +10,8 @@ SERVICE_CATALOG = {
         "id": "llama3",
         "name": "Llama 3.3 (Groq)",
         "description": "Lightning-fast general purpose reasoning model powered by Groq.",
-        "price_algo": 0.1,
-        "price_microalgo": 100_000,
+        "price_input_microalgo": 950_000,
+        "price_output_microalgo": 2_800_000,
         "example_prompt": "Explain the significance of the Turing Test.",
         "provider": "groq",
         "model": "llama-3.3-70b-versatile",
@@ -21,8 +21,8 @@ SERVICE_CATALOG = {
         "id": "gpt4o_mini",
         "name": "GPT-4o Mini (OpenAI)",
         "description": "Fast and intelligent multi-purpose assistant from OpenAI.",
-        "price_algo": 0.2,
-        "price_microalgo": 200_000,
+        "price_input_microalgo": 1_300_000,
+        "price_output_microalgo": 5_200_000,
         "example_prompt": "Write a Python script to scrape a website.",
         "provider": "openai",
         "model": "gpt-4o-mini",
@@ -32,8 +32,8 @@ SERVICE_CATALOG = {
         "id": "gemini_flash",
         "name": "Gemini 1.5 Flash",
         "description": "Google's lightweight, fast, and highly capable multimodal model.",
-        "price_algo": 0.15,
-        "price_microalgo": 150_000,
+        "price_input_microalgo": 350_000,
+        "price_output_microalgo": 1_400_000,
         "example_prompt": "Draft a professional email to a client.",
         "provider": "gemini",
         "model": "gemini-1.5-flash",
@@ -43,8 +43,8 @@ SERVICE_CATALOG = {
         "id": "qwen25",
         "name": "Qwen 2.5 (HuggingFace)",
         "description": "Powerful open-weights model capable of deep technical insights.",
-        "price_algo": 0.1,
-        "price_microalgo": 100_000,
+        "price_input_microalgo": 2_600_000,
+        "price_output_microalgo": 5_500_000,
         "example_prompt": "Explain the concept of quantum entanglement simply.",
         "provider": "huggingface",
         "model": "Qwen/Qwen2.5-72B-Instruct",
@@ -55,8 +55,8 @@ SERVICE_CATALOG = {
         "id": "summarizer",
         "name": "Llama 3.3 (Groq)",
         "description": "Lightning-fast general purpose reasoning model powered by Groq.",
-        "price_algo": 0.1,
-        "price_microalgo": 100_000,
+        "price_input_microalgo": 950_000,
+        "price_output_microalgo": 2_800_000,
         "example_prompt": "Explain the significance of the Turing Test.",
         "provider": "groq",
         "model": "llama-3.3-70b-versatile",
@@ -66,8 +66,8 @@ SERVICE_CATALOG = {
         "id": "saas_designer",
         "name": "GPT-4o Mini (OpenAI)",
         "description": "Fast and intelligent multi-purpose assistant from OpenAI.",
-        "price_algo": 0.2,
-        "price_microalgo": 200_000,
+        "price_input_microalgo": 1_300_000,
+        "price_output_microalgo": 5_200_000,
         "example_prompt": "Write a Python script to scrape a website.",
         "provider": "openai",
         "model": "gpt-4o-mini",
@@ -77,8 +77,8 @@ SERVICE_CATALOG = {
         "id": "impact_reviewer",
         "name": "Gemini 1.5 Flash",
         "description": "Google's lightweight, fast, and highly capable multimodal model.",
-        "price_algo": 0.15,
-        "price_microalgo": 150_000,
+        "price_input_microalgo": 350_000,
+        "price_output_microalgo": 1_400_000,
         "example_prompt": "Draft a professional email to a client.",
         "provider": "gemini",
         "model": "gemini-1.5-flash",
@@ -88,8 +88,8 @@ SERVICE_CATALOG = {
         "id": "qwen_chat",
         "name": "Qwen 2.5 (HuggingFace)",
         "description": "Powerful open-weights model capable of deep technical insights.",
-        "price_algo": 0.1,
-        "price_microalgo": 100_000,
+        "price_input_microalgo": 2_600_000,
+        "price_output_microalgo": 5_500_000,
         "example_prompt": "Explain the concept of quantum entanglement simply.",
         "provider": "huggingface",
         "model": "Qwen/Qwen2.5-72B-Instruct",
@@ -101,7 +101,7 @@ def get_services_list() -> list[dict]:
     """
     Returns array containing all services available in the catalog.
     """
-    return list(SERVICE_CATALOG.values())
+    return [{**s, "price_algo": 0.0, "price_microalgo": 0} for s in SERVICE_CATALOG.values()]
 
 async def get_ai_response(service_id: str, user_prompt: str) -> tuple[str, int]:
     """
@@ -203,7 +203,7 @@ async def stream_ai_response_with_context(service_id: str, messages: list[dict])
             if len(chunk.choices) > 0 and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
             if getattr(chunk, "usage", None):
-                yield {"tokens_used": chunk.usage.total_tokens}
+                yield {"input_tokens": chunk.usage.prompt_tokens, "output_tokens": chunk.usage.completion_tokens}
 
     elif provider == "groq":
         from groq import AsyncGroq
@@ -217,17 +217,20 @@ async def stream_ai_response_with_context(service_id: str, messages: list[dict])
         )
         total_content = ""
         async for chunk in stream:
-            if chunk.choices[0].delta.content:
+            if chunk.choices and len(chunk.choices) > 0 and chunk.choices[0].delta.content:
                 content = chunk.choices[0].delta.content
                 total_content += content
                 yield content
         # Groq usage estimation (simplified)
-        yield {"tokens_used": len(total_content) // 4}
+        import json
+        input_tokens = len(json.dumps(api_messages)) // 4
+        yield {"input_tokens": input_tokens, "output_tokens": len(total_content) // 4}
 
     elif provider == "gemini":
         import google.generativeai as genai
         genai.configure(api_key=settings.gemini_api_key)
-        gemini_model = genai.GenerativeModel(model)
+        # Use gemini-2.0-flash which is confirmed available for this key
+        gemini_model = genai.GenerativeModel(model_name="gemini-2.0-flash", system_instruction=system_prompt)
         # Convert messages to Gemini format
         chat_session = gemini_model.start_chat(history=[])
         # Send system prompt as first message or instruction
@@ -238,7 +241,9 @@ async def stream_ai_response_with_context(service_id: str, messages: list[dict])
             if chunk.text:
                 total_content += chunk.text
                 yield chunk.text
-        yield {"tokens_used": len(total_content) // 4}
+        import json
+        input_tokens = len(json.dumps(api_messages)) // 4
+        yield {"input_tokens": input_tokens, "output_tokens": len(total_content) // 4}
 
     elif provider == "huggingface":
         from huggingface_hub import AsyncInferenceClient
@@ -251,11 +256,13 @@ async def stream_ai_response_with_context(service_id: str, messages: list[dict])
             stream=True
         )
         async for chunk in stream:
-            if chunk.choices[0].delta.content:
+            if hasattr(chunk, "choices") and len(chunk.choices) > 0 and chunk.choices[0].delta.content:
                 content = chunk.choices[0].delta.content
                 total_content += content
                 yield content
-        yield {"tokens_used": len(total_content) // 4}
+        import json
+        input_tokens = len(json.dumps(api_messages)) // 4
+        yield {"input_tokens": input_tokens, "output_tokens": len(total_content) // 4}
 async def generate_ai_image(prompt: str) -> str:
     """
     Calls OpenAI DALL-E 3 to generate a high-quality image URL.

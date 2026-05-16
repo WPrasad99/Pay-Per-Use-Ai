@@ -31,12 +31,27 @@ async def init_pool(database_url: str) -> asyncpg.Pool:
     Called once at application startup.
     """
     global _pool
+    import re
+    # Regex to handle: postgresql://user:password@host:port/dbname
+    pattern = r"postgresql://(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:/]+)(?::(?P<port>\d+))?/(?P<database>.+)"
+    match = re.match(pattern, database_url)
+    
+    if not match:
+        # Fallback to simple DSN if regex fails
+        _pool = await asyncpg.create_pool(dsn=database_url, min_size=2, max_size=10, command_timeout=30, statement_cache_size=0)
+        return _pool
+
+    import urllib.parse as urlparse
     _pool = await asyncpg.create_pool(
-        dsn=database_url,
+        user=match.group("user"),
+        password=urlparse.unquote(match.group("password")),
+        database=match.group("database"),
+        host=match.group("host"),
+        port=int(match.group("port")) if match.group("port") else 5432,
         min_size=2,
         max_size=10,
         command_timeout=30,
-        statement_cache_size=0, # Required for PgBouncer / Render / Supabase
+        statement_cache_size=0,
     )
     return _pool
 
@@ -144,8 +159,8 @@ CREATE TABLE IF NOT EXISTS services (
     service_id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
-    price_microalgo BIGINT NOT NULL,
-    price_algo DOUBLE PRECISION NOT NULL,
+    price_input_microalgo BIGINT NOT NULL,
+    price_output_microalgo BIGINT NOT NULL,
     creator_address TEXT,
     example_prompt TEXT,
     system_prompt TEXT,
@@ -549,7 +564,7 @@ async def save_nft_metadata(asset_id: int, wallet_address: str, prompt: str,
 # ────────────────────────────────────────────────────────
 
 async def upsert_service(service_id: str, name: str, description: str,
-                         price_microalgo: int, price_algo: float,
+                         price_input_microalgo: int, price_output_microalgo: int,
                          creator_address: str = None, example_prompt: str = None,
                          system_prompt: str = None):
     """Insert or update a service in the off-chain registry."""
@@ -558,19 +573,19 @@ async def upsert_service(service_id: str, name: str, description: str,
     async with pool.acquire() as conn:
         await conn.execute(
             """INSERT INTO services
-               (service_id, name, description, price_microalgo, price_algo,
+               (service_id, name, description, price_input_microalgo, price_output_microalgo,
                 creator_address, example_prompt, system_prompt, created_at, updated_at)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
                ON CONFLICT (service_id) DO UPDATE SET
                    name = EXCLUDED.name,
                    description = EXCLUDED.description,
-                   price_microalgo = EXCLUDED.price_microalgo,
-                   price_algo = EXCLUDED.price_algo,
+                   price_input_microalgo = EXCLUDED.price_input_microalgo,
+                   price_output_microalgo = EXCLUDED.price_output_microalgo,
                    creator_address = EXCLUDED.creator_address,
                    example_prompt = EXCLUDED.example_prompt,
                    system_prompt = EXCLUDED.system_prompt,
                    updated_at = EXCLUDED.updated_at""",
-            service_id, name, description, price_microalgo, price_algo,
+            service_id, name, description, price_input_microalgo, price_output_microalgo,
             creator_address, example_prompt, system_prompt, now
         )
 
@@ -593,8 +608,8 @@ async def seed_default_services():
             service_id=sid,
             name=svc["name"],
             description=svc["description"],
-            price_microalgo=svc["price_microalgo"],
-            price_algo=svc["price_algo"],
+            price_input_microalgo=svc["price_input_microalgo"],
+            price_output_microalgo=svc["price_output_microalgo"],
             example_prompt=svc.get("example_prompt", ""),
             system_prompt=svc.get("system_prompt", ""),
         )

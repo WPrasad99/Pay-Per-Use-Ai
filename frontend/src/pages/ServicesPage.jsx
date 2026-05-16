@@ -105,7 +105,7 @@ const ServicesPage = () => {
                                     <h3 className="text-xl font-bold text-white group-hover:text-brand-light transition-colors">
                                         {service.name}
                                     </h3>
-                                    <div className="text-brand-light font-bold text-sm">{service.price_algo} ALGO</div>
+                                    <div className="text-brand-light font-bold text-sm">{service.price_algo > 0 ? `${service.price_algo} ALGO` : 'Token-Based'}</div>
                                 </div>
                             </div>
 

@@ -110,22 +110,35 @@ const WorkspacePage = () => {
             const algosdk = (await import('algosdk')).default;
             const client = new algosdk.Algodv2('', ALGOD_API, '');
             const appId = parseInt(paymentInfo.app_id);
-            const boxName = new Uint8Array([
-                ...new TextEncoder().encode('se_'),
-                ...algosdk.decodeAddress(wallet).publicKey,
-            ]);
-
             try {
-                const box = await client.getApplicationBoxByName(appId, boxName).do();
-                const expiry = Number(algosdk.decodeUint64(box.value, 'safe'));
+                const seBoxName = new Uint8Array([
+                    ...new TextEncoder().encode('se_'),
+                    ...algosdk.decodeAddress(wallet).publicKey,
+                ]);
+                const sbBoxName = new Uint8Array([
+                    ...new TextEncoder().encode('sb_'),
+                    ...algosdk.decodeAddress(wallet).publicKey,
+                ]);
+
+                const [seBox, sbBox] = await Promise.all([
+                    client.getApplicationBoxByName(appId, seBoxName).do(),
+                    client.getApplicationBoxByName(appId, sbBoxName).do()
+                ]);
+
+                const expiry = Number(algosdk.decodeUint64(seBox.value, 'safe'));
+                const balance = Number(algosdk.decodeUint64(sbBox.value, 'safe'));
                 const now = Math.floor(Date.now() / 1000);
                 
                 setSessionExpiry(expiry);
-                if (expiry > now) {
+                // Require at least 5000 microAlgos to be considered 'active'
+                if (expiry > now && balance > 5000) {
                     setSessionStatus('active');
                     return true;
-                } else {
+                } else if (expiry <= now) {
                     setSessionStatus('expired');
+                    return false;
+                } else {
+                    setSessionStatus('limit_exceeded');
                     return false;
                 }
             } catch (e) {
@@ -832,7 +845,7 @@ const WorkspacePage = () => {
                                 <div 
                                     onClick={() => setIsSessionModalOpen(true)}
                                     className={`flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-[#111] px-2 py-1 text-[10px] shadow-[2px_2px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none md:text-xs ${
-                                        sessionStatus === 'active' ? 'bg-green-200' : sessionStatus === 'expired' ? 'bg-pink-200' : 'bg-yellow-200'
+                                        sessionStatus === 'active' ? 'bg-green-200' : (sessionStatus === 'expired' || sessionStatus === 'limit_exceeded') ? 'bg-pink-200' : 'bg-yellow-200'
                                     }`}
                                 >
                                     <span className="hidden md:inline">Smart Session:</span>
@@ -841,6 +854,8 @@ const WorkspacePage = () => {
                                             ? `Approved (${remainingTime})` 
                                             : sessionStatus === 'expired' 
                                             ? 'Expired' 
+                                            : sessionStatus === 'limit_exceeded'
+                                            ? 'Limit Reached'
                                             : 'Start Session'
                                         }
                                     </span>
@@ -984,7 +999,7 @@ const WorkspacePage = () => {
                                         const badge = PROVIDER_BADGE[s.id];
                                         return (
                                             <option key={s.id} value={s.id}>
-                                                {ICONS[s.id] || '✨'} {s.name}{badge ? ` · ${badge.label}` : ''} — {s.price_algo} ALGO
+                                                {ICONS[s.id] || '✨'} {s.name}{badge ? ` · ${badge.label}` : ''} — {s.price_algo > 0 ? `${s.price_algo} ALGO` : 'Token-Based'}
                                             </option>
                                         );
                                     })}

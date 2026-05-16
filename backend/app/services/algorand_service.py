@@ -398,13 +398,57 @@ async def transfer_asset(receiver_wallet: str, asset_id: int):
 # BACKEND SESSION EXECUTION
 # ────────────────────────────────────────────────────────
 
-async def execute_service_request(user_wallet: str, service_id: str) -> tuple[bool, str]:
+async def precheck_session_balance(user_wallet: str, min_required_microalgo: int = 50_000) -> tuple[bool, str]:
+    """
+    Fast, read-only check of the contract's BoxMap to ensure the user has enough
+    balance to start an AI generation stream.
+    """
+    app_id = settings.app_id_int
+    if app_id <= 0:
+        return True, "OK"
+        
+    try:
+        from algosdk.encoding import decode_address
+        raw_addr = decode_address(user_wallet)
+        # Check overall balance
+        box_key_b = b"b_" + raw_addr
+        box_name_b64_b = base64.b64encode(box_key_b).decode()
+        resp_b = requests.get(
+            f"{settings.algod_url}/v2/applications/{app_id}/box?name=b64:{box_name_b64_b}",
+            timeout=3
+        )
+        if resp_b.status_code != 200:
+            return False, "INSUFFICIENT_BALANCE"
+            
+        balance = int.from_bytes(base64.b64decode(resp_b.json().get("value")), 'big')
+        if balance < min_required_microalgo:
+            return False, "INSUFFICIENT_BALANCE"
+            
+        # Check session expiry
+        box_key_se = b"se_" + raw_addr
+        box_name_b64_se = base64.b64encode(box_key_se).decode()
+        resp_se = requests.get(
+            f"{settings.algod_url}/v2/applications/{app_id}/box?name=b64:{box_name_b64_se}",
+            timeout=3
+        )
+        if resp_se.status_code != 200:
+            return False, "NO_SESSION"
+            
+        expiry = int.from_bytes(base64.b64decode(resp_se.json().get("value")), 'big')
+        import time
+        if expiry < int(time.time()):
+            return False, "SESSION_EXPIRED"
+            
+        return True, "OK"
+    except Exception as e:
+        print(f"Precheck failed: {e}")
+        return False, "NETWORK_ERROR"
+
+async def settle_service_cost(user_wallet: str, service_id: str, cost_microalgo: int) -> tuple[bool, str]:
     """
     Submits a transaction to the smart contract on behalf of the user
-    to deduct from their session.
-    Returns (success, reason) where reason is one of:
-      'OK', 'SESSION_EXPIRED', 'NO_SESSION', 'INSUFFICIENT_BALANCE',
-      'SESSION_LIMIT_EXCEEDED', 'UNKNOWN'
+    to deduct the EXACT calculated token cost after generation.
+    Returns (success, reason)
     """
     from algosdk import account, transaction, mnemonic
     from algosdk.v2client import algod
@@ -428,7 +472,7 @@ async def execute_service_request(user_wallet: str, service_id: str) -> tuple[bo
     
     from algosdk.abi import Method
     from algosdk.atomic_transaction_composer import AtomicTransactionComposer, AccountTransactionSigner
-    method = Method.from_signature("request_service_v2(address,string)bool")
+    method = Method.from_signature("request_service_v2(address,string,uint64)bool")
     
     try:
         from app.services.ai_service import SERVICE_CATALOG
@@ -441,15 +485,29 @@ async def execute_service_request(user_wallet: str, service_id: str) -> tuple[bo
         
         print(f"DEBUG: execute_service_request for {user_wallet} on {service_id}")
         
-        boxes = [
+        # Get application info to find the correct earnings box
+        # Safely handle different algosdk versions/client behaviors
+        app_info_req = algod_client.application_info(app_id)
+        app_info = app_info_req.do() if hasattr(app_info_req, 'do') else app_info_req
+        global_state = decode_global_state(app_info.get("params", {}).get("global-state", []))
+        owner_addr_raw = global_state.get("owner", sender)
+        
+        # Ensure owner_addr is bytes
+        if isinstance(owner_addr_raw, str):
+             owner_addr_bytes = decode_address(owner_addr_raw)
+        else:
+             owner_addr_bytes = owner_addr_raw
+
+        # Build unique set of boxes
+        box_set = {
             (app_id, b"sb_" + user_addr),
             (app_id, b"se_" + user_addr),
             (app_id, b"b_" + user_addr),
-            (app_id, b"p_" + service_id.encode('utf-8')),
             (app_id, b"c_" + service_id.encode('utf-8')),
             (app_id, b"e_" + creator_addr),
-            (app_id, b"e_" + sender_addr),
-        ]
+            (app_id, b"e_" + owner_addr_bytes),
+        }
+        boxes = list(box_set)
         
         atc.add_method_call(
             app_id=app_id,
@@ -457,7 +515,7 @@ async def execute_service_request(user_wallet: str, service_id: str) -> tuple[bo
             sender=sender,
             sp=params,
             signer=signer,
-            method_args=[user_wallet, service_id],
+            method_args=[user_wallet, service_id, cost_microalgo],
             boxes=boxes
         )
         
@@ -474,6 +532,4 @@ async def execute_service_request(user_wallet: str, service_id: str) -> tuple[bo
             return False, "INSUFFICIENT_BALANCE"
         if "NO_SESSION" in err_str or "NOSESSION" in err_str:
             return False, "NO_SESSION"
-        if "ASSERT FAILED" in err_str or "LOGIC EVAL ERROR" in err_str:
-            return False, "SESSION_LIMIT_EXCEEDED"
         return False, f"CONTRACT_ERROR: {str(e)[:100]}"

@@ -102,43 +102,63 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
     context_messages = [{"role": m["role"], "content": m["content"]} for m in all_messages]
 
     async def generate():
+        from app.services.algorand_service import precheck_session_balance, settle_service_cost
+        
+        # Precheck balance before starting heavy AI generation
+        can_start, reason = await precheck_session_balance(data.wallet_address, 50_000)
+        if not can_start:
+            yield f"data: {json.dumps({'error': reason})}\n\n"
+            return
+            
         ai_text_chunks = []
-        tokens_used = 0
+        input_tokens = 0
+        output_tokens = 0
+        
         try:
             stream = stream_ai_response_with_context(data.service_id, context_messages)
             async for chunk in stream:
-                if isinstance(chunk, dict) and "tokens_used" in chunk:
-                    tokens_used = chunk["tokens_used"]
+                if isinstance(chunk, dict):
+                    if "input_tokens" in chunk:
+                        input_tokens = chunk.get("input_tokens", 0)
+                        output_tokens = chunk.get("output_tokens", 0)
+                    elif "tokens_used" in chunk:
+                        output_tokens = chunk["tokens_used"]
                 else:
                     ai_text_chunks.append(chunk)
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n"
                     
             ai_text = "".join(ai_text_chunks)
+            tokens_used = input_tokens + output_tokens
             
-            # ── On-chain Session Deduction via Smart Contract ──
-            from app.services.algorand_service import execute_service_request
-            success, reason = await execute_service_request(data.wallet_address, data.service_id)
+            # Calculate dynamic cost based on exact tokens used
+            service_config = SERVICE_CATALOG[data.service_id]
+            cost_microalgo = int(
+                (input_tokens * service_config["price_input_microalgo"] / 1_000_000) + 
+                (output_tokens * service_config["price_output_microalgo"] / 1_000_000)
+            )
+            
+            # Prevent 0 cost transactions from failing contract validation
+            if cost_microalgo == 0:
+                cost_microalgo = 100
+                
+            # ── On-chain Dynamic Settlement via Smart Contract ──
+            success, reason = await settle_service_cost(data.wallet_address, data.service_id, cost_microalgo)
             
             if not success:
-                error_detail = reason # Use the raw reason if it's a contract error
-                if reason == "SESSION_EXPIRED":
-                    error_detail = "SESSION_EXPIRED"
-                elif reason in ("NO_SESSION", "SESSION_LIMIT_EXCEEDED"):
-                    error_detail = "NO_SESSION"
-                elif reason == "INSUFFICIENT_BALANCE":
-                    error_detail = "INSUFFICIENT_BALANCE"
+                error_detail = reason
+                if reason in ("SESSION_EXPIRED", "NO_SESSION", "SESSION_LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE"):
+                    error_detail = reason
                 yield f"data: {json.dumps({'error': error_detail})}\n\n"
                 return
             
-            cost_usd = round(tokens_used * COST_PER_TOKEN, 13)
-            cost_algo = cost_usd / 0.20
-            cost_microalgo = max(0, int(cost_algo * 1_000_000))
+            cost_algo = cost_microalgo / 1_000_000
+            cost_usd = round(cost_algo * 0.20, 6) # Approximate USD visual display
             
             await log_transaction(
                 wallet_address=data.wallet_address,
                 tx_type="ai_usage",
                 amount_microalgo=cost_microalgo,
-                description=f"AI usage: {data.service_id} | {tokens_used} tokens | ${cost_usd:.8f}"
+                description=f"AI usage: {data.service_id} | In: {input_tokens} Out: {output_tokens} | {cost_algo:.6f} ALGO"
             )
             
             await add_message(conversation_id, "assistant", ai_text, tokens_used, cost_usd)

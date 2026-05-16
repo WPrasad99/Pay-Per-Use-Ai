@@ -27,7 +27,7 @@ const ServiceCard = ({ service, onSelect }) => {
             <div className="flex items-center justify-between mt-auto">
                 <div>
                     <div className="text-sm text-gray-500 font-medium">Price per request</div>
-                    <span className="text-xl font-bold text-algo-blue">{service.price_algo} ALGO</span>
+                    <span className="text-xl font-bold text-algo-blue">{service.price_algo > 0 ? `${service.price_algo} ALGO` : 'Token-Based'}</span>
                 </div>
                 
                 <button 
