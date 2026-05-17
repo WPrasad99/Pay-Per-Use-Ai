@@ -57,7 +57,7 @@ class PayPerAI(ARC4Contract):
     def create(self) -> None:
         """Initialize the contract. Sets owner, fee, and seeds default services."""
         self.owner.value = Txn.sender
-        self.platform_fee_pct.value = UInt64(20)  # 20% platform fee
+        self.platform_fee_pct.value = UInt64(10)  # 10% platform fee, 90% creator
         self.proof_count.value = UInt64(0)
 
         self.service_count.value = UInt64(0)
@@ -353,6 +353,24 @@ class PayPerAI(ARC4Contract):
             + op.itob(price)
         )
 
+        return algopy.arc4.Bool(True)
+
+    @algopy.arc4.abimethod
+    def deactivate_service(self, service_id: String) -> algopy.arc4.Bool:
+        """
+        Deactivate a service by setting its price to 0 (which acts as a disabled flag).
+        Only the creator or owner can deactivate.
+        """
+        assert service_id in self.service_prices, "SERVICE_NOT_FOUND"
+        
+        is_owner = Txn.sender == self.owner.value
+        is_creator = False
+        if service_id in self.service_creators:
+            is_creator = Txn.sender == self.service_creators[service_id]
+
+        assert is_owner or is_creator, "UNAUTHORIZED"
+
+        self.service_prices[service_id] = UInt64(0)
         return algopy.arc4.Bool(True)
 
     @algopy.arc4.abimethod
