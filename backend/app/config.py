@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     # App
     app_secret_key: str = "replace-with-a-long-random-string-minimum-32-chars"
     session_expiry_seconds: int = 600
+    
+    # Marketplace
+    api_key_encryption_secret: str = ""  # 32-byte hex key for AES-256-GCM
+    marketplace_fee_pct: int = 10  # 10% platform fee, 90% to creators
     cors_origins: str = "http://localhost:5173,http://localhost:4173,https://pay-per-use-ai.vercel.app"
 
     platform_base_url: str = "http://localhost:8000"

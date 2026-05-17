@@ -8,6 +8,7 @@ import qrcode
 import base64
 import io
 
+from app import database as db
 from app.models import ServiceOut, PaymentInfoOut
 from app.services.ai_service import get_services_list, SERVICE_CATALOG
 from app.services.algorand_service import get_app_address
@@ -32,10 +33,21 @@ async def get_payment_info(service_id: str):
     """
     Assembles contextual payment routing info for the frontend including QR codes.
     """
-    if service_id not in SERVICE_CATALOG:
-        raise HTTPException(status_code=404, detail="Service not found in catalog")
+    if service_id in SERVICE_CATALOG:
+        service = SERVICE_CATALOG[service_id]
+    else:
+        # Resolve from custom AI Agents database
+        agent = await db.get_ai_agent(service_id)
+        if not agent:
+            raise HTTPException(status_code=404, detail="Service or Agent not found")
         
-    service = SERVICE_CATALOG[service_id]
+        price_algo = agent['price_per_request_microalgo'] / 1_000_000 if agent['pricing_model'] == 'per_request' else 0.001
+        price_microalgo = agent['price_per_request_microalgo'] if agent['pricing_model'] == 'per_request' else 1000
+        service = {
+            "price_algo": price_algo,
+            "price_microalgo": price_microalgo,
+        }
+        
     app_id = settings.app_id_int
     contract_address = get_app_address(app_id)
     

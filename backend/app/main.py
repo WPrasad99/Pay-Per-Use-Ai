@@ -20,6 +20,8 @@ from app.database import init_db
 from app.routes import services, payment, query, chat, wallet, image, marketplace, users
 from app.routes.auth import router as auth_router
 from app.routes.session import router as session_router
+from app.routes.creators import router as creators_router
+from app.routes.agents import router as agents_router
 from app.core.limiter import limiter
 
 
@@ -86,22 +88,42 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# ── Rate Limiter Middleware ──────────────────────────────────
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Parse origins from settings
+origins = [org.strip() for org in settings.cors_origins.split(",") if org.strip()]
+for default_org in ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:4173", "http://127.0.0.1:4173"]:
+    if default_org not in origins:
+        origins.append(default_org)
 
-# ── CORS ─────────────────────────────────────────────────────
-raw_origins = settings.cors_origins.split(",")
-origins = [o.strip() for o in raw_origins if o.strip()]
-
+# ── CORS & Middleware ────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
-    allow_credentials=True,          # Required for cookies
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"Request: {request.method} {request.url}")
+    response = await call_next(request)
+    # Manual CORS failsafe - only apply if standard middleware did not
+    origin = request.headers.get("origin")
+    if origin in origins:
+        if "Access-Control-Allow-Origin" not in response.headers:
+            response.headers["Access-Control-Allow-Origin"] = origin
+        if "Access-Control-Allow-Credentials" not in response.headers:
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        if "Access-Control-Allow-Methods" not in response.headers:
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        if "Access-Control-Allow-Headers" not in response.headers:
+            req_headers = request.headers.get("Access-Control-Request-Headers", "Content-Type, Authorization, X-Requested-With, Accept")
+            response.headers["Access-Control-Allow-Headers"] = req_headers
+    return response
+
+# ── Rate Limiter ─────────────────────────────────────────────
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.get("/")
@@ -128,6 +150,10 @@ app.include_router(image.router, prefix="/api/v1")
 app.include_router(marketplace.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(session_router, prefix="/api/v1")
+
+# ── Marketplace Routes ───────────────────────────────────────
+app.include_router(creators_router, prefix="/api/v1/creators")
+app.include_router(agents_router, prefix="/api/v1/agents")
 
 # ── Static Files ─────────────────────────────────────────────
 os.makedirs("static/nfts", exist_ok=True)

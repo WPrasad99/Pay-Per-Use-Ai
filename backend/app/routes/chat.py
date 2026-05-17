@@ -38,6 +38,7 @@ class MessageOut(BaseModel):
     content: str
     tokens_used: int = 0
     cost_usd: float = 0.0
+    model: Optional[str] = None
     created_at: str = ""
 
 
@@ -58,6 +59,8 @@ class HistoryOut(BaseModel):
     total_cost_usd: float
     created_at: str
     paid: int
+    title: Optional[str] = None
+    service_name: Optional[str] = None
 
 
 @router.post("/chat", status_code=200)
@@ -93,7 +96,7 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
             await mark_conversation_paid(conversation_id, data.tx_id)
 
     # Save user message
-    await add_message(conversation_id, "user", data.prompt.strip())
+    await add_message(conversation_id, "user", data.prompt.strip(), model=SERVICE_CATALOG[data.service_id]["name"])
 
 
 
@@ -161,7 +164,7 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
                 description=f"AI usage: {data.service_id} | In: {input_tokens} Out: {output_tokens} | {cost_algo:.6f} ALGO"
             )
             
-            await add_message(conversation_id, "assistant", ai_text, tokens_used, cost_usd)
+            await add_message(conversation_id, "assistant", ai_text, tokens_used, cost_usd, model=SERVICE_CATALOG[data.service_id]["name"])
             
             prompt_hash = hashlib.sha256(data.prompt.encode()).hexdigest()
             response_hash = hashlib.sha256(ai_text.encode()).hexdigest()
@@ -195,6 +198,7 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
                         "content": m["content"],
                         "tokens_used": m["tokens_used"],
                         "cost_usd": m["cost_usd"],
+                        "model": m.get("model"),
                         "created_at": str(m["created_at"])
                     }
                     for m in updated_messages
@@ -221,7 +225,9 @@ async def get_history(wallet_address: str, service_id: Optional[str] = None):
             total_tokens=c["total_tokens"],
             total_cost_usd=c["total_cost_usd"],
             created_at=str(c["created_at"]),
-            paid=c["paid"]
+            paid=c["paid"],
+            title=c.get("first_prompt"),
+            service_name=c.get("service_name")
         )
         for c in convs
     ]
@@ -250,6 +256,7 @@ async def get_conv_messages(wallet_address: str, conversation_id: str):
                 content=m["content"],
                 tokens_used=m["tokens_used"],
                 cost_usd=m["cost_usd"],
+                model=m.get("model"),
                 created_at=str(m["created_at"])
             )
             for m in messages

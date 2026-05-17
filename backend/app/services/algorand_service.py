@@ -476,17 +476,23 @@ async def settle_service_cost(user_wallet: str, service_id: str, cost_microalgo:
     
     try:
         from app.services.ai_service import SERVICE_CATALOG
-        creator_wallet = SERVICE_CATALOG.get(service_id, {}).get("creator_address", settings.platform_wallet_address)
+        from app.database import get_ai_agent
+        
+        creator_wallet = settings.platform_wallet_address
+        if service_id in SERVICE_CATALOG:
+            creator_wallet = SERVICE_CATALOG[service_id].get("creator_address", settings.platform_wallet_address)
+        else:
+            agent = await get_ai_agent(service_id)
+            if agent:
+                creator_wallet = agent.get("creator_wallet", settings.platform_wallet_address)
+                
         creator_addr = decode_address(creator_wallet)
         sender_addr = decode_address(sender)
         
         atc = AtomicTransactionComposer()
         signer = AccountTransactionSigner(private_key)
         
-        print(f"DEBUG: execute_service_request for {user_wallet} on {service_id}")
-        
         # Get application info to find the correct earnings box
-        # Safely handle different algosdk versions/client behaviors
         app_info_req = algod_client.application_info(app_id)
         app_info = app_info_req.do() if hasattr(app_info_req, 'do') else app_info_req
         global_state = decode_global_state(app_info.get("params", {}).get("global-state", []))
@@ -533,6 +539,78 @@ async def settle_service_cost(user_wallet: str, service_id: str, cost_microalgo:
         if "NO_SESSION" in err_str or "NOSESSION" in err_str:
             return False, "NO_SESSION"
         return False, f"CONTRACT_ERROR: {str(e)[:100]}"
+        
+async def register_agent_on_chain(agent_id: str, price_microalgo: int, creator_wallet: str) -> bool:
+    """Registers the agent on the Algorand smart contract."""
+    from algosdk import account, transaction, mnemonic
+    from algosdk.v2client import algod
+    from algosdk.atomic_transaction_composer import AtomicTransactionComposer, AccountTransactionSigner
+    from algosdk.abi import Method
+    import asyncio
+
+    if not settings.platform_wallet_mnemonic: return False
+    
+    algod_client = algod.AlgodClient(settings.algod_token, settings.algod_url)
+    private_key = mnemonic.to_private_key(settings.platform_wallet_mnemonic)
+    sender = account.address_from_private_key(private_key)
+    signer = AccountTransactionSigner(private_key)
+    
+    params = algod_client.suggested_params()
+    app_id = settings.app_id_int
+    method = Method.from_signature("register_service(string,uint64,address)bool")
+    
+    try:
+        atc = AtomicTransactionComposer()
+        atc.add_method_call(
+            app_id=app_id,
+            method=method,
+            sender=sender,
+            sp=params,
+            signer=signer,
+            method_args=[agent_id, price_microalgo, creator_wallet],
+            boxes=[(app_id, b"p_" + agent_id.encode()), (app_id, b"c_" + agent_id.encode())]
+        )
+        await asyncio.to_thread(atc.execute, algod_client, 4)
+        return True
+    except Exception as e:
+        print(f"On-chain registration failed: {e}")
+        return False
+
+async def deactivate_agent_on_chain(agent_id: str) -> bool:
+    """Deactivates the agent on the Algorand smart contract."""
+    from algosdk import account, transaction, mnemonic
+    from algosdk.v2client import algod
+    from algosdk.atomic_transaction_composer import AtomicTransactionComposer, AccountTransactionSigner
+    from algosdk.abi import Method
+    import asyncio
+
+    if not settings.platform_wallet_mnemonic: return False
+    
+    algod_client = algod.AlgodClient(settings.algod_token, settings.algod_url)
+    private_key = mnemonic.to_private_key(settings.platform_wallet_mnemonic)
+    sender = account.address_from_private_key(private_key)
+    signer = AccountTransactionSigner(private_key)
+    
+    params = algod_client.suggested_params()
+    app_id = settings.app_id_int
+    method = Method.from_signature("deactivate_service(string)bool")
+    
+    try:
+        atc = AtomicTransactionComposer()
+        atc.add_method_call(
+            app_id=app_id,
+            method=method,
+            sender=sender,
+            sp=params,
+            signer=signer,
+            method_args=[agent_id],
+            boxes=[(app_id, b"p_" + agent_id.encode()), (app_id, b"c_" + agent_id.encode())]
+        )
+        await asyncio.to_thread(atc.execute, algod_client, 4)
+        return True
+    except Exception as e:
+        print(f"On-chain deactivation failed: {e}")
+        return False
 
 
 async def auto_refund_session(user_wallet: str) -> bool:
