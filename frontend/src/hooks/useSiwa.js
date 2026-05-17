@@ -11,7 +11,11 @@ export function useSiwa() {
      */
     const signOut = async () => {
         try { await authLogout(); } catch (_) { }
-        try { await peraWallet.disconnect(); } catch (_) { }
+        try {
+            if (peraWallet.isConnected) {
+                await peraWallet.disconnect();
+            }
+        } catch (_) { }
         sessionStorage.clear();
     };
 

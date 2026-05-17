@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'; // Refresh V3
+import { useNavigate, useParams } from 'react-router-dom';
 import { useSiwa } from '../hooks/useSiwa';
 import {
     depositWalletFunds,
@@ -14,6 +14,13 @@ import {
     getUserProfile,
     getUserAnalytics,
     deleteConversation,
+    getCreatorProfile,
+    getCreatorAgents,
+    getAgentDetails,
+    chatWithAgent,
+    saveCreatorApiKey,
+    getApiKeyStatus,
+    createCreatorProfile,
 } from '../api/client';
 
 const ICONS = {
@@ -31,6 +38,12 @@ const PROVIDER_BADGE = {
     qwen25:       { label: 'HuggingFace', color: 'bg-blue-100' },
 };
 
+const CATEGORY_EMOJIS = {
+    coding: '💻', business: '📊', marketing: '📣', legal: '⚖️',
+    education: '📚', productivity: '⚡', content_creation: '✍️',
+    data_analysis: '📈', creative: '🎨', general: '🌐',
+};
+
 const QUICK_PROMPTS = [
     'Explain the significance of the Turing Test.',
     'Write a Python script to scrape a website.',
@@ -43,6 +56,7 @@ const formatMicroAlgo = (microAlgo) => (Number(microAlgo || 0) / 1_000_000).toFi
 
 const WorkspacePage = () => {
     const navigate = useNavigate();
+    const { serviceId } = useParams();
     const { signOut } = useSiwa();
     const wallet = sessionStorage.getItem('wallet_address');
     const messagesEndRef = useRef(null);
@@ -72,9 +86,65 @@ const WorkspacePage = () => {
     const [isOptingIn, setIsOptingIn] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+    const [keyProvider, setKeyProvider] = useState('gemini');
+    const [apiKeyInput, setApiKeyInput] = useState('');
+    const [keyStatusList, setKeyStatusList] = useState([]);
+    const [isSavingKey, setIsSavingKey] = useState(false);
+    const [keySuccessMessage, setKeySuccessMessage] = useState('');
+    const [keyErrorMessage, setKeyErrorMessage] = useState('');
+
+    const fetchKeyStatus = async () => {
+        try {
+            const status = await getApiKeyStatus(wallet);
+            setKeyStatusList(status.keys || []);
+        } catch (e) {
+            console.error('Failed to load API key status:', e);
+        }
+    };
+
+    useEffect(() => {
+        if (isApiKeyModalOpen && wallet) {
+            fetchKeyStatus();
+        }
+    }, [isApiKeyModalOpen, wallet]);
+
+    const handleSaveWorkspaceKey = async () => {
+        if (!apiKeyInput.trim()) return;
+        // Always save to the agent's actual provider
+        const agentProvider = service?.provider || 'gemini';
+        setIsSavingKey(true);
+        setKeySuccessMessage('');
+        setKeyErrorMessage('');
+        try {
+            try {
+                await getCreatorProfile(wallet);
+            } catch (pErr) {
+                await createCreatorProfile(wallet, 'Creator', 'AI Agent Creator');
+            }
+
+            await saveCreatorApiKey(wallet, agentProvider, apiKeyInput.trim());
+            setApiKeyInput('');
+            await fetchKeyStatus();
+            const providerLabel = agentProvider.charAt(0).toUpperCase() + agentProvider.slice(1);
+            setKeySuccessMessage(`${providerLabel} API key updated! Your agent will now use the new key.`);
+            // Also clear any existing error in chat since key was fixed
+            setError(null);
+            setTimeout(() => {
+                setKeySuccessMessage('');
+                setIsApiKeyModalOpen(false);
+            }, 2500);
+        } catch (e) {
+            setKeyErrorMessage(e.message || 'Failed to save key. Please try again.');
+        } finally {
+            setIsSavingKey(false);
+        }
+    };
+
     const [userProfile, setUserProfile] = useState(null);
     const [userAnalytics, setUserAnalytics] = useState(null);
     const [allServices, setAllServices] = useState([]);
+    const [isCreator, setIsCreator] = useState(false);
 
 
 
@@ -83,27 +153,67 @@ const WorkspacePage = () => {
             navigate('/');
             return;
         }
+
+        // Reset chat states to open in a fresh new chat when entering a model/agent directly!
+        const queryParams = new URLSearchParams(window.location.search);
+        const sessionParam = queryParams.get('session');
+        if (!sessionParam) {
+            setConversationId(null);
+            setMessages([]);
+        }
+
         setServiceLoading(true);
-        getServices()
-            .then((services) => {
-                setAllServices(services);
-                if (services.length > 0) {
-                    setService(services[0]); // Always start with the first service
-                }
-            })
-            .catch((err) => {
-                console.error('Failed to fetch services:', err);
-                setService({
-                    id: 'llama3',
-                    name: 'Llama 3.3 (Groq)',
-                    description: 'Lightning-fast general purpose reasoning model powered by Groq.',
-                    price_algo: 0.1,
-                    price_microalgo: 100000,
-                    example_prompt: 'Explain the significance of the Turing Test.',
-                });
-            })
-            .finally(() => setServiceLoading(false));
-    }, [wallet, navigate]);
+        if (serviceId && serviceId.startsWith('agent_')) {
+            getAgentDetails(serviceId)
+                .then((agent) => {
+                    const mapped = {
+                        id: agent.agent_id,
+                        name: agent.name,
+                        description: agent.description,
+                        category: agent.category,
+                        provider: agent.provider,
+                        model: agent.model,
+                        price_algo: agent.pricing_model === 'per_request' ? agent.price_per_request_microalgo / 1_000_000 : 0.001,
+                        price_microalgo: agent.pricing_model === 'per_request' ? agent.price_per_request_microalgo : 1000,
+                        example_prompt: 'Hello! What can you do?',
+                        is_community: true,
+                        pricing_model: agent.pricing_model,
+                        price_input_microalgo: agent.price_input_microalgo,
+                        price_output_microalgo: agent.price_output_microalgo,
+                        creator_wallet: agent.creator_wallet,
+                        creator_name: agent.creator_name,
+                    };
+                    setService(mapped);
+                    getServices().then(setAllServices).catch(() => {});
+                })
+                .catch((err) => {
+                    console.error('Failed to load agent details:', err);
+                    setError('AI Agent not found or inactive');
+                })
+                .finally(() => setServiceLoading(false));
+        } else {
+            getServices()
+                .then((services) => {
+                    setAllServices(services);
+                    if (services.length > 0) {
+                        const matchedService = serviceId ? services.find(s => s.id === serviceId) : null;
+                        setService(matchedService || services[0]);
+                    }
+                })
+                .catch((err) => {
+                    console.error('Failed to fetch services:', err);
+                    setService({
+                        id: 'llama3',
+                        name: 'Llama 3.3 (Groq)',
+                        description: 'Lightning-fast general purpose reasoning model powered by Groq.',
+                        price_algo: 0.1,
+                        price_microalgo: 100000,
+                        example_prompt: 'Explain the significance of the Turing Test.',
+                    });
+                })
+                .finally(() => setServiceLoading(false));
+        }
+    }, [wallet, navigate, serviceId]);
 
     const checkSessionStatus = useCallback(async () => {
         if (!wallet || !paymentInfo?.app_id) return;
@@ -161,6 +271,10 @@ const WorkspacePage = () => {
         getConversationHistory(wallet, null).then(setHistory).catch(() => {});
         getUserProfile(wallet).then(setUserProfile).catch(() => {});
         getUserAnalytics(wallet).then(setUserAnalytics).catch(() => {});
+        // Check if user has agents
+        getCreatorAgents(wallet).then(res => {
+            setIsCreator((res.agents || []).length > 0);
+        }).catch(() => setIsCreator(false));
     }, [service, wallet]);
 
     useEffect(() => {
@@ -214,15 +328,34 @@ const WorkspacePage = () => {
             return [];
         }
 
-        return history.slice(0, 5).map((item, index) => ({
-            id: item.conversation_id || index,
-            label: item.title || `${service?.name || 'AI'} session`,
-            tokens: item.total_tokens || 0,
-            cost: item.total_cost_usd || 0,
-            date: item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recent',
-            conversationId: item.conversation_id,
-        }));
+        return history.map((item, index) => {
+            let labelText = item.title || '';
+            if (labelText.length > 25) {
+                labelText = labelText.slice(0, 23) + '...';
+            }
+            if (!labelText) {
+                labelText = item.service_name || `${service?.name || 'AI'} Session`;
+            }
+
+            return {
+                id: item.conversation_id || index,
+                label: labelText,
+                tokens: item.total_tokens || 0,
+                cost: item.total_cost_usd || 0,
+                date: item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recent',
+                conversationId: item.conversation_id,
+                serviceId: item.service_id,
+            };
+        });
     }, [history, service]);
+
+    const marketplaceRows = useMemo(() => {
+        return usageRows.filter(row => row.serviceId && row.serviceId.startsWith('agent_'));
+    }, [usageRows]);
+
+    const generalRows = useMemo(() => {
+        return usageRows.filter(row => !row.serviceId || !row.serviceId.startsWith('agent_'));
+    }, [usageRows]);
 
     const remainingTime = useMemo(() => {
         if (!sessionExpiry || sessionStatus !== 'active') return '';
@@ -381,15 +514,25 @@ const WorkspacePage = () => {
             const { txId } = await client.sendRawTransaction(signed).do();
             await algosdk.waitForConfirmation(client, txId, 4);
 
-            // Immediately update UI and close modal — no extra delay needed
             setSessionStatus('inactive');
             setSessionBalance(0);
-            setIsSessionModalOpen(false);
-            setPayingStatus('');
+            setPayingStatus('Refund successful! 💸');
+            setTimeout(() => {
+                setIsSessionModalOpen(false);
+                setPayingStatus('');
+            }, 1500);
 
         } catch (e) {
-            setError(friendlyError(e));
-            setPayingStatus('');
+            // If the transaction actually succeeded but confirmation timed out, don't show error
+            if (e.message?.includes('timeout') || e.message?.includes('Confirmation took too long')) {
+                setSessionStatus('inactive');
+                setSessionBalance(0);
+                setIsSessionModalOpen(false);
+                setPayingStatus('');
+            } else {
+                setError(friendlyError(e));
+                setPayingStatus('');
+            }
         } finally {
             setIsStartingSession(false);
         }
@@ -459,6 +602,9 @@ const WorkspacePage = () => {
     };
 
     const handleSendPrompt = async (e) => {
+        // Snapshot the model/service name at the exact moment the user sends
+        // so that even if the user switches service mid-stream, old bubbles keep correct label
+        const modelUsed = service?.name || service?.id || 'AI';
         e.preventDefault();
         if (!prompt.trim() || isLoading || !service) return;
 
@@ -471,7 +617,7 @@ const WorkspacePage = () => {
                 ? `Generating image...`
                 : `Running ${service?.name || 'AI'}...`
         );
-        setMessages((prev) => [...prev, { role: 'user', content: userPrompt, tokens_used: 0, cost_usd: 0 }]);
+        setMessages((prev) => [...prev, { role: 'user', content: userPrompt, tokens_used: 0, cost_usd: 0, model: 'You' }]);
 
         try {
             if (service.id === 'image_studio') {
@@ -480,12 +626,14 @@ const WorkspacePage = () => {
                 const updated = await getConversationMessages(wallet, result.conversation_id);
                 setMessages(updated.messages || []);
             } else {
-                const res = await streamChat(service.id, wallet, userPrompt, conversationId, null);
+                const res = service.is_community
+                    ? await chatWithAgent(service.id, wallet, userPrompt, conversationId)
+                    : await streamChat(service.id, wallet, userPrompt, conversationId, null);
                 
-                // Add a placeholder message for the assistant
+                // Add a placeholder message for the assistant — tag with snapshotted model name
                 setMessages((prev) => [
                     ...prev,
-                    { role: 'assistant', content: '', tokens_used: 0, cost_usd: 0 }
+                    { role: 'assistant', content: '', tokens_used: 0, cost_usd: 0, model: modelUsed }
                 ]);
                 
                 const reader = res.body.getReader();
@@ -506,27 +654,46 @@ const WorkspacePage = () => {
                             
                             try {
                                 const data = JSON.parse(dataStr);
-                                if (data.error) {
-                                    throw new Error(data.error);
+                                if (data.error || data.type === 'error') {
+                                    throw new Error(data.error || data.message || 'Stream error');
                                 }
-                                if (data.chunk) {
-                                    fullText += data.chunk;
+                                
+                                const textChunk = data.chunk || (data.type === 'text' ? data.content : '');
+                                if (textChunk) {
+                                    fullText += textChunk;
                                     setMessages((prev) => {
                                         const newMsgs = [...prev];
                                         newMsgs[newMsgs.length - 1].content = fullText;
                                         return newMsgs;
                                     });
                                 }
-                                if (data.done) {
-                                    setConversationId(data.conversation_id);
-                                    setMessages(data.messages || []);
-                                    setTotalTokens(data.total_tokens_session || 0);
-                                    setTotalCost(data.total_cost_session || 0);
+                                
+                                if (data.done || data.type === 'done') {
+                                    const convId = data.conversation_id || conversationId;
+                                    setConversationId(convId);
+                                    if (service.is_community) {
+                                        const updated = await getConversationMessages(wallet, convId);
+                                        const serverMsgs = updated.messages || [];
+                                        // Merge: server has no model field per-msg, so preserve snapshotted labels
+                                        setMessages(prev => serverMsgs.map((sm, i) => ({
+                                            ...sm,
+                                            model: sm.model || prev[i]?.model || (sm.role === 'assistant' ? modelUsed : 'You')
+                                        })));
+                                        setTotalTokens(updated.total_tokens || 0);
+                                        setTotalCost(updated.total_cost_usd || 0);
+                                    } else {
+                                        const serverMsgs = data.messages || [];
+                                        setMessages(prev => serverMsgs.map((sm, i) => ({
+                                            ...sm,
+                                            model: sm.model || prev[i]?.model || (sm.role === 'assistant' ? modelUsed : 'You')
+                                        })));
+                                        setTotalTokens(data.total_tokens_session || 0);
+                                        setTotalCost(data.total_cost_session || 0);
+                                    }
                                 }
                             } catch (e) {
-                                // If we explicitly threw the error from the backend payload, re-throw it to catch block
-                                if (dataStr.includes('"error"')) {
-                                    throw new Error(JSON.parse(dataStr).error);
+                                if (dataStr.includes('"error"') || dataStr.includes('"message"')) {
+                                    throw new Error(e.message || 'Stream error');
                                 }
                             }
                         }
@@ -591,12 +758,37 @@ const WorkspacePage = () => {
                 )}
             </div>
 
+            <div className="mt-4 flex flex-col gap-2">
+                <button
+                    type="button"
+                    onClick={() => { navigate('/dashboard/marketplace'); if (isMobile) setIsSidebarOpen(false); }}
+                    className="w-full rounded-xl border-2 border-[#111] bg-purple-200 p-2.5 text-sm font-black shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none md:border-4 flex items-center gap-2"
+                >
+                    <span>🤖</span> AI Marketplace
+                </button>
+                {isCreator && (
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={() => { navigate('/dashboard/my-agents'); if (isMobile) setIsSidebarOpen(false); }}
+                            className="flex-1 rounded-xl border-2 border-[#111] bg-green-200 p-2 text-xs font-black shadow-[3px_3px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none flex items-center justify-center gap-1"
+                        >
+                            📦 My Agents
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { navigate('/dashboard/earnings'); if (isMobile) setIsSidebarOpen(false); }}
+                            className="flex-1 rounded-xl border-2 border-[#111] bg-yellow-200 p-2 text-xs font-black shadow-[3px_3px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none flex items-center justify-center gap-1"
+                        >
+                            💰 Earnings
+                        </button>
+                    </div>
+                )}
+            </div>
+
             <div className="mt-5 flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                        <p className="font-black text-xs uppercase tracking-widest opacity-60">History</p>
-                        <span className="rounded-full bg-[#111] px-2 py-1 text-[10px] font-black text-white">{usageRows.length}</span>
-                    </div>
+                    <p className="font-black text-xs uppercase tracking-widest opacity-60">Chat History</p>
                     <button
                         type="button"
                         onClick={() => {
@@ -615,37 +807,85 @@ const WorkspacePage = () => {
                         NEW
                     </button>
                 </div>
-                <div className="mt-2 space-y-2 flex-1 overflow-y-auto pr-1">
-                    {usageRows.map((row) => (
-                        <div key={row.id} className="relative group flex items-stretch">
-                            <button
-                                type="button"
-                                onClick={() => row.conversationId && loadConversation(row.conversationId)}
-                                className={`w-full rounded-xl border-2 border-[#111] p-2 text-left text-sm shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-1 md:border-4 ${
-                                    row.conversationId === conversationId ? 'bg-green-200' : 'bg-white'
-                                }`}
-                            >
-                                <span className="block truncate pr-8 font-black">{row.label}</span>
-                                <span className="mt-1 flex items-center justify-between gap-2 text-[11px] font-bold opacity-60">
-                                    <span>{row.tokens} tokens</span>
-                                    <span>${Number(row.cost).toFixed(4)}</span>
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={(e) => handleDeleteConversation(e, row.conversationId)}
-                                className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1.5 bg-white hover:bg-red-500 hover:text-white transition-all rounded-lg border-2 border-[#111] shadow-[2px_2px_0px_#111] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none flex items-center justify-center"
-                                title="Delete Chat"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                                </svg>
-                            </button>
+                <div className="mt-2 flex-1 flex flex-col min-h-0 overflow-y-auto space-y-4 pr-1">
+                    {/* Section 1: AI Marketplace History */}
+                    {marketplaceRows.length > 0 && (
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2 mb-2">
+                                <p className="font-black text-[10px] uppercase tracking-widest opacity-50">AI Marketplace History</p>
+                                <span className="rounded-full bg-purple-200 border-2 border-[#111] px-2 py-0.5 text-[9px] font-black text-[#111]">{marketplaceRows.length}</span>
+                            </div>
+                            <div className="space-y-2">
+                                {marketplaceRows.map((row) => (
+                                    <div key={row.id} className="relative group flex items-stretch">
+                                        <button
+                                            type="button"
+                                            onClick={() => row.conversationId && loadConversation(row.conversationId)}
+                                            className={`w-full rounded-xl border-2 border-[#111] p-2 text-left text-sm shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-1 md:border-4 ${
+                                                row.conversationId === conversationId ? 'bg-purple-200' : 'bg-white'
+                                            }`}
+                                        >
+                                            <span className="block truncate pr-8 font-black">{row.label}</span>
+                                            <span className="mt-1 flex items-center justify-between gap-2 text-[11px] font-bold opacity-60">
+                                                <span>{row.tokens} tokens</span>
+                                                <span>${Number(row.cost).toFixed(4)}</span>
+                                            </span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => handleDeleteConversation(e, row.conversationId)}
+                                            className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1.5 bg-white hover:bg-red-500 hover:text-white transition-all rounded-lg border-2 border-[#111] shadow-[2px_2px_0px_#111] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none flex items-center justify-center"
+                                            title="Delete Chat"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    ))}
+                    )}
+
+                    {/* Section 2: General History */}
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-2 mb-2">
+                            <p className="font-black text-[10px] uppercase tracking-widest opacity-50">General History</p>
+                            <span className="rounded-full bg-[#111] px-2 py-0.5 text-[9px] font-black text-white">{generalRows.length}</span>
+                        </div>
+                        <div className="space-y-2">
+                            {generalRows.map((row) => (
+                                <div key={row.id} className="relative group flex items-stretch">
+                                    <button
+                                        type="button"
+                                        onClick={() => row.conversationId && loadConversation(row.conversationId)}
+                                        className={`w-full rounded-xl border-2 border-[#111] p-2 text-left text-sm shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-1 md:border-4 ${
+                                            row.conversationId === conversationId ? 'bg-green-200' : 'bg-white'
+                                        }`}
+                                    >
+                                        <span className="block truncate pr-8 font-black">{row.label}</span>
+                                        <span className="mt-1 flex items-center justify-between gap-2 text-[11px] font-bold opacity-60">
+                                            <span>{row.tokens} tokens</span>
+                                            <span>${Number(row.cost).toFixed(4)}</span>
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => handleDeleteConversation(e, row.conversationId)}
+                                        className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1.5 bg-white hover:bg-red-500 hover:text-white transition-all rounded-lg border-2 border-[#111] shadow-[2px_2px_0px_#111] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none flex items-center justify-center"
+                                        title="Delete Chat"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
                 
-                <div className="mt-4 pt-4 border-t-2 md:border-t-4 border-[#111]">
+                <div className="mt-4 pt-4 border-t-2 md:border-t-4 border-[#111] flex flex-col gap-2">
                     <button
                         type="button"
                         onClick={async () => { await signOut(); navigate('/'); }}
@@ -673,7 +913,7 @@ const WorkspacePage = () => {
                 >
                     <div className="mb-3 flex flex-wrap items-center gap-2">
                         <span className="rounded-full border-2 border-[#111] bg-[#111] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-white">
-                            {isUser ? 'You' : (PROVIDER_BADGE[service?.id]?.label || service?.name || 'AI')}
+                            {isUser ? 'You' : (msg.model || 'AI')}
                         </span>
                         {msg.tokens_used > 0 && !isImage && (
                             <span className="text-[11px] font-black opacity-60">
@@ -898,31 +1138,43 @@ const WorkspacePage = () => {
                             <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-sm md:text-base">
                                 <span className="text-base">{ICONS[service?.id] || '✨'}</span>
                                 <span className="truncate font-black">{service?.name || 'Workspace'}</span>
-                                {service && PROVIDER_BADGE[service.id] && (
+                                {service && (PROVIDER_BADGE[service.id] ? (
                                     <span className={`hidden shrink-0 rounded-full border border-[#111] px-2 py-0.5 text-[9px] font-black md:inline ${PROVIDER_BADGE[service.id].color}`}>
                                         {PROVIDER_BADGE[service.id].label}
                                     </span>
-                                )}
+                                ) : service.is_community ? (
+                                    <span className="hidden shrink-0 rounded-full border border-[#111] bg-purple-200 px-2 py-0.5 text-[9px] font-black md:inline">
+                                        Community · {service.provider}
+                                    </span>
+                                ) : null)}
                                 <span className="hidden opacity-30 md:inline">•</span>
                                 
-                                <div 
-                                    onClick={() => setIsSessionModalOpen(true)}
-                                    className={`flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-[#111] px-2 py-1 text-[10px] shadow-[2px_2px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none md:text-xs ${
-                                        sessionStatus === 'active' ? 'bg-green-200' : (sessionStatus === 'expired' || sessionStatus === 'limit_exceeded') ? 'bg-pink-200' : 'bg-yellow-200'
-                                    }`}
-                                >
-                                    <span className="hidden md:inline">Smart Session:</span>
-                                    <span className="font-black">
-                                        {sessionStatus === 'active' 
-                                            ? `Approved (${remainingTime})` 
-                                            : sessionStatus === 'expired' 
-                                            ? 'Expired' 
-                                            : sessionStatus === 'limit_exceeded'
-                                            ? 'Limit Reached'
-                                            : 'Start Session'
-                                        }
-                                    </span>
-                                </div>
+                                {service?.is_community && service?.creator_wallet === wallet ? (
+                                    <div 
+                                        className="flex items-center gap-1.5 rounded-lg border-2 border-[#111] bg-purple-200 px-2 py-1 text-[10px] shadow-[2px_2px_0px_#111] md:text-xs font-black cursor-default animate-pulse"
+                                    >
+                                        ✨ Creator Mode (Free)
+                                    </div>
+                                ) : (
+                                    <div 
+                                        onClick={() => setIsSessionModalOpen(true)}
+                                        className={`flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-[#111] px-2 py-1 text-[10px] shadow-[2px_2px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none md:text-xs ${
+                                            sessionStatus === 'active' ? 'bg-green-200' : (sessionStatus === 'expired' || sessionStatus === 'limit_exceeded') ? 'bg-pink-200' : 'bg-yellow-200'
+                                        }`}
+                                    >
+                                        <span className="hidden md:inline">Smart Session:</span>
+                                        <span className="font-black">
+                                            {sessionStatus === 'active' 
+                                                ? `Approved (${remainingTime})` 
+                                                : sessionStatus === 'expired' 
+                                                ? 'Expired' 
+                                                : sessionStatus === 'limit_exceeded'
+                                                ? 'Limit Reached'
+                                                : 'Start Session'
+                                            }
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                         <div className="flex items-center gap-2">
@@ -942,25 +1194,73 @@ const WorkspacePage = () => {
                                 error ? 'bg-pink-200' : 'bg-yellow-200'
                             }`}
                         >
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                                 <span className="text-lg">{error ? '🚫' : '⏳'}</span>
                                 <span className="flex-1">{error || payingStatus}</span>
-                                {error && (
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setError(null)} 
-                                        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full border-2 border-[#111] bg-white hover:bg-[#111] hover:text-white transition-colors font-black" 
-                                        aria-label="Dismiss error"
-                                    >
-                                        ✕
-                                    </button>
-                                )}
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {error && service?.is_community && service?.creator_wallet === wallet && (
+                                        error.toLowerCase().includes('api key') || error.toLowerCase().includes('api_key') ||
+                                        error.toLowerCase().includes('quota') || error.toLowerCase().includes('expired') ||
+                                        error.toLowerCase().includes('failed') || error.toLowerCase().includes('not found') ||
+                                        error.toLowerCase().includes('429') || error.toLowerCase().includes('invalid')
+                                    ) && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsApiKeyModalOpen(true)}
+                                            className="rounded-lg border-2 border-[#111] bg-yellow-200 px-3 py-1.5 text-xs font-black shadow-[2px_2px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+                                        >
+                                            🔐 Update API Key
+                                        </button>
+                                    )}
+                                    {error && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setError(null)} 
+                                            className="w-8 h-8 flex items-center justify-center rounded-full border-2 border-[#111] bg-white hover:bg-[#111] hover:text-white transition-colors font-black" 
+                                            aria-label="Dismiss error"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
 
                     <div className="flex-1 space-y-3 overflow-y-auto p-2 pb-4 md:p-4">
-                        {messages.length === 0 && !isLoading && (
+                        {messages.length === 0 && !isLoading && service?.is_community ? (
+                            <div className="flex flex-col min-h-full items-center justify-center py-6 max-w-2xl mx-auto w-full px-4">
+                                <div className="rounded-2xl border-4 border-[#111] bg-white p-6 shadow-[8px_8px_0px_#111] w-full text-center animate-fadeUp">
+                                    <div className="w-20 h-20 rounded-2xl border-4 border-[#111] bg-purple-100 flex items-center justify-center text-4xl shadow-[4px_4px_0px_#111] mx-auto mb-4">
+                                        {CATEGORY_EMOJIS[service.category] || '🤖'}
+                                    </div>
+                                    <h2 className="text-3xl font-black text-neo-blue mb-1">{service.name}</h2>
+                                    <p className="text-xs font-black uppercase tracking-wider opacity-50 mb-3">
+                                        Powered by {service.provider} · {service.model}
+                                    </p>
+                                    
+                                    <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+                                        <span className="rounded-full border-2 border-[#111] bg-cyan-100 px-3 py-1 text-xs font-black">
+                                            👤 {service.creator_name || 'Creator'}
+                                        </span>
+                                        <span className="rounded-full border-2 border-[#111] bg-green-200 px-3 py-1 text-xs font-black">
+                                            💰 {service.pricing_model === 'per_request' ? `${service.price_algo.toFixed(2)} ALGO / request` : 'Per Token Billing'}
+                                        </span>
+                                        <span className="rounded-full border-2 border-[#111] bg-purple-200 px-3 py-1 text-xs font-black capitalize">
+                                            🏷️ {service.category?.replace('_', ' ')}
+                                        </span>
+                                    </div>
+                                    
+                                    <p className="text-sm font-bold opacity-75 border-2 border-dashed border-[#111] rounded-xl p-4 bg-yellow-50 text-left mb-6 whitespace-pre-wrap leading-relaxed">
+                                        {service.description}
+                                    </p>
+                                    
+                                    <div className="text-center font-bold text-xs opacity-60">
+                                        👇 Type your query below to start using this AI Agent!
+                                    </div>
+                                </div>
+                            </div>
+                        ) : messages.length === 0 && !isLoading && (
                             <div className="flex flex-col min-h-full items-center justify-center py-6 max-w-4xl mx-auto w-full px-4">
                                 <div className="text-center mb-6 animate-fadeUp">
                                     <h2 className="text-2xl font-black text-neo-blue mb-1 md:text-3xl">
@@ -1039,38 +1339,44 @@ const WorkspacePage = () => {
                             <textarea
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
-                                placeholder={sessionStatus !== 'active' ? 'Start a session to continue...' : (messages.length === 0 ? 'Type prompt...' : 'Type a follow-up...')}
+                                placeholder={(sessionStatus !== 'active' && service?.creator_wallet !== wallet) ? 'Start a session to continue...' : (messages.length === 0 ? 'Type prompt...' : 'Type a follow-up...')}
                                 className="h-11 min-w-0 flex-1 resize-none rounded-lg border-2 border-[#111] bg-white px-3 py-2 text-sm outline-none md:h-12 md:border-4 md:text-base"
-                                disabled={isLoading || sessionStatus !== 'active'}
+                                disabled={isLoading || (sessionStatus !== 'active' && service?.creator_wallet !== wallet)}
                                 maxLength={2000}
                             />
                             
                             <div className="flex items-center gap-2">
-                                <select
-                                    value={service?.id || ''}
-                                    onChange={(e) => {
-                                        const selected = allServices.find(s => s.id === e.target.value);
-                                        if (selected) {
-                                            setService(selected);
-                                            // Allow changing models within the same chat without clearing messages
-                                        }
-                                    }}
-                                    className="hidden h-11 cursor-pointer appearance-none rounded-lg border-2 border-[#111] bg-yellow-200 px-3 pr-8 text-xs font-black shadow-[3px_3px_0px_#111] outline-none transition-all focus:border-[#111] md:block md:h-12 md:border-4 md:px-4 md:pr-10 md:text-sm bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[right_12px_center] bg-no-repeat"
-                                    disabled={isLoading}
-                                >
-                                    {allServices.filter(s => ['llama3', 'gpt4o_mini', 'gemini_flash', 'qwen25'].includes(s?.id)).map((s) => {
-                                        const badge = PROVIDER_BADGE[s.id];
-                                        return (
-                                            <option key={s.id} value={s.id}>
-                                                {ICONS[s.id] || '✨'} {s.name}{badge ? ` · ${badge.label}` : ''} — {s.price_algo > 0 ? `${s.price_algo} ALGO` : 'Token-Based'}
-                                            </option>
-                                        );
-                                    })}
-                                </select>
+                                {service?.is_community ? (
+                                    <div className="hidden h-11 items-center rounded-lg border-2 border-[#111] bg-yellow-200 px-3 text-xs font-black shadow-[3px_3px_0px_#111] md:flex md:h-12 md:border-4 md:px-4 md:text-sm">
+                                        🤖 {service.name.length > 15 ? service.name.slice(0, 13) + '...' : service.name}
+                                    </div>
+                                ) : (
+                                    <select
+                                        value={service?.id || ''}
+                                        onChange={(e) => {
+                                            const selected = allServices.find(s => s.id === e.target.value);
+                                            if (selected) {
+                                                setService(selected);
+                                                // Allow changing models within the same chat without clearing messages
+                                            }
+                                        }}
+                                        className="hidden h-11 cursor-pointer appearance-none rounded-lg border-2 border-[#111] bg-yellow-200 px-3 pr-8 text-xs font-black shadow-[3px_3px_0px_#111] outline-none transition-all focus:border-[#111] md:block md:h-12 md:border-4 md:px-4 md:pr-10 md:text-sm bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[right_12px_center] bg-no-repeat"
+                                        disabled={isLoading}
+                                    >
+                                        {allServices.filter(s => ['llama3', 'gpt4o_mini', 'gemini_flash', 'qwen25'].includes(s?.id)).map((s) => {
+                                            const badge = PROVIDER_BADGE[s.id];
+                                            return (
+                                                <option key={s.id} value={s.id}>
+                                                    {ICONS[s.id] || '✨'} {s.name}{badge ? ` · ${badge.label}` : ''} — {s.price_algo > 0 ? `${s.price_algo} ALGO` : 'Token-Based'}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                )}
 
                                 <button
                                     type="submit"
-                                    disabled={isLoading || !prompt.trim() || sessionStatus !== 'active'}
+                                    disabled={isLoading || !prompt.trim() || (sessionStatus !== 'active' && service?.creator_wallet !== wallet)}
                                     className="h-11 whitespace-nowrap rounded-lg border-2 border-[#111] bg-green-200 px-4 text-sm font-black shadow-[3px_3px_0px_#111] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 md:h-12 md:border-4 md:px-5 md:text-base"
                                 >
                                     {isLoading ? 'Wait...' : 'Send'}
@@ -1080,6 +1386,105 @@ const WorkspacePage = () => {
                     </div>
                 </main>
             </div>
+
+            {/* Agent-specific API Key Update Modal — only shown to creator */}
+            {isApiKeyModalOpen && service?.is_community && service?.creator_wallet === wallet && (() => {
+                const agentProvider = service?.provider || 'gemini';
+                const agentModel = service?.model || '';
+                const existingKey = keyStatusList.find(k => k.provider === agentProvider);
+                const providerLabel = {
+                    gemini: 'Google Gemini',
+                    openai: 'OpenAI',
+                    groq: 'Groq',
+                    huggingface: 'HuggingFace',
+                }[agentProvider] || agentProvider;
+
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                        <div className="w-full max-w-md animate-fadeUp rounded-2xl border-4 border-[#111] bg-white p-6 shadow-[8px_8px_0px_#111]">
+                            {/* Header */}
+                            <div className="mb-5 flex items-center justify-between border-b-4 border-[#111] pb-3">
+                                <div>
+                                    <h2 className="text-lg font-black flex items-center gap-2">🔐 Update API Key
+                                    </h2>
+                                    <p className="text-xs font-bold opacity-50 mt-0.5">For agent: {service.name}</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsApiKeyModalOpen(false); setKeyErrorMessage(''); setKeySuccessMessage(''); setApiKeyInput(''); }}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full border-2 border-[#111] bg-pink-100 hover:bg-[#111] hover:text-white transition-all font-black shadow-[2px_2px_0px_#111]"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            {keySuccessMessage && (
+                                <div className="mb-4 rounded-xl border-2 border-green-500 bg-green-100 p-3 text-sm font-black text-green-700 flex items-center gap-2">
+                                    <span>✅</span> {keySuccessMessage}
+                                </div>
+                            )}
+                            {keyErrorMessage && (
+                                <div className="mb-4 rounded-xl border-2 border-red-500 bg-red-100 p-3 text-sm font-black text-red-700">
+                                    {keyErrorMessage}
+                                </div>
+                            )}
+
+                            {/* Agent Info — locked, not editable */}
+                            <div className="mb-4 rounded-xl border-2 border-[#111] bg-[#fff7df] p-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-2">Agent Configuration</p>
+                                <div className="flex items-center gap-3">
+                                    <span className="rounded-lg border-2 border-[#111] bg-purple-200 px-3 py-1.5 text-xs font-black shadow-[2px_2px_0px_#111] uppercase">
+                                        {providerLabel}
+                                    </span>
+                                    <span className="rounded-lg border-2 border-[#111] bg-yellow-100 px-3 py-1.5 text-xs font-black shadow-[2px_2px_0px_#111]">
+                                        {agentModel}
+                                    </span>
+                                    <span className={`ml-auto rounded-full border-2 border-[#111] px-2.5 py-1 text-[10px] font-black ${existingKey ? 'bg-green-200' : 'bg-red-100'}`}>
+                                        {existingKey ? `🟢 Key set (${existingKey.key_hint})` : '🔴 No key'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Key input */}
+                            <div className="mb-4">
+                                <label className="block text-xs font-black uppercase tracking-wider opacity-60 mb-1.5">
+                                    Paste your fresh {providerLabel} API key
+                                </label>
+                                <input
+                                    type="password"
+                                    value={apiKeyInput}
+                                    onChange={(e) => setApiKeyInput(e.target.value)}
+                                    placeholder={`sk-... or AIza... — your ${agentProvider} key`}
+                                    className="w-full rounded-xl border-2 border-[#111] px-3 py-2.5 text-sm font-bold shadow-[3px_3px_0px_#111] outline-none focus:bg-yellow-50 bg-white transition-all"
+                                    autoComplete="off"
+                                />
+                            </div>
+
+                            <p className="text-[11px] font-bold opacity-50 leading-relaxed mb-4">
+                                🔒 Encrypted with AES-256-GCM. Your key is never stored in plaintext or logged anywhere.
+                            </p>
+
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsApiKeyModalOpen(false); setKeyErrorMessage(''); setKeySuccessMessage(''); setApiKeyInput(''); }}
+                                    className="flex-1 rounded-xl border-2 border-[#111] bg-white p-3 text-sm font-black shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={isSavingKey || !apiKeyInput.trim()}
+                                    onClick={handleSaveWorkspaceKey}
+                                    className="flex-1 rounded-xl border-2 border-[#111] bg-purple-300 p-3 text-sm font-black shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSavingKey ? 'Encrypting...' : '🔐 Save & Activate'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             <SidebarStyles />
         </div>

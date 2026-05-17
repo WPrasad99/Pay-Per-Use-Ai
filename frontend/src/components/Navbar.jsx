@@ -116,6 +116,11 @@ const Navbar = () => {
             }
 
         } catch (err) {
+            try {
+                if (peraWallet.isConnected) {
+                    await peraWallet.disconnect();
+                }
+            } catch (_) {}
             if (err?.data?.type !== 'CONNECT_MODAL_CLOSED') {
                 console.error('SIWA connect error:', err.message || err);
                 alert('Sign-in failed: ' + (err.message || 'Unknown error'));
@@ -142,7 +147,11 @@ const Navbar = () => {
 
     const handleDisconnectWalletClick = async (e) => {
         if (e) e.preventDefault();
-        try { await peraWallet.disconnect(); }  catch (_) {}
+        try {
+            if (peraWallet.isConnected) {
+                await peraWallet.disconnect();
+            }
+        }  catch (_) {}
         try { await authLogout(); }             catch (_) {}
         setAccountAddress(null);
         clearWallet();
@@ -152,7 +161,7 @@ const Navbar = () => {
     const navLinks = [
         { to: '/',                 label: 'Home',        isRoute: true },
         { to: '/#about',           label: 'About' },
-        { to: '/#how-it-works',    label: 'How It Works' },
+        { to: '/#how-it-works',    label: 'Roadmap' },
         { to: '/#services-preview',label: 'Services' },
         { to: '/#why-us',          label: 'Why Us' },
         { to: '/#join-us',         label: 'Join Us' },

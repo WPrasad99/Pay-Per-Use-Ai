@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 /** All requests include credentials so the HttpOnly JWT cookie is sent. */
 const apiFetch = (url, options = {}) =>
@@ -166,7 +166,7 @@ export const mintNFT = async (walletAddress, imageUrl, prompt) => {
 export const transferNFT = async (walletAddress, assetId) => {
     const res = await apiFetch(`${BASE_URL}/api/v1/images/transfer`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wallet_address: walletAddress, asset_id: assetId })
     });
     return handleResponse(res);
@@ -208,3 +208,144 @@ export const getSharedConversation = async (conversationId) => {
     return handleResponse(res);
 };
 
+// ── Marketplace: Creators ────────────────────────────────────
+
+export const createCreatorProfile = async (walletAddress, displayName, bio = '', socials = {}) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/creators/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            wallet_address: walletAddress,
+            display_name: displayName,
+            bio,
+            social_twitter: socials.twitter || '',
+            social_github: socials.github || '',
+            social_website: socials.website || '',
+        })
+    });
+    return handleResponse(res);
+};
+
+export const getCreatorProfile = async (wallet) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/creators/${wallet}`);
+    return handleResponse(res);
+};
+
+export const getCreatorAgents = async (wallet) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/creators/${wallet}/agents`);
+    return handleResponse(res);
+};
+
+export const getCreatorEarnings = async (wallet) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/creators/${wallet}/earnings`);
+    return handleResponse(res);
+};
+
+export const getCreatorAnalytics = async (wallet) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/creators/${wallet}/analytics`);
+    return handleResponse(res);
+};
+
+export const saveCreatorApiKey = async (walletAddress, provider, apiKey) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/creators/api-keys`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet_address: walletAddress, provider, api_key: apiKey })
+    });
+    return handleResponse(res);
+};
+
+export const getApiKeyStatus = async (wallet) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/creators/api-keys/status/${wallet}`);
+    return handleResponse(res);
+};
+
+export const deleteApiKey = async (wallet, provider) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/creators/api-keys/${wallet}/${provider}`, {
+        method: 'DELETE'
+    });
+    return handleResponse(res);
+};
+
+// ── Marketplace: Agents ──────────────────────────────────────
+
+export const createAgent = async (agentData) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/agents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(agentData)
+    });
+    return handleResponse(res);
+};
+
+export const getAgentDetails = async (agentId) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/agents/${agentId}`);
+    return handleResponse(res);
+};
+
+export const updateAgent = async (agentId, updateData) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/agents/${agentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+    });
+    return handleResponse(res);
+};
+
+export const deactivateAgent = async (agentId, walletAddress) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/agents/${agentId}?wallet_address=${walletAddress}`, {
+        method: 'DELETE'
+    });
+    return handleResponse(res);
+};
+
+export const browseMarketplace = async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.category) query.set('category', params.category);
+    if (params.search) query.set('search', params.search);
+    if (params.sort_by) query.set('sort_by', params.sort_by);
+    if (params.limit) query.set('limit', params.limit);
+    if (params.offset) query.set('offset', params.offset);
+    const res = await apiFetch(`${BASE_URL}/api/v1/agents/marketplace/browse?${query}`);
+    return handleResponse(res);
+};
+
+export const getTrendingAgents = async () => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/agents/marketplace/trending`);
+    return handleResponse(res);
+};
+
+export const getCategories = async () => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/agents/marketplace/categories`);
+    return handleResponse(res);
+};
+
+export const chatWithAgent = async (agentId, walletAddress, prompt, conversationId = null) => {
+    const body = { wallet_address: walletAddress, prompt };
+    if (conversationId) body.conversation_id = conversationId;
+    const res = await apiFetch(`${BASE_URL}/api/v1/agents/${agentId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+        let errMessage = 'Unknown error';
+        try { const data = await res.json(); errMessage = data.detail || JSON.stringify(data); } catch (_) {}
+        throw new Error(errMessage);
+    }
+    return res;
+};
+
+export const getAgentReviews = async (agentId) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/agents/${agentId}/reviews`);
+    return handleResponse(res);
+};
+
+export const submitAgentReview = async (agentId, walletAddress, rating, reviewText = '') => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/agents/${agentId}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet_address: walletAddress, rating, review_text: reviewText })
+    });
+    return handleResponse(res);
+};

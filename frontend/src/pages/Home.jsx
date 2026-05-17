@@ -205,11 +205,16 @@ const Home = () => {
               <button 
                 onClick={(e) => {
                   e.preventDefault();
-                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+                  const target = document.getElementById('how-it-works');
+                  if (target) {
+                    const top = target.getBoundingClientRect().top + window.pageYOffset - 80;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                  }
                 }}
-                className="btn-secondary"
+                className="btn-secondary group flex items-center gap-2"
               >
                 Product roadmap
+                <span className="transition-transform group-hover:translate-x-1">→</span>
               </button>
             </div>
 
