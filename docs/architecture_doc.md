@@ -70,3 +70,21 @@ Pay-Per-Use-AI introduces **High-Performance Smart Sessions**:
 * **Frictionless Prompts**: For the next 24 hours, the user can prompt the AI continuously without ever seeing another wallet signature popup!
 * **Transparent Settlement**: The backend calculates the MicroAlgo token costs in the background and settles them directly against the session escrow.
 * **Self-Governed Release**: The user can click "End Session" at any time, returning any unspent escrow balance back to their wallet instantly.
+
+---
+
+## 🛡️ 5. L402 Protocol: Algorand Pay-Per-Use Billing Standard
+
+Pay-Per-Use-AI implements a custom **L402 protocol** (adapted from Lightning Network's L402 specification for decentralized payment-gated APIs) to govern query authentications.
+
+### The L402 Billing Protocol in Action
+1. **Request Interception**: Every incoming chat or image request to `/query` or `/image` is parsed for session authorization payload parameters.
+2. **On-Chain Balance Check**: The backend verifies the user's active session escrow balance.
+3. **The 402 HTTP Exception**: If the session is expired or does not have sufficient Algos to cover the next execution cost, the backend raises a strict `HTTP 402 Payment Required` exception:
+   ```python
+   raise HTTPException(
+       status_code=402, 
+       detail="On-chain verification denied: Insufficient session balance"
+   )
+   ```
+4. **Frontend Challenge Resolution**: The frontend React app catches the `402` status code. Instead of breaking the page or crashing, it triggers a custom **Escrow Recharge Challenge**. The user is prompted to sign a quick Pera Wallet top-up transaction to deposit additional Algos into their session Box, immediately resolving the billing block and resuming chat operations.
