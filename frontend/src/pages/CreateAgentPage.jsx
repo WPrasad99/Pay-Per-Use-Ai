@@ -304,7 +304,7 @@ export default function CreateAgentPage() {
                     </div>
 
                     {/* RIGHT COLUMN: WORKSPACE CARD */}
-                    <div className="rounded-2xl border-4 border-black bg-white p-6 md:p-8 shadow-[10px_10px_0px_#000] min-h-[480px] flex flex-col justify-between relative overflow-hidden">
+                    <div className="rounded-2xl border-4 border-black bg-white p-6 md:p-8 shadow-[10px_10px_0px_#000] flex flex-col relative overflow-hidden transition-all duration-300">
                         
                         {/* STEP PROGRESS BADGE */}
                         <div className="absolute top-4 right-4 bg-black text-white px-3 py-1 text-xs font-black rounded-lg">
@@ -333,7 +333,7 @@ export default function CreateAgentPage() {
                         )}
 
                         {/* SLIDING ANIMATED WRAPPER */}
-                        <div className="flex-grow flex flex-col justify-start pt-2">
+                        <div className="pt-2">
                             <AnimatePresence mode="wait" custom={direction}>
                                 <motion.div
                                     key={step}
@@ -742,7 +742,7 @@ export default function CreateAgentPage() {
                         </div>
 
                         {/* WIZARD ACTIONS FLOOR */}
-                        <div className="flex justify-between border-t-2 border-black pt-5 mt-auto">
+                        <div className="flex justify-between mt-6">
                             {step > 0 ? (
                                 <motion.button
                                     whileHover={{ scale: 1.03 }}
