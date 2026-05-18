@@ -239,7 +239,7 @@ const Home = () => {
             <img
               className="object-contain w-full max-w-5xl scale-[1.4] md:scale-150"
               src="./hero image (2).png"
-              alt="Hero section image"
+              alt="PayPerAI Blockchain Gated AI Service Dashboard Preview illustrating pay-per-token billing with Pera Wallet integration"
             />
           </div>
         </div>
@@ -592,7 +592,7 @@ const Home = () => {
             >
               <img
                 src="/services.png"
-                alt="PayPerAI dashboard demo"
+                alt="PayPerAI dynamic token-based billing and blockchain smart-session services dashboard preview"
                 className="w-full h-auto object-contain scale-110 md:scale-125 transition-transform duration-500"
               />
             </motion.div>
