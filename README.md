@@ -48,6 +48,7 @@ Explore our high-fidelity, comprehensive guides for setup, security specificatio
 * 🛠️ **[Repo Setup Guide](docs/repo_setup_guide.md)** — Step-by-step local setup, environment configurations, and Vercel routing parameters.
 * 🧠 **[System Architecture Document](docs/architecture_doc.md)** — Architectural sequence diagrams, secure AES-256 BYOK model, and real-time SSE streaming details.
 * ⛓️ **[Smart Contract Specifications](docs/smart_contract_docs.md)** — PyTeal deployment specifications, global states, and Box Map escrow allocations on Algorand Testnet.
+* 📄 **[Business & Product Whitepaper](docs/business_whitepaper.md)** — Target users, GTM strategy, DeFi revenue models, monetization hypotheses, and why Algorand.
 
 ---
 
