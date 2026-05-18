@@ -356,7 +356,7 @@ export default function CreateAgentPage() {
                         )}
 
                         {/* SLIDING ANIMATED WRAPPER */}
-                        <div className="flex-grow flex flex-col justify-center mb-8">
+                        <div className="flex-grow flex flex-col justify-start pt-2">
                             <AnimatePresence mode="wait" custom={direction}>
                                 <motion.div
                                     key={step}
