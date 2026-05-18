@@ -178,13 +178,39 @@ graph TD
 For step-by-step setup guides, package dependencies, database migrations, and detailed explanation of environment flags, view our dedicated **[Repo Setup Guide](docs/repo_setup_guide.md)**.
 
 ### Tech Stack Specifications
-* **Blockchain Layer:** Algorand Testnet (PyTeal), Box Map Escrows, Pera Wallet SDK.
-* **API Gateway Layer:** FastAPI (Python), PostgreSQL Database.
-* **Client Frontend:** React 18, Vite, Neo-Brutalist CSS, Server-Sent Events (SSE).
 
 <div align="center">
   <img src="https://skillicons.dev/icons?i=react,vite,tailwind,python,fastapi,postgres,algorand" />
 </div>
+
+#### 💻 Programming Languages & Standards
+* **Python (3.10+):** Drives the low-latency asynchronous API Gateway orchestration.
+* **JavaScript (ES6+):** Orchestrates state logic, persistent messaging, and wallet triggers in the client interface.
+* **PyTeal / TEAL:** Governs the compile scripts and logic verification assertions for our Algorand BoxMap smart escrow contract.
+* **W3C DID Standard:** Implements verifiable, decentralized credentials (`did:payperai:<wallet>`) and cryptographic SHA-256 state hashing.
+
+#### 🧰 Blockchain SDKs & Protocol Libraries
+* **`@perawallet/connect` (JS SDK v1.0+):** Establishes secure dynamic QR challenges and signs atomic transaction groups directly inside the browser.
+* **`algosdk` (Python & JavaScript):** Assembles raw ledger transaction packets, calculates Box storage fee minimums, and handles real-time indexer query decodings.
+* **ARC-0060 (Smart Sessions):** Implements dynamic, balance-aware transaction authorization logic for micro-deductions.
+* **ARC-0069 (NFT Metadata):** Integrates 1-click on-chain NFT minting parameters including creator profiles, royalty values, and secure media links.
+
+#### ⚙️ Backend Frameworks & Database Layer
+* **FastAPI:** Asynchronous Python gateway optimized for low-latency concurrent requests.
+* **Uvicorn:** High-performance ASGI web server hosting backend API endpoints.
+* **PostgreSQL:** Production-grade relational database storing user profile analytics, creator configurations, and conversation logs.
+* **asyncpg / SQLAlchemy:** Dynamic asynchronous database connectors ensuring high-speed indexing and query execution.
+
+#### 🎨 Frontend Frameworks & Client Libraries
+* **React (v18):** Powering our ultra-responsive client dashboard and custom agent workspace.
+* **Vite:** High-speed bundler enabling rapid development hot module reloading (HMR).
+* **Tailwind CSS & Vanilla CSS:** Custom custom neo-brutalist dark-themed design system.
+* **Server-Sent Events (SSE):** Native streaming listener displaying AI output character-by-character.
+
+#### 🧠 Artificial Intelligence SDKs & APIs
+* **Groq Cloud SDK:** Drives high-speed **Llama 3.3** and **Qwen 2.5** inference queries.
+* **OpenAI Python SDK:** Connects and orchestrates **GPT-4o Mini** queries.
+* **Google Generative AI SDK:** Integrates low-latency streaming endpoints for **Gemini 1.5 Flash**.
 
 ---
 
