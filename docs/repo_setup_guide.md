@@ -1,20 +1,36 @@
-# 🛠️ Pay-Per-Use-AI: Local Repository Setup Guide
+# <div align="center">🛠️ Pay-Per-Use-AI: Local Repository Setup Guide</div>
 
-This guide outlines step-by-step instructions on setting up, configuring, and launching both the frontend and backend of the Pay-Per-Use-AI platform on your local machine, along with Vercel deployment specifications.
+<div align="center">
+
+![Algorand](https://img.shields.io/badge/Algorand-Smart%20Contracts-black?style=for-the-badge&logo=algorand&logoColor=white)
+![React](https://img.shields.io/badge/React.js-Frontend-blue?style=for-the-badge&logo=react&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Database-emerald?style=for-the-badge&logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-Deployment-black?style=for-the-badge&logo=vercel&logoColor=white)
+
+</div>
 
 ---
 
 ## 🏗️ 1. Prerequisites
-Ensure you have the following installed on your machine:
-* **Node.js** (v18.x or later) and **npm**
-* **Python** (v3.10 or later) and **pip**
-* **PostgreSQL** or access to a **Supabase** cloud database instance
+
+Before setting up locally, ensure you have installed the following system components:
+
+* **Node.js** (v18.x or later) & **npm**
+* **Python** (v3.10 or later) & **pip**
+* **PostgreSQL** (or access to a **Supabase** cloud database instance)
 * **Pera Wallet** installed on your mobile device (configured to **Testnet** with a funded account)
-  * *Need Testnet Algos?* Fetch them from the [Algorand Testnet Faucet](https://bank.testnet.algodev.network/).
+
+> [!TIP]
+> **Need Testnet Algos?**
+> You can claim free Testnet Algos instantly from the [Algorand Testnet Faucet](https://bank.testnet.algodev.network/) to fund your user wallet!
 
 ---
 
 ## 📂 2. Repository Structure
+
+Here is an architectural map of how the different project layers are distributed:
+
 ```text
 Pay-Per-Use-Ai/
 ├── backend/            # FastAPI Backend & Orchestration Service
@@ -36,9 +52,11 @@ python -m venv venv
 ```
 
 Activate the environment:
-* **Windows (PowerShell):** `.\venv\Scripts\Activate.ps1`
-* **Windows (CMD):** `.\venv\Scripts\activate.bat`
-* **macOS/Linux:** `source venv/bin/activate`
+> [!NOTE]
+> Select the activation command corresponding to your operating system:
+> * **Windows (PowerShell):** `.\venv\Scripts\Activate.ps1`
+> * **Windows (CMD):** `.\venv\Scripts\activate.bat`
+> * **macOS/Linux:** `source venv/bin/activate`
 
 ### Step 2: Install Python Dependencies
 Install all required platform libraries:
@@ -51,7 +69,12 @@ Create a `.env` file inside the `backend/` directory by copying `.env.example`:
 ```bash
 cp .env.example .env
 ```
+
 Open `.env` and fill in the values:
+
+> [!WARNING]
+> Keep your private mnemonics and encryption keys completely safe and never push them to public version control systems.
+
 ```env
 # ── AI API Credentials ──
 OPENAI_API_KEY=your_openai_key
@@ -137,7 +160,9 @@ npm run build
 ## 🌐 5. Deployed Live Deployments (Vercel)
 
 ### Deep Linking 404 Resolution
-For Vite SPAs featuring `react-router-dom`, direct page reloading on Vercel causes `404` errors. We have configured the project with a root [vercel.json](file:///c:/Users/Prasad/Desktop/Pay-Per-Use-Ai/Pay-Per-Use-Ai/vercel.json) to rewrite all server requests back to `/index.html`:
+
+> [!IMPORTANT]
+> For Vite SPAs featuring `react-router-dom`, direct page reloading on Vercel causes `404` errors. We have configured the project with a root [vercel.json](file:///c:/Users/Prasad/Desktop/Pay-Per-Use-Ai/Pay-Per-Use-Ai/vercel.json) to rewrite all server requests back to `/index.html`:
 
 ```json
 {

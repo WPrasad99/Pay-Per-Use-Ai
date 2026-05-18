@@ -1,6 +1,13 @@
-# 🧠 Pay-Per-Use-AI: System Architecture Document
+# <div align="center">🧠 Pay-Per-Use-AI: System Architecture Document</div>
 
-This document traces the technical design and data flows of the Pay-Per-Use-AI platform, illustrating how we integrate Web3 Algorand micro-transactions with high-performance real-time AI model orchestration.
+<div align="center">
+
+![Cryptography](https://img.shields.io/badge/Security-AES--256--GCM-blueviolet?style=for-the-badge&logo=secretcase&logoColor=white)
+![Algorand](https://img.shields.io/badge/Blockchain-Algorand%20L1-black?style=for-the-badge&logo=algorand&logoColor=white)
+![Realtime](https://img.shields.io/badge/Streaming-Server--Sent%20Events-orange?style=for-the-badge&logo=fastapi&logoColor=white)
+![Protocol](https://img.shields.io/badge/Billing-X402%20Standard-emerald?style=for-the-badge&logo=payment&logoColor=white)
+
+</div>
 
 ---
 
@@ -17,14 +24,25 @@ sequenceDiagram
     participant SC as Smart Contract (Algorand)
     participant AI as AI Model Hub (Gemini/OpenAI)
 
+    Note over User,FE: Wallet Auth Layer
     User->>FE: Connect Wallet (Pera Wallet SDK)
+    
+    Note over FE,SC: On-Chain Escrow Layer
     FE->>SC: Deploy/Join Session (Escrow Deposit in MicroAlgos)
+    
+    Note over FE,BE: Real-time Query Hub
     FE->>BE: Submit Chat Query (Session Authorized)
     BE->>SC: Verify Session Escrow & Deduct Balance
     SC-->>BE: Payment Successful Confirmed
+    
+    Note over BE: Secure Decryption Layer (RAM)
     BE->>BE: Decrypt Creator BYOK API Key (AES-256-GCM)
+    
+    Note over BE,AI: Model Inference
     BE->>AI: Perform Model Inference (Gemini/Groq/OpenAI)
     AI-->>BE: Stream Token Response Chunks
+    
+    Note over BE,FE: Real-time Streaming Chat
     BE-->>FE: Stream Response in Real-time (Server-Sent Events)
     FE-->>User: Display Output & Update Escrow Balance
 ```
@@ -33,7 +51,11 @@ sequenceDiagram
 
 ## 🔐 2. Secure BYOK (Bring Your Own Key) Cryptography
 
-To circumvent rate limiting and ensure self-sovereignty, Pay-Per-Use-AI employs a **Bring Your Own Key (BYOK)** structure. 
+To circumvent rate limiting and ensure self-sovereignty, Pay-Per-Use-AI employs a **Bring Your Own Key (BYOK)** structure.
+
+> [!CAUTION]
+> **API Key Safety is our Highest Priority**
+> At no point is a creator's raw API key ever saved in plain text, stored on a persistent database disk, or output in server logs. All decryptions happen on-the-fly directly inside isolated backend RAM and are immediately wiped.
 
 ### Key Encryption Workflow (AES-256-GCM)
 1. **Creation**: The Creator enters their display credentials and pastes their raw API Key inside the unified **Identity** step.
@@ -63,9 +85,9 @@ Rather than using long-polling or bulky WebSockets, our system delivers characte
 
 ## 💰 4. Session Escrow Buffers (Uninterrupted UX)
 
-Traditional blockchain applications require a wallet signature for every single message, which completely destroys the chat user experience. 
+> [!IMPORTANT]
+> Traditional blockchain applications require a wallet signature for every single message, which completely destroys the chat user experience. Pay-Per-Use-AI introduces **High-Performance Smart Sessions** to bypass this friction entirely.
 
-Pay-Per-Use-AI introduces **High-Performance Smart Sessions**:
 * **The 1 ALGO Escrow Buffer**: Upon starting a session, the user signs **once** via Pera Wallet to lock a 1 ALGO buffer inside the contract's secure BoxMap escrow.
 * **Frictionless Prompts**: For the next 24 hours, the user can prompt the AI continuously without ever seeing another wallet signature popup!
 * **Transparent Settlement**: The backend calculates the MicroAlgo token costs in the background and settles them directly against the session escrow.
