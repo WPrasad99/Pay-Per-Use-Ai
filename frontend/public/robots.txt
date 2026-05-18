@@ -1,0 +1,20 @@
+# https://www.robotstxt.org/robotstxt.html
+
+User-agent: *
+
+# Crawl-friendly Public Routes
+Allow: /$
+Allow: /onboarding$
+Allow: /dashboard/marketplace$
+Allow: /creator/
+
+# Shield Private & Dynamic Dashboards from index clutter
+Disallow: /dashboard/create-agent
+Disallow: /dashboard/my-agents
+Disallow: /dashboard/earnings
+Disallow: /dashboard/
+Disallow: /dashboard
+Disallow: /shared/
+
+# Sitemap Linkage
+Sitemap: https://pay-per-use-ai.vercel.app/sitemap.xml
