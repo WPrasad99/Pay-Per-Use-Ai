@@ -243,14 +243,14 @@ export default function CreateAgentPage() {
                     whileHover={{ x: -4 }}
                     whileTap={{ scale: 0.96 }}
                     onClick={() => navigate('/dashboard/marketplace')}
-                    className="text-sm font-black text-black opacity-60 hover:opacity-100 mb-6 flex items-center gap-1 cursor-pointer"
+                    className="text-sm font-black text-black opacity-60 hover:opacity-100 mb-4 flex items-center gap-1 cursor-pointer"
                 >
                     ← Back to Marketplace
                 </motion.button>
 
                 {/* HEADING */}
                 <div className="mb-8">
-                    <div className="inline-block border-[3px] border-black bg-[#ffb3b3] px-6 py-2 shadow-[5px_5px_0px_#000] rotate-[-1deg] mb-2">
+                    <div className="inline-block border-[3px] border-black bg-[#ffb3b3] px-6 py-2 shadow-[5px_5px_0px_#000] rotate-[-1deg] mb-5">
                         <h1 className="text-2xl md:text-4xl font-black text-black">
                             🛠️ Creator Studio
                         </h1>
