@@ -237,7 +237,7 @@ const DashboardPage = () => {
         const currentInput = input;
         setInput('');
 
-        // L402 Authorization Check: If balance is insufficient for one interaction
+        // X402 Authorization Check: If balance is insufficient for one interaction
         if (balance < 0.5) {
             setPendingPrompt(currentInput);
             setIsAuthModalOpen(true);

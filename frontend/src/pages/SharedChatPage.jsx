@@ -54,7 +54,7 @@ const SharedChatPage = () => {
             <main className="flex-1 max-w-3xl mx-auto w-full p-4 md:p-8 space-y-6 overflow-y-auto">
                 <div className="text-center mb-12 animate-fade-in">
                     <h2 className="text-3xl font-bold mb-2">Public Conversation</h2>
-                    <p className="text-gray-500 text-sm italic">This chat was shared via PayPerAI L402 protocol.</p>
+                    <p className="text-gray-500 text-sm italic">This chat was shared via PayPerAI X402 protocol.</p>
                 </div>
 
                 {conversation.messages.map((msg, idx) => (
@@ -77,7 +77,7 @@ const SharedChatPage = () => {
             </main>
 
             <footer className="p-8 text-center text-gray-600 text-xs border-t border-white/5 mt-auto">
-                © 2024 PayPerAI. Secure L402 Algorand Payments.
+                © 2024 PayPerAI. Secure X402 Algorand Payments.
             </footer>
         </div>
     );

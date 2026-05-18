@@ -73,11 +73,11 @@ Pay-Per-Use-AI introduces **High-Performance Smart Sessions**:
 
 ---
 
-## 🛡️ 5. L402 Protocol: Algorand Pay-Per-Use Billing Standard
+## 🛡️ 5. X402 Protocol: Algorand Pay-Per-Use Billing Standard
 
-Pay-Per-Use-AI implements a custom **L402 protocol** (adapted from Lightning Network's L402 specification for decentralized payment-gated APIs) to govern query authentications.
+Pay-Per-Use-AI implements a custom **X402 protocol** (our proprietary billing specification for decentralized payment-gated APIs on Algorand L1) to govern query authentications.
 
-### The L402 Billing Protocol in Action
+### The X402 Billing Protocol in Action
 1. **Request Interception**: Every incoming chat or image request to `/query` or `/image` is parsed for session authorization payload parameters.
 2. **On-Chain Balance Check**: The backend verifies the user's active session escrow balance.
 3. **The 402 HTTP Exception**: If the session is expired or does not have sufficient Algos to cover the next execution cost, the backend raises a strict `HTTP 402 Payment Required` exception:
