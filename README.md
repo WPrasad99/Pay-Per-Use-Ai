@@ -72,6 +72,35 @@ Users connect their wallets, authorize a smart contract session, and get instant
 
 ---
 
+## 📈 Latest Platform Updates (May 2026)
+
+We have recently upgraded the platform infrastructure with major enhancements in billing, performance, search discoverability, and SEO:
+
+### 1. 100% SEO Compliance & Rich Snippets
+- **JSON-LD Schema Markup:** Embedded advanced structured data (`SoftwareApplication` schema) inside the frontend index to enable rich Google search snippets, sitelinks, and professional application ratings.
+- **Social Integration Cards:** Configured standard **Open Graph (OG)** parameters and **Twitter Cards** (`summary_large_image`) for rich social sharing previews on Discord, Slack, LinkedIn, and X/Twitter.
+- **Canonical Routing:** Anchored production page paths with a `<link rel="canonical" href="https://pay-per-use-ai.vercel.app/" />` tag to build domain authority.
+
+### 2. Search Console Verification & Crawling
+- **Google Site Verification:** Added [google7b530e97713f5fc8.html](file:///c:/Users/Prasad/Desktop/Pay-Per-Use-Ai/Pay-Per-Use-Ai/frontend/public/google7b530e97713f5fc8.html) into static assets to verify domain ownership instantly in Search Console.
+- **XML Sitemap & robots.txt**: Generated [sitemap.xml](file:///c:/Users/Prasad/Desktop/Pay-Per-Use-Ai/Pay-Per-Use-Ai/frontend/public/sitemap.xml) and [robots.txt](file:///c:/Users/Prasad/Desktop/Pay-Per-Use-Ai/Pay-Per-Use-Ai/frontend/public/robots.txt) directly in the static serving folder to direct crawler spiders to index public paths (Home, Onboarding, Marketplace, and Creator profiles) while shielding private user dashboards.
+
+### 3. Dynamic Token-Based Billing
+- **Granular Token Invoicing:** Transitioned from flat per-use rates to **dynamic token-based micro-payments** billed in MicroAlgos, ensuring users only pay for exact token consumption (input + output).
+- **Escrow Buffer Guard:** Implemented live session balance verification to prompt users to recharge before hitting transaction limits, preventing failed middleman execution.
+
+### 4. Smart Settlement & Provider Optimizations
+- **Gemini 1.5 Streaming Fixes:** Fully resolved streaming timeouts and 404 response errors for Google Gemini models, securing reliable Server-Sent Events (SSE).
+- **Box Allocation Fixes:** Fixed box access constraints (`box_len` assertions) on the Algorand Smart Contract settlement flows.
+
+### 5. Decentralized Custom AI Agent Marketplace
+- **Custom Agent Creator Engine:** Enabled creators to design, name, configure custom system instructions/prompts, and deploy personalized AI agents with secure model configurations.
+- **Algorand Creator Profiles:** Integrated decentralized profiles (`/creator/:wallet`) linked with Pera Wallet, letting creators display their catalog, track agent usage, and capture creator dashboard analytics.
+- **Secure BYOK (Bring Your Own Key) Workflows:** Streamlined the agent creation workflow with a highly secure Bring Your Own Key (BYOK) manager, resolving external quota/rate limits and ensuring fresh session setups.
+- **Decentralized Revenue Splits:** Backed custom agent runs by blockchain smart contracts that automatically enforce payout splits between the agent creator and the platform host on every token execution.
+
+---
+
 ## 🚀 Architectural Innovations
 
 ### 1. Hybrid Multi-Model Chat Engine
