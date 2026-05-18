@@ -3,7 +3,7 @@
   <h1 align="center">🚀 PayPerAI</h1>
   
   <p align="center">
-    <b>The Future of Blockchain-Gated AI & One-Click NFT Generation</b>
+    <b>The Future of Blockchain-Gated AI, One-Click NFT Generation & Custom AI Agent Marketplaces</b>
   </p>
 
   <p align="center">
@@ -95,6 +95,7 @@ PayPerAI introduces a groundbreaking shift in how we access, secure, and monetiz
 * **⚡ Seamless Real-Time Streaming**: Ultra-fast, character-by-character responses powered by Server-Sent Events (SSE). Experience Web2 performance with Web3 security as on-chain deductions happen in the background.
 * **⏱️ Pro Smart Sessions**: Authorize once, chat forever. Our optimized Smart Sessions use a **1 ALGO buffer** to enable "unlimited" prompting for 24 hours. No manual approval for every message—just pure, uninterrupted flow.
 * **💎 1-Click NFT Minting**: Transform your AI interactions and images into permanent on-chain ARC-69 assets with one click. Delivered instantly to your Pera Wallet as an immutable proof of creation.
+* **🛒 Custom AI Agent Marketplace**: Host custom, secure AI agents with unique prompts and private BYOK keys. Monetize idle API keys by allowing others to run queries, earning dynamic pay-per-token royalty splits (90% creator / 10% platform) secured directly by the Algorand ledger.
 
 ### 🚀 Latest Platform Upgrades (May 2026)
 1. **100% SEO Compliance & Rich Snippets:** Advanced JSON-LD Schema Markup, social Open Graph (OG) taggings, Twitter Cards, and canonical routing links integrated.
