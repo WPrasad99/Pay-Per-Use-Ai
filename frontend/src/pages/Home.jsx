@@ -149,7 +149,9 @@ const Home = () => {
       setIsWalletConnected(true);
       try {
         await getUserProfile(addr);
-        navigate('/dashboard');
+        const redirectPath = sessionStorage.getItem('onboarding_redirect') || '/dashboard';
+        sessionStorage.removeItem('onboarding_redirect');
+        navigate(redirectPath);
       } catch (err) {
         if (err.status === 404 || (err.message && err.message.toLowerCase().includes('not found'))) {
           setShowOnboarding(true);
@@ -162,6 +164,45 @@ const Home = () => {
     } finally {
       setIsConnecting(false);
     }
+  };
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    setIsRegistering(true);
+    try {
+      const addr = getPersistedWallet();
+      await registerUser(addr, onboardingData.name, onboardingData.dob, onboardingData.email);
+      setShowOnboarding(false);
+      const redirectPath = sessionStorage.getItem('onboarding_redirect') || '/dashboard/marketplace';
+      sessionStorage.removeItem('onboarding_redirect');
+      navigate(redirectPath);
+    } catch (err) {
+      alert('Registration failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const handleStartMakingAgents = async () => {
+    if (isConnecting) return;
+    const persisted = getPersistedWallet();
+    if (persisted) {
+      navigate('/dashboard/create-agent');
+      return;
+    }
+    sessionStorage.setItem('onboarding_redirect', '/dashboard/create-agent');
+    await handleConnect();
+  };
+
+  const handleExploreMarketplace = async () => {
+    if (isConnecting) return;
+    const persisted = getPersistedWallet();
+    if (persisted) {
+      navigate('/dashboard/marketplace');
+      return;
+    }
+    sessionStorage.setItem('onboarding_redirect', '/dashboard/marketplace');
+    await handleConnect();
   };
 
   return (
@@ -602,10 +643,162 @@ const Home = () => {
       </section>
 
 
+      {/* AI AGENT & CREATOR MARKETPLACE */}
+      <Reveal>
+        <section id="marketplace-preview" className="px-4 sm:px-5 py-12 md:px-8 bg-neo-cream scroll-mt-32 overflow-hidden">
+          <div className="mx-auto max-w-7xl">
+            
+            {/* HEADER */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+              <div className="text-left">
+                <div className="inline-block border-[4px] border-black bg-[#ffb3b3] px-8 py-4 shadow-[10px_10px_0px_#000]">
+                  <h2 className="text-3xl md:text-6xl font-black tracking-tight">
+                    AI Agent Marketplace
+                  </h2>
+                </div>
+              </div>
+
+              {/* RIGHT SIDE CTA BUTTONS */}
+              <div className="flex flex-wrap items-center gap-4 shrink-0">
+                <button
+                  onClick={handleStartMakingAgents}
+                  className="inline-flex items-center gap-2 border-[3px] border-black bg-[#fffde7] px-6 py-3 font-black uppercase text-sm md:text-base shadow-[5px_5px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[3px_3px_0px_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-[1px_1px_0px_#000] transition-all duration-150 cursor-pointer"
+                >
+                  Start Making Agents ⚙️
+                </button>
+                <button
+                  onClick={handleExploreMarketplace}
+                  className="inline-flex items-center gap-2 border-[3px] border-black bg-[#9fc9ff] px-6 py-3 font-black uppercase text-sm md:text-base shadow-[5px_5px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[3px_3px_0px_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-[1px_1px_0px_#000] transition-all duration-150 cursor-pointer"
+                >
+                  Explore Marketplace 🚀
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 items-start">
+              
+              {/* LEFT: DECENTRALIZED MARKETPLACE SCREENSHOT */}
+              <div className="w-full flex justify-center -mt-10 lg:-mt-16">
+                <motion.img
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  viewport={{ once: true }}
+                  src="/ai marketplace.png"
+                  alt="PayPerAI decentralized custom AI agent marketplace creator dashboard"
+                  className="w-full h-auto object-contain rounded-xl"
+                />
+              </div>
+
+              {/* RIGHT: INTERACTIVE VALUE PROP CARDS */}
+              <div className="flex flex-col gap-6">
+                
+                {/* CARD 1: Build & Launch */}
+                <motion.div
+                  initial={{ opacity: 0, x: 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, type: 'spring' }}
+                  viewport={{ once: true }}
+                  whileHover={{ scale: 1.03, rotate: 1, shadow: "8px 8px 0px #000" }}
+                  className="neo-card bg-[#fffde7] p-6 border-[3px] border-black transition-all cursor-default"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border-[3px] border-black bg-[#b7f5c7] shadow-[3px_3px_0px_#000] text-black">
+                      <svg className="w-6 h-6 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black uppercase tracking-tight">Build & Customize Agents</h3>
+                      <p className="mt-2 text-neo-muted font-semibold leading-relaxed text-sm">
+                        Create expert AI workers by defining custom names, models, and tailored system prompt instructions built for specific professional outcomes.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* CARD 2: Revenue Splits */}
+                <motion.div
+                  initial={{ opacity: 0, x: 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1, type: 'spring' }}
+                  viewport={{ once: true }}
+                  whileHover={{ scale: 1.03, rotate: -1, shadow: "8px 8px 0px #000" }}
+                  className="neo-card bg-[#b7f5c7] p-6 border-[3px] border-black transition-all cursor-default"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border-[3px] border-black bg-[#9fc9ff] shadow-[3px_3px_0px_#000] text-black">
+                      <svg className="w-6 h-6 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black uppercase tracking-tight">Earn Custom Token Royalties</h3>
+                      <p className="mt-2 text-neo-muted font-semibold leading-relaxed text-sm">
+                        Monetize your expertise. Set custom execution royalty fees that split instantly on-chain between creators and the platform using Algorand smart contracts.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* CARD 3: BYOK */}
+                <motion.div
+                  initial={{ opacity: 0, x: 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
+                  viewport={{ once: true }}
+                  whileHover={{ scale: 1.03, rotate: 1, shadow: "8px 8px 0px #000" }}
+                  className="neo-card bg-[#9fc9ff] p-6 border-[3px] border-black transition-all cursor-default"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border-[3px] border-black bg-[#ffb3b3] shadow-[3px_3px_0px_#000] text-black">
+                      <svg className="w-6 h-6 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black uppercase tracking-tight">Secure BYOK Security</h3>
+                      <p className="mt-2 text-neo-muted font-semibold leading-relaxed text-sm">
+                        Bring Your Own Key (BYOK). Maintain absolute session keys control using a clean, client-side encrypted key manager that bypasses rate limits and quotas.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* CARD 4: Portfolios */}
+                <motion.div
+                  initial={{ opacity: 0, x: 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3, type: 'spring' }}
+                  viewport={{ once: true }}
+                  whileHover={{ scale: 1.03, rotate: -1, shadow: "8px 8px 0px #000" }}
+                  className="neo-card bg-[#fce4ec] p-6 border-[3px] border-black transition-all cursor-default"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border-[3px] border-black bg-[#fffde7] shadow-[3px_3px_0px_#000] text-black">
+                      <svg className="w-6 h-6 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black uppercase tracking-tight">Decentralized Creator Profiles</h3>
+                      <p className="mt-2 text-neo-muted font-semibold leading-relaxed text-sm">
+                        Showcase your creation catalog in public profiles (<code className="bg-black/5 px-1.5 py-0.5 rounded font-mono font-bold">/creator/:wallet</code>) featuring live metrics and direct agent messaging.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+
+              </div>
+
+            </div>
+          </div>
+        </section>
+      </Reveal>
 
 
       {/* FEATURES */}
-      <section id="why-us" className="px-4 sm:px-5 py-20 md:px-8 scroll-mt-32">
+      <section id="why-us" className="px-4 sm:px-5 pt-8 pb-20 md:px-8 scroll-mt-32">
 
         <div className="mx-auto max-w-7xl">
 
@@ -707,6 +900,58 @@ const Home = () => {
 
         </div>
       </section>
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#fff7df]/80 backdrop-blur-sm" />
+          <div className="animate-fadeUp relative w-full max-w-md rounded-2xl border-4 border-[#111] bg-white p-6 shadow-[8px_8px_0px_#111]">
+            <h2 className="mb-2 text-2xl font-black text-black">Complete Profile</h2>
+            <p className="mb-6 text-sm font-bold opacity-60 text-black">Please provide your details to continue.</p>
+            
+            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-black text-black">Full Name</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={onboardingData.name}
+                  onChange={e => setOnboardingData({...onboardingData, name: e.target.value})}
+                  className="w-full rounded-xl border-2 border-[#111] px-4 py-2 font-black outline-none transition-all focus:border-4 focus:shadow-[4px_4px_0px_#111] bg-white text-black"
+                  placeholder="John Doe"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-black text-black">Email</label>
+                <input 
+                  required 
+                  type="email" 
+                  value={onboardingData.email}
+                  onChange={e => setOnboardingData({...onboardingData, email: e.target.value})}
+                  className="w-full rounded-xl border-2 border-[#111] px-4 py-2 font-black outline-none transition-all focus:border-4 focus:shadow-[4px_4px_0px_#111] bg-white text-black"
+                  placeholder="john@example.com"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-black text-black">Date of Birth</label>
+                <input 
+                  required 
+                  type="date" 
+                  value={onboardingData.dob}
+                  onChange={e => setOnboardingData({...onboardingData, dob: e.target.value})}
+                  className="w-full rounded-xl border-2 border-[#111] px-4 py-2 font-black outline-none transition-all focus:border-4 focus:shadow-[4px_4px_0px_#111] bg-white text-black"
+                />
+              </div>
+              <button 
+                disabled={isRegistering}
+                type="submit"
+                className="w-full rounded-xl border-2 border-[#111] bg-[#b7f5c7] py-3 font-black uppercase tracking-wider shadow-[4px_4px_0px_#111] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#111] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none disabled:opacity-50 text-black cursor-pointer"
+              >
+                {isRegistering ? 'Registering...' : 'Register Profile'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

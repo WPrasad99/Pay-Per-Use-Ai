@@ -163,6 +163,7 @@ const Navbar = () => {
         { to: '/#about',           label: 'About' },
         { to: '/#how-it-works',    label: 'Roadmap' },
         { to: '/#services-preview',label: 'Services' },
+        { to: '/#marketplace-preview', label: 'Marketplace' },
         { to: '/#why-us',          label: 'Why Us' },
         { to: '/#join-us',         label: 'Join Us' },
     ];
