@@ -320,13 +320,6 @@ export default function CreateAgentPage() {
                                                 {s.desc}
                                             </p>
                                         </div>
-
-                                        {isActive && (
-                                            <motion.div 
-                                                layoutId="active-indicator" 
-                                                className="absolute -right-6 h-2 w-2 rounded-full bg-[#ffb3b3] border border-black shadow-[1px_1px_0px_#000]"
-                                            />
-                                        )}
                                     </div>
                                 );
                             })}
