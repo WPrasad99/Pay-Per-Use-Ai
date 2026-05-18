@@ -417,53 +417,32 @@ export default function CreateAgentPage() {
                                                 Bring Your Own Key (BYOK). Keys are encrypted with AES-256-GCM. 
                                             </p>
 
-                                            {/* Choice Cards for Provider */}
-                                            <label className="block text-sm font-black mb-2 text-black">
-                                                Select Provider Key
-                                            </label>
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                                                {PROVIDERS.map((p) => {
-                                                    const isSelected = keyProvider === p.id;
-                                                    return (
-                                                        <div
-                                                            key={p.id}
-                                                            onClick={() => setKeyProvider(p.id)}
-                                                            className={`border-[3px] border-black rounded-xl p-3 text-center cursor-pointer transition-all ${
-                                                                isSelected 
-                                                                ? 'bg-black text-white shadow-[3px_3px_0px_#888] scale-105' 
-                                                                : 'bg-white text-black hover:-translate-y-0.5 shadow-[3px_3px_0px_#000]'
-                                                            }`}
-                                                        >
-                                                            <div className="text-2xl mb-1">{p.icon}</div>
-                                                            <div className="text-xs font-black uppercase tracking-tight">{p.name}</div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-
                                             <div className="space-y-4">
                                                 <div>
-                                                    <label className="block text-sm font-black mb-1 text-black">
-                                                        API Key *
+                                                    <label className="block text-sm font-black mb-2 text-black">
+                                                        Select Provider & Enter API Key *
                                                     </label>
-                                                    <input
-                                                        type="password"
-                                                        value={apiKeyInput}
-                                                        onChange={(e) => setApiKeyInput(e.target.value)}
-                                                        className={inputClass}
-                                                        placeholder={`Paste your ${keyProvider} API key`}
-                                                        autoComplete="new-password"
-                                                    />
-                                                </div>
-
-                                                <div className="border-[3px] border-black bg-[#fffde7] p-4 rounded-xl shadow-[3px_3px_0px_#000] text-xs font-bold text-black flex items-start gap-3">
-                                                    <span className="text-lg shrink-0">💡</span>
-                                                    <div>
-                                                        Get keys: 
-                                                        {keyProvider === 'gemini' && <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="underline font-black text-blue-700 ml-1">aistudio.google.com</a>}
-                                                        {keyProvider === 'openai' && <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="underline font-black text-blue-700 ml-1">platform.openai.com</a>}
-                                                        {keyProvider === 'groq' && <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="underline font-black text-blue-700 ml-1">console.groq.com</a>}
-                                                        {keyProvider === 'huggingface' && <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer" className="underline font-black text-blue-700 ml-1">huggingface.co</a>}
+                                                    <div className="flex gap-3">
+                                                        <select
+                                                            value={keyProvider}
+                                                            onChange={(e) => setKeyProvider(e.target.value)}
+                                                            className="rounded-xl border-2 border-black px-4 py-2.5 font-black shadow-[3px_3px_0px_#000] bg-white text-black outline-none focus:bg-yellow-50 focus:shadow-[4px_4px_0px_#000] transition-all cursor-pointer text-sm shrink-0"
+                                                        >
+                                                            {PROVIDERS.map((p) => (
+                                                                <option key={p.id} value={p.id}>
+                                                                    {p.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        
+                                                        <input
+                                                            type="password"
+                                                            value={apiKeyInput}
+                                                            onChange={(e) => setApiKeyInput(e.target.value)}
+                                                            className={inputClass}
+                                                            placeholder={`Paste your ${PROVIDERS.find(p => p.id === keyProvider)?.name || keyProvider} API key`}
+                                                            autoComplete="new-password"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
