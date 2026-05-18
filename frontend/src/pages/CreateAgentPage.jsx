@@ -29,8 +29,7 @@ const CATEGORIES = [
 ];
 
 const STEPS = [
-    { title: 'Profile', desc: 'Who you are' },
-    { title: 'API Key', desc: 'Secure BYOK key' },
+    { title: 'Identity', desc: 'Profile & BYOK Key' },
     { title: 'Details', desc: 'Agent branding' },
     { title: 'AI Config', desc: 'Model & Prompts' },
     { title: 'Pricing', desc: 'Payment model' },
@@ -49,28 +48,26 @@ export default function CreateAgentPage() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // Step 0: Creator Profile
+    // Step 0: Creator Profile & API Key (Combined)
     const [displayName, setDisplayName] = useState('');
     const [bio, setBio] = useState('');
-
-    // Step 1: API Key
     const [keyProvider, setKeyProvider] = useState('gemini');
     const [apiKeyInput, setApiKeyInput] = useState('');
 
-    // Step 2: Agent Details
+    // Step 1: Agent Details
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('general');
     const [tags, setTags] = useState('');
 
-    // Step 3: AI Configuration
+    // Step 2: AI Configuration
     const [provider, setProvider] = useState('gemini');
     const [model, setModel] = useState('gemini-2.0-flash');
     const [systemPrompt, setSystemPrompt] = useState('');
     const [temperature, setTemperature] = useState(0.7);
     const [maxTokens, setMaxTokens] = useState(1500);
 
-    // Step 4: Pricing
+    // Step 3: Pricing
     const [pricingModel, setPricingModel] = useState('per_token');
     const [pricePerRequest, setPricePerRequest] = useState(0.5);
     const [priceInput, setPriceInput] = useState(1.0);
@@ -107,41 +104,21 @@ export default function CreateAgentPage() {
         setStep(prevStep);
     };
 
-    const handleProfileNext = async () => {
-        if (!displayName.trim()) return;
+    const handleIdentityNext = async () => {
+        if (!displayName.trim() || !apiKeyInput.trim()) return;
         setSaving(true);
         setError('');
+        setSuccess('');
 
         try {
+            // 1. Create/update creator profile
             await createCreatorProfile(
                 wallet,
                 displayName.trim(),
                 bio.trim()
             );
-            handleNext(1);
-        } catch (e) {
-            setError(e.message || 'Failed to save profile.');
-        }
 
-        setSaving(false);
-    };
-
-    const handleSaveKeyAndNext = async () => {
-        if (!apiKeyInput.trim()) return;
-        setSaving(true);
-        setError('');
-
-        try {
-            try {
-                await getCreatorProfile(wallet);
-            } catch {
-                await createCreatorProfile(
-                    wallet,
-                    displayName.trim() || 'Creator',
-                    bio.trim()
-                );
-            }
-
+            // 2. Save Secure API Key
             await saveCreatorApiKey(
                 wallet,
                 keyProvider,
@@ -149,14 +126,14 @@ export default function CreateAgentPage() {
             );
 
             setApiKeyInput('');
-            setSuccess('🔐 API key saved securely!');
+            setSuccess('🔐 Profile & API Key saved securely!');
 
             setTimeout(() => {
                 setSuccess('');
-                handleNext(2);
+                handleNext(1);
             }, 800);
         } catch (e) {
-            setError(e.message || 'Failed to save API key.');
+            setError(e.message || 'Failed to save profile or API key.');
         }
 
         setSaving(false);
@@ -331,7 +308,7 @@ export default function CreateAgentPage() {
                         
                         {/* STEP PROGRESS BADGE */}
                         <div className="absolute top-4 right-4 bg-black text-white px-3 py-1 text-xs font-black rounded-lg">
-                            STEP {step + 1} OF 6
+                            STEP {step + 1} OF 5
                         </div>
 
                         {/* MESSAGES */}
@@ -368,56 +345,44 @@ export default function CreateAgentPage() {
                                     className="w-full"
                                 >
                                     
-                                    {/* ── STEP 0: CREATOR PROFILE ── */}
+                                    {/* ── STEP 0: CREATOR PROFILE & API KEY (COMBINED) ── */}
                                     {step === 0 && (
                                         <div>
                                             <h2 className="text-xl md:text-2xl font-black text-black mb-1">
-                                                Setup Profile
+                                                Setup Profile & API Key
                                             </h2>
                                             <p className="text-sm font-bold text-neo-muted mb-6">
-                                                Configure your digital identity. Brand names appear on the public marketplace cards.
+                                                Configure your digital identity and add your secure Bring-Your-Own-Key (BYOK) API key.
                                             </p>
 
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label className="block text-sm font-black mb-1 text-black">
-                                                        Display Name *
-                                                    </label>
-                                                    <input
-                                                        value={displayName}
-                                                        onChange={(e) => setDisplayName(e.target.value)}
-                                                        className={inputClass}
-                                                        placeholder="e.g. AstroCoder"
-                                                        autoComplete="off"
-                                                    />
+                                            <div className="space-y-5">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-black mb-1 text-black">
+                                                            Display Name *
+                                                        </label>
+                                                        <input
+                                                            value={displayName}
+                                                            onChange={(e) => setDisplayName(e.target.value)}
+                                                            className={inputClass}
+                                                            placeholder="e.g. AstroCoder"
+                                                            autoComplete="off"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-black mb-1 text-black">
+                                                            Bio (optional)
+                                                        </label>
+                                                        <input
+                                                            value={bio}
+                                                            onChange={(e) => setBio(e.target.value)}
+                                                            className={inputClass}
+                                                            placeholder="Describe your credentials, skills, or agent portfolio..."
+                                                            autoComplete="off"
+                                                        />
+                                                    </div>
                                                 </div>
 
-                                                <div>
-                                                    <label className="block text-sm font-black mb-1 text-black">
-                                                        Bio (optional)
-                                                    </label>
-                                                    <textarea
-                                                        value={bio}
-                                                        onChange={(e) => setBio(e.target.value)}
-                                                        className={inputClass + ' h-28 resize-none'}
-                                                        placeholder="Describe your credentials, skills, or agent portfolio..."
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* ── STEP 1: API KEY (BYOK) ── */}
-                                    {step === 1 && (
-                                        <div>
-                                            <h2 className="text-xl md:text-2xl font-black text-black mb-1">
-                                                Secure API Key (BYOK)
-                                            </h2>
-                                            <p className="text-sm font-bold text-neo-muted mb-6">
-                                                Bring Your Own Key (BYOK). Keys are encrypted with AES-256-GCM. 
-                                            </p>
-
-                                            <div className="space-y-4">
                                                 <div>
                                                     <label className="block text-sm font-black mb-2 text-black">
                                                         Select Provider & Enter API Key *
@@ -449,8 +414,8 @@ export default function CreateAgentPage() {
                                         </div>
                                     )}
 
-                                    {/* ── STEP 2: AGENT DETAILS ── */}
-                                    {step === 2 && (
+                                    {/* ── STEP 1: AGENT DETAILS ── */}
+                                    {step === 1 && (
                                         <div>
                                             <h2 className="text-xl md:text-2xl font-black text-black mb-1">
                                                 Agent Branding
@@ -525,8 +490,8 @@ export default function CreateAgentPage() {
                                         </div>
                                     )}
 
-                                    {/* ── STEP 3: AI CONFIGURATION ── */}
-                                    {step === 3 && (
+                                    {/* ── STEP 2: AI CONFIGURATION ── */}
+                                    {step === 2 && (
                                         <div>
                                             <h2 className="text-xl md:text-2xl font-black text-black mb-1">
                                                 AI Intelligence
@@ -638,8 +603,8 @@ export default function CreateAgentPage() {
                                         </div>
                                     )}
 
-                                    {/* ── STEP 4: PRICING ── */}
-                                    {step === 4 && (
+                                    {/* ── STEP 3: PRICING ── */}
+                                    {step === 3 && (
                                         <div>
                                             <h2 className="text-xl md:text-2xl font-black text-black mb-1">
                                                 Custom Pricing
@@ -742,8 +707,8 @@ export default function CreateAgentPage() {
                                         </div>
                                     )}
 
-                                    {/* ── STEP 5: REVIEW ── */}
-                                    {step === 5 && (
+                                    {/* ── STEP 4: REVIEW ── */}
+                                    {step === 4 && (
                                         <div>
                                             <h2 className="text-xl md:text-2xl font-black text-black mb-1">
                                                 Review Specs
@@ -791,7 +756,7 @@ export default function CreateAgentPage() {
                                 <div />
                             )}
 
-                            {step === 5 ? (
+                            {step === 4 ? (
                                 <motion.button
                                     whileHover={{ scale: 1.05, y: -2 }}
                                     whileTap={{ scale: 0.96 }}
@@ -806,18 +771,16 @@ export default function CreateAgentPage() {
                                     whileHover={{ scale: 1.05, y: -2 }}
                                     whileTap={{ scale: 0.96 }}
                                     onClick={() => {
-                                        if (step === 0) handleProfileNext();
-                                        else if (step === 1) handleSaveKeyAndNext();
-                                        else if (step === 2 && (!name.trim() || !description.trim())) return;
-                                        else if (step === 3 && !systemPrompt.trim()) return;
+                                        if (step === 0) handleIdentityNext();
+                                        else if (step === 1 && (!name.trim() || !description.trim())) return;
+                                        else if (step === 2 && !systemPrompt.trim()) return;
                                         else handleNext(step + 1);
                                     }}
                                     disabled={
                                         saving ||
-                                        (step === 0 && !displayName.trim()) ||
-                                        (step === 1 && !apiKeyInput.trim()) ||
-                                        (step === 2 && (!name.trim() || !description.trim())) ||
-                                        (step === 3 && !systemPrompt.trim())
+                                        (step === 0 && (!displayName.trim() || !apiKeyInput.trim())) ||
+                                        (step === 1 && (!name.trim() || !description.trim())) ||
+                                        (step === 2 && !systemPrompt.trim())
                                     }
                                     className={btnNext}
                                 >
