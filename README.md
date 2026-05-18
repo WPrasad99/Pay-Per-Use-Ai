@@ -36,6 +36,29 @@ Users connect their wallets, authorize a smart contract session, and get instant
 
 ---
 
+## 📊 The Subscription Crisis: Why We Need X402 Pay-Per-Use
+
+Traditional monthly subscriptions are highly inefficient, resulting in massive financial waste. PayPerAI replaces fixed fee models with direct on-chain utility.
+
+<div align="center">
+
+| 🛑 The Problem: Subscription Bloat | ⚡ The Cure: X402 Pay-Per-Use |
+| --- | --- |
+| **82%** of active users consume < 15% of monthly prompt quotas | Billed dynamically for exact token ingress + egress |
+| **$20/mo** flat tax paid to centralized AI companies | Average query costs under **0.005 ALGO ($0.001)** |
+| **54%** of annual SaaS seats go completely under-utilized | Zero lock-ins, zero monthly invoices, 100% self-custodial |
+| Multi-subscription friction (switching between ChatGPT & Claude) | **Multi-Model Swapping** in a single workspace session |
+
+</div>
+
+### 📈 Core Market Statistics:
+> [!IMPORTANT]
+> According to recent SaaS usage studies:
+> * 👥 **89% of Developers** prefer direct pay-per-token API structures over fixed monthly accounts.
+> * 💸 **Over $180/year** is wasted by the average consumer on under-utilized AI subscriptions.
+
+---
+
 ## ✨ Features That Make Us G.O.A.T. 🐐
 
 <table align="center">
