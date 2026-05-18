@@ -26,17 +26,38 @@
   </p>
 </div>
 
-<br />
+---
 
-## 📖 About The Project
+## 📑 Table of Contents
+
+1. [Project Overview](#-1-project-overview)
+2. [Key Features](#-2-key-features)
+3. [Quick Start (5 Mins)](#-3-quick-start-5-mins)
+4. [System Architecture](#-4-system-architecture)
+5. [Configuration & Setup](#-5-configuration-setup)
+6. [QR Verification System](#-6-qr-verification-system)
+7. [Deployment Guide](#-7-deployment-guide)
+8. [Troubleshooting](#-8-troubleshooting)
+
+---
+
+## 📂 Deep-Dive Documentation Index
+
+Explore our high-fidelity, comprehensive guides for setup, security specifications, and smart contracts:
+
+* 🛠️ **[Repo Setup Guide](docs/repo_setup_guide.md)** — Step-by-step local setup, environment configurations, and Vercel routing parameters.
+* 🧠 **[System Architecture Document](docs/architecture_doc.md)** — Architectural sequence diagrams, secure AES-256 BYOK model, and real-time SSE streaming details.
+* ⛓️ **[Smart Contract Specifications](docs/smart_contract_docs.md)** — PyTeal deployment specifications, global states, and Box Map escrow allocations on Algorand Testnet.
+
+---
+
+## 📖 1. Project Overview
 
 **PayPerAI** is a state-of-the-art decentralized platform bridging the gap between premium AI models and Web3 finance. We solve the issue of bloated monthly AI subscriptions by introducing a frictionless **Pay-Per-Use** model powered by the **Algorand Blockchain**. 
 
 Users connect their wallets, authorize a smart contract session, and get instantly charged *only for the exact tokens they consume*. No credit cards. No lock-ins. Switch between world-class models like Llama 3, GPT-4o, and Gemini 1.5 in a single conversation.
 
----
-
-## 📊 The Subscription Crisis: Why We Need X402 Pay-Per-Use
+### 📊 The Subscription Crisis: Why We Need X402 Pay-Per-Use
 
 Traditional monthly subscriptions are highly inefficient, resulting in massive financial waste. PayPerAI replaces fixed fee models with direct on-chain utility.
 
@@ -59,107 +80,69 @@ Traditional monthly subscriptions are highly inefficient, resulting in massive f
 
 ---
 
-## ✨ Features That Make Us G.O.A.T. 🐐
+## ✨ 2. Key Features
 
-<table align="center">
-  <tr>
-    <td width="50%">
-      <h3>🧠 Multi-Model Intelligence</h3>
-      <p>Switch seamlessly between <b>Llama 3.3 (Groq)</b>, <b>GPT-4o Mini</b>, <b>Gemini 1.5 Flash</b>, and <b>Qwen 2.5</b>. Change models mid-conversation without losing your chat context—the ultimate playground for power users.</p>
-    </td>
-    <td width="50%">
-      <h3>⚡ Seamless Real-Time Streaming</h3>
-      <p>Ultra-fast, character-by-character responses powered by Server-Sent Events (SSE). Experience Web2 performance with Web3 security as on-chain deductions happen in the background.</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <h3>⏱️ Pro Smart Sessions</h3>
-      <p>Authorize once, chat forever. Our optimized Smart Sessions use a <b>1 ALGO buffer</b> to enable "unlimited" prompting for 24 hours. No manual approval for every message—just pure, uninterrupted flow.</p>
-    </td>
-    <td width="50%">
-      <h3>💎 1-Click NFT Minting</h3>
-      <p>Transform your AI interactions and images into permanent on-chain ARC-69 assets with one click. Delivered instantly to your Pera Wallet as an immutable proof of creation.</p>
-    </td>
-  </tr>
-</table>
+### Core Capabilities
+* **🧠 Multi-Model Intelligence**: Switch seamlessly between **Llama 3.3 (Groq)**, **GPT-4o Mini**, **Gemini 1.5 Flash**, and **Qwen 2.5**. Change models mid-conversation without losing your chat context—the ultimate playground for power users.
+* **⚡ Seamless Real-Time Streaming**: Ultra-fast, character-by-character responses powered by Server-Sent Events (SSE). Experience Web2 performance with Web3 security as on-chain deductions happen in the background.
+* **⏱️ Pro Smart Sessions**: Authorize once, chat forever. Our optimized Smart Sessions use a **1 ALGO buffer** to enable "unlimited" prompting for 24 hours. No manual approval for every message—just pure, uninterrupted flow.
+* **💎 1-Click NFT Minting**: Transform your AI interactions and images into permanent on-chain ARC-69 assets with one click. Delivered instantly to your Pera Wallet as an immutable proof of creation.
+
+### 🚀 Latest Platform Upgrades (May 2026)
+1. **100% SEO Compliance & Rich Snippets:** Advanced JSON-LD Schema Markup, social Open Graph (OG) taggings, Twitter Cards, and canonical routing links integrated.
+2. **Search Console Verification & Crawling:** Static crawler asset verification, XML Sitemaps, and strict crawler pathing directives configured.
+3. **Dynamic Token-Based Billing:** Granular token invoicing billed directly in MicroAlgos, coupled with an active Escrow Buffer Guard preventing mid-query failures.
+4. **Smart Settlement & Provider Optimizations:** Restructured Google Gemini streaming and patched Box allocation sizes on the Algorand Smart Contract settlement flows.
+5. **Decentralized Custom AI Agent Marketplace:** Personalized agent creation, creator profile directories, secure BYOK (Bring Your Own Key) credential encryption, and automatic contract-enforced creator split payouts (90% creator / 10% platform).
 
 ---
 
-## 🚦 Live Demo & Quick Start
+## 🚦 3. Quick Start (5 Mins)
 
-> 🔗 **Live Frontend:** **[https://pay-per-use-ai.vercel.app/](https://pay-per-use-ai.vercel.app/)**
-> 🔗 **Live Backend API:** **[https://pay-per-use-ai.onrender.com/docs](https://pay-per-use-ai.onrender.com/docs)**
+### Live Demo Deployments
+> 🔗 **Live Frontend:** **[https://pay-per-use-ai.vercel.app/](https://pay-per-use-ai.vercel.app/)**  
+> 🔗 **Live Backend API:** **[https://pay-per-use-ai.onrender.com/docs](https://pay-per-use-ai.onrender.com/docs)**  
 > 
 > *No local setup required. Optimized for Algorand TestNet.*
 
----
-
-## 📈 Latest Platform Updates (May 2026)
-
-We have recently upgraded the platform infrastructure with major enhancements in billing, performance, search discoverability, and SEO:
-
-### 1. 100% SEO Compliance & Rich Snippets
-- **JSON-LD Schema Markup:** Embedded advanced structured data (`SoftwareApplication` schema) inside the frontend index to enable rich Google search snippets, sitelinks, and professional application ratings.
-- **Social Integration Cards:** Configured standard **Open Graph (OG)** parameters and **Twitter Cards** (`summary_large_image`) for rich social sharing previews on Discord, Slack, LinkedIn, and X/Twitter.
-- **Canonical Routing:** Anchored production page paths with a `<link rel="canonical" href="https://pay-per-use-ai.vercel.app/" />` tag to build domain authority.
-
-### 2. Search Console Verification & Crawling
-- **Google Site Verification:** Added [google7b530e97713f5fc8.html](file:///c:/Users/Prasad/Desktop/Pay-Per-Use-Ai/Pay-Per-Use-Ai/frontend/public/google7b530e97713f5fc8.html) into static assets to verify domain ownership instantly in Search Console.
-- **XML Sitemap & robots.txt**: Generated [sitemap.xml](file:///c:/Users/Prasad/Desktop/Pay-Per-Use-Ai/Pay-Per-Use-Ai/frontend/public/sitemap.xml) and [robots.txt](file:///c:/Users/Prasad/Desktop/Pay-Per-Use-Ai/Pay-Per-Use-Ai/frontend/public/robots.txt) directly in the static serving folder to direct crawler spiders to index public paths (Home, Onboarding, Marketplace, and Creator profiles) while shielding private user dashboards.
-
-### 3. Dynamic Token-Based Billing
-- **Granular Token Invoicing:** Transitioned from flat per-use rates to **dynamic token-based micro-payments** billed in MicroAlgos, ensuring users only pay for exact token consumption (input + output).
-- **Escrow Buffer Guard:** Implemented live session balance verification to prompt users to recharge before hitting transaction limits, preventing failed middleman execution.
-
-### 4. Smart Settlement & Provider Optimizations
-- **Gemini 1.5 Streaming Fixes:** Fully resolved streaming timeouts and 404 response errors for Google Gemini models, securing reliable Server-Sent Events (SSE).
-- **Box Allocation Fixes:** Fixed box access constraints (`box_len` assertions) on the Algorand Smart Contract settlement flows.
-
-### 5. Decentralized Custom AI Agent Marketplace
-- **Custom Agent Creator Engine:** Enabled creators to design, name, configure custom system instructions/prompts, and deploy personalized AI agents with secure model configurations.
-- **Algorand Creator Profiles:** Integrated decentralized profiles (`/creator/:wallet`) linked with Pera Wallet, letting creators display their catalog, track agent usage, and capture creator dashboard analytics.
-- **Secure BYOK (Bring Your Own Key) Workflows:** Streamlined the agent creation workflow with a highly secure Bring Your Own Key (BYOK) manager, resolving external quota/rate limits and ensuring fresh session setups.
-- **Decentralized Revenue Splits:** Backed custom agent runs by blockchain smart contracts that automatically enforce payout splits between the agent creator and the platform host on every token execution.
+### Run Locally in 3 Steps
+1. **Clone the Repo:**
+   ```bash
+   git clone https://github.com/WPrasad99/Pay-Per-Use-Ai.git
+   cd Pay-Per-Use-Ai
+   ```
+2. **Run Backend (FastAPI):**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # Or .\venv\Scripts\activate on Windows
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload --port 8000
+   ```
+3. **Run Frontend (Vite + React):**
+   ```bash
+   cd ../frontend
+   npm install
+   npm run dev
+   ```
+   Open `http://localhost:5173` in your browser.
 
 ---
 
-## 🚀 Architectural Innovations
+## 🧠 4. System Architecture
 
-### 1. Hybrid Multi-Model Chat Engine
+For a deep dive into sequence interaction pathways and state flow mechanics, refer to our comprehensive **[System Architecture Document](docs/architecture_doc.md)**.
+
+### Hybrid Multi-Model Chat Engine
 Unlike other platforms that lock you into one model per page, PayPerAI allows you to **change the model on-the-fly**. You can start a conversation with Llama 3 for speed and switch to GPT-4o for complex logic—all within the same persistent thread.
 
-### 2. High-Performance Smart Sessions (ARC-0060)
+### High-Performance Smart Sessions (ARC-0060)
 We've optimized the Algorand Smart Session model for maximum UX:
-- **Balance-Aware Authorization:** Sessions now authorize your entire available escrow balance, preventing "out of session funds" errors during deep research.
-- **Manual Control:** New "End Session" functionality gives users complete control over their on-chain session state.
-- **Auto-Sync History:** A unified history system that tracks your intelligence usage across every model you interact with.
+* **Balance-Aware Authorization:** Sessions authorize your entire available escrow balance, preventing "out of session funds" errors.
+* **Manual Control:** "End Session" functionality gives users complete control to instantly claim their locked Algos back to their wallet.
+* **Auto-Sync History:** A unified history system that tracks your intelligence usage across every model.
 
-### 3. Neo-Brutalism Workspace
-A premium, state-of-the-art UI designed for the modern developer:
-- **Clean Sidebar:** Deduplicated model lists for a focused experience.
-- **Interactive Header:** Live session countdowns and status indicators.
-- **Dynamic Quick Prompts:** Start your session with pre-configured expert templates.
-
----
-
-## 🎯 User Workflow (The Magic Flow)
-
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│  1. CONNECT  →  Connect Pera Wallet (TestNet)                    │
-│  2. DEPOSIT  →  Add a small ALGO buffer to your smart escrow     │
-│  3. APPROVE  →  Sign ONCE for an unlimited 24h smart session     │
-│  4. CHAT     →  Stream responses from GPT, Llama, or Gemini      │
-│  5. SWITCH   →  Change models mid-chat to get the best answer    │
-│  6. MINT     →  Save your AI masterpieces as on-chain NFTs       │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🧱 Architecture Diagram
-
+### Platform Data Flow
 ```mermaid
 graph TD
     A[Frontend: React + Vite] -->|Pera Wallet SDK| B[Smart Session Contract]
@@ -181,27 +164,74 @@ graph TD
 
 ---
 
-## 💻 Tech Stack
+## ⚙️ 5. Configuration & Setup
+
+For step-by-step setup guides, package dependencies, database migrations, and detailed explanation of environment flags, view our dedicated **[Repo Setup Guide](docs/repo_setup_guide.md)**.
+
+### Tech Stack Specifications
+* **Blockchain Layer:** Algorand Testnet (PyTeal), Box Map Escrows, Pera Wallet SDK.
+* **API Gateway Layer:** FastAPI (Python), PostgreSQL Database.
+* **Client Frontend:** React 18, Vite, Neo-Brutalist CSS, Server-Sent Events (SSE).
 
 <div align="center">
   <img src="https://skillicons.dev/icons?i=react,vite,tailwind,python,fastapi,postgres,algorand" />
 </div>
 
-| Layer               | Technology                               | Key Features                                                  |
-| ------------------- | ---------------------------------------- | ------------------------------------------------------------- |
-| **Blockchain**      | Algorand (ARC-0060)                      | Smart Sessions, BoxMap Escrow, Atomic Groups                  |
-| **AI Backend**      | FastAPI + Groq + OpenAI                  | Low-latency streaming, Token-based billing                    |
-| **Frontend**        | React 18 + Neo-Brutalism CSS             | Multi-model switcher, Session management UI                   |
-| **Infrastructure**  | Docker + PostgreSQL                      | Scalable message history & User analytics                     |
+---
+
+## 🔍 6. QR Verification System
+
+### dynamic Web3 Wallet Connect Challenges
+Pay-Per-Use-AI features a decentralized **QR Verification System** utilizing the Pera Wallet Connect SDK to securely authenticate consumer sessions.
+
+```text
+  Desktop Browser        Dynamically Generated QR        Pera Mobile App
+ ┌───────────────┐        ┌─────────────────────┐        ┌───────────────┐
+ │               │        │  █▀▀▀█  █▄▀  █▀▀▀█  │        │   Scan &      │
+ │  Click Start  │ ─────► │  █ ▀ █  ▀▀▄  █ ▀ █  │ ─────► │   Sign        │
+ │  AI Session   │        │  ▀▀▀▀▀  ▀ ▀  ▀▀▀▀▀  │        │   On-Chain    │
+ │               │        └─────────────────────┘        │   Escrow      │
+ └───────────────┘                                       └───────────────┘
+```
+
+* **Dynamic Desktop Connection:** When a desktop user initializes their workspace dashboard session, the frontend requests a secure session challenge from the Pera Wallet Bridge. Pera Wallet dynamically generates a localized, cryptographically unique QR verification code.
+* **Mobile Sign-off Integration:** The consumer scans the QR verification code using their mobile Pera Wallet app. This establishes a secure, end-to-end encrypted connection between their browser session and mobile wallet.
+* **One-Click On-Chain Escrow:** Once scanned, the user is prompted on-device to sign the 1 ALGO escrow transaction. Pera signs the transaction securely on the hardware, submits it to the Algorand Testnet, and broadcasts the validated transaction hash back to the frontend to instantly unlock frictionless chat.
 
 ---
 
-<div align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=A855F7&height=120&section=footer" width="100%" />
-  <h2>🚀 <b>Team PayPerAI</b> 🚀</h2>
-  <p><i>Building the decentralized future of AI economies.</i></p>
-  <br/>
-  <a href="https://github.com/WPrasad99/Pay-Per-Use-Ai">
-    <img src="https://img.shields.io/badge/Star_Our_Repo-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
-  </a>
-</div>
+## 🌐 7. Deployment Guide
+
+To check deployment compiling instructions, smart contract deployment commands, global/local state maps, and ABI actions, read our **[Smart Contract Specifications](docs/smart_contract_docs.md)**.
+
+### Vercel Routing Configuration
+We have deployed the React client workspace to Vercel. To prevent `404` errors when reloading deep router paths (such as `/dashboard`, `/creator/*`, or `/shared/*`), the deployment includes a root `vercel.json` file to rewrite all client requests back to the master index page:
+
+```json
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
+
+---
+
+## 🛠️ 8. Troubleshooting
+
+### 1. Direct Page Reloading Returns "404 Not Found" on Vercel
+* **Cause:** Single-Page Applications (SPAs) route pages client-side. Refreshing directly asks the host server for a folder structure that does not exist.
+* **Fix:** Ensure a root [vercel.json](file:///c:/Users/Prasad/Desktop/Pay-Per-Use-Ai/Pay-Per-Use-Ai/vercel.json) file containing routing rewrites exists in your repository root, then redeploy.
+
+### 2. "SESSION_EXPIRED" or "NO_SESSION" Chat Prompts
+* **Cause:** Your Algorand 24-hour smart session has expired, or the locked Algos in your Box escrow have been fully spent.
+* **Fix:** Simply click the session status indicator in the top header or prompt a chat message to dynamically trigger the **Pera Wallet Escrow Recharge Challenge**. Re-sign to top up your session balance, and your chat context will resume immediately.
+
+### 3. Pera Wallet Connection Mismatches
+* **Cause:** Active session storage caching outdated wallet connection data.
+* **Fix:** Click "Logout" in the sidebar, disconnect your account in your mobile Pera Wallet app, reload the webpage, and scan the QR verification code again to establish a fresh bridge.
