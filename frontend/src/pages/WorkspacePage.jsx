@@ -255,6 +255,7 @@ const WorkspacePage = () => {
                     return false;
                 }
             } catch (e) {
+                console.error('Inner session check failed (expected if inactive):', e);
                 setSessionStatus('inactive');
                 return false;
             }
@@ -278,10 +279,11 @@ const WorkspacePage = () => {
     }, [service, wallet]);
 
     useEffect(() => {
-        if (paymentInfo) checkSessionStatus();
+        if (!paymentInfo) return;
+        checkSessionStatus();
         const interval = setInterval(() => {
-            setTick(t => t + 1);
-        }, 60000); // Update every minute
+            checkSessionStatus();
+        }, 15000); // Check on-chain status every 15 seconds
         return () => clearInterval(interval);
     }, [paymentInfo, checkSessionStatus]);
 
@@ -456,17 +458,34 @@ const WorkspacePage = () => {
             setPayingStatus('Confirming on-chain...');
             await algosdk.waitForConfirmation(client, txId, 10);
 
-            // Single immediate status sync — no slow polling loop
+            // Set active states immediately so the UI updates instantly
+            setSessionStatus('active');
+            setSessionBalance(maxSpend);
+            setSessionExpiry(expiryTime);
             setPayingStatus('Session active! ✅');
-            await checkSessionStatus();
+
             setTimeout(() => {
                 setPayingStatus('');
                 setIsSessionModalOpen(false);
             }, 1500);
 
+            // Sync with blockchain after 3 seconds once the block is fully committed and indexers catch up
+            setTimeout(() => {
+                checkSessionStatus().catch(() => {});
+            }, 3000);
+
         } catch (e) {
-            setError(friendlyError(e));
-            setPayingStatus('');
+            console.error('Session start failed:', e);
+            if (e.message?.includes('timeout') || e.message?.includes('Confirmation took too long')) {
+                setSessionStatus('active');
+                setSessionBalance(maxSpend);
+                setSessionExpiry(expiryTime);
+                setIsSessionModalOpen(false);
+                setPayingStatus('');
+            } else {
+                setError(friendlyError(e));
+                setPayingStatus('');
+            }
         } finally {
             setIsStartingSession(false);
         }
@@ -525,6 +544,11 @@ const WorkspacePage = () => {
             setTimeout(() => {
                 setPayingStatus('');
             }, 2500);
+
+            // Sync with blockchain after 3 seconds
+            setTimeout(() => {
+                checkSessionStatus().catch(() => {});
+            }, 3000);
 
         } catch (e) {
             console.error('Refund failed:', e);
@@ -707,6 +731,7 @@ const WorkspacePage = () => {
             }
 
             getConversationHistory(wallet, null).then(setHistory).catch(() => {});
+            checkSessionStatus().catch(() => {});
         } catch (err) {
             setError(err.message || 'Request failed');
             setMessages((prev) => prev.slice(0, -1));
