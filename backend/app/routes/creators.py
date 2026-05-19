@@ -204,75 +204,118 @@ async def confirm_withdrawal(data: ConfirmWithdrawalIn):
     from algosdk.v2client import algod
     import algosdk
     import requests
+    import asyncio
     
-    # 1. Initialize client
     client = algod.AlgodClient(settings.algod_token, settings.algod_url)
+    tx_info = None
     
+    # 1. Try pending_transaction_info (recent cache check)
     try:
-        # Fetch transaction info from blockchain
         tx_info = client.pending_transaction_info(data.tx_id)
     except Exception as e:
-        try:
-            # Let's try standard lookup
-            tx_info = client.transaction_info(data.wallet_address, data.tx_id)
-        except Exception as e2:
+        print(f"Algod pending_transaction_info lookup failed: {e}")
+        
+    # 2. Try Indexer with retry loop to handle node/indexer delay (up to 12s)
+    if not tx_info or not tx_info.get("confirmed-round"):
+        from algosdk.v2client import indexer as indexer_v2
+        indexer = indexer_v2.IndexerClient("", settings.indexer_url, "")
+        for attempt in range(6):
             try:
-                # We can also lookup by indexer if algod client fails
-                url = f"{settings.indexer_url}/v2/transactions/{data.tx_id}"
-                resp = requests.get(url, timeout=10)
-                if resp.status_code == 200:
-                    tx_info = resp.json().get("transaction", {})
-                else:
-                    raise Exception("Indexer lookup failed")
-            except Exception as e3:
-                raise HTTPException(status_code=400, detail=f"Transaction not found or verified yet: {e2}")
+                resp = indexer.transaction(data.tx_id)
+                tx_info = resp.get("transaction")
+                if tx_info and tx_info.get("confirmed-round", 0) > 0:
+                    break
+            except Exception as e:
+                print(f"Indexer lookup attempt {attempt} failed: {e}")
+            await asyncio.sleep(2)
 
-    # 2. Extract transaction fields
+    if not tx_info:
+        raise HTTPException(status_code=400, detail="Transaction not found on Algorand network or pending pool")
+
+    # 3. Extract transaction details dynamically
     txn = tx_info.get("txn", {}).get("txn", {}) if "txn" in tx_info else tx_info
-    
-    # Verify app call and app ID
-    apid = txn.get("apid") or tx_info.get("application-transaction", {}).get("application-id")
+    if not isinstance(txn, dict):
+        txn = tx_info
+        
+    # Extract App ID
+    apid = None
+    if "application-transaction" in tx_info:
+        apid = tx_info["application-transaction"].get("application-id")
+    elif "txn" in tx_info:
+        txn_layer = tx_info["txn"]
+        if isinstance(txn_layer, dict):
+            if "txn" in txn_layer and isinstance(txn_layer["txn"], dict):
+                apid = txn_layer["txn"].get("apid") or txn_layer["txn"].get("application-id")
+            else:
+                apid = txn_layer.get("apid") or txn_layer.get("application-id")
     if apid is None:
-        apid = tx_info.get("txn", {}).get("apid")
+        apid = tx_info.get("apid") or tx_info.get("application-id")
         
     if apid != settings.app_id_int:
         raise HTTPException(status_code=400, detail=f"Transaction is for app {apid}, expected {settings.app_id_int}")
 
-    # Verify sender
-    sender = txn.get("snd") or tx_info.get("sender")
-    
-    # Decode sender address if base64 encoded
-    import base64
-    if sender and len(sender) == 44: # base64
-        sender_bytes = base64.b64decode(sender)
-        sender = algosdk.encoding.encode_address(sender_bytes)
-        
+    # Extract Sender Address
+    sender = tx_info.get("sender") or tx_info.get("snd")
+    if not sender and "txn" in tx_info:
+        txn_layer = tx_info["txn"]
+        if isinstance(txn_layer, dict):
+            if "txn" in txn_layer and isinstance(txn_layer["txn"], dict):
+                sender = txn_layer["txn"].get("snd") or txn_layer["txn"].get("sender")
+            else:
+                sender = txn_layer.get("snd") or txn_layer.get("sender")
+
+    # Normalize sender if base64/bytes
+    if sender:
+        import base64
+        if isinstance(sender, bytes):
+            sender = algosdk.encoding.encode_address(sender)
+        elif isinstance(sender, str) and len(sender) == 44:
+            try:
+                sender = algosdk.encoding.encode_address(base64.b64decode(sender))
+            except Exception:
+                pass
+                
     if sender != data.wallet_address:
         raise HTTPException(status_code=400, detail=f"Transaction sender ({sender}) does not match creator wallet ({data.wallet_address})")
 
-    # 3. Extract inner transaction payment amount
+    # 4. Extract inner transaction amount
     inner_txs = tx_info.get("inner-txns") or tx_info.get("inner-transactions")
-    if not inner_txs and "txn" in tx_info:
-        inner_txs = tx_info.get("txn", {}).get("inner-txns") or tx_info.get("txn", {}).get("inner-transactions")
+    if not inner_txs and "txn" in tx_info and isinstance(tx_info["txn"], dict):
+        inner_txs = tx_info["txn"].get("inner-txns") or tx_info["txn"].get("inner-transactions")
         
     withdrawn_amount = 0
     if inner_txs:
         for itx in inner_txs:
-            itxn = itx.get("txn", {}).get("txn", {}) if "txn" in itx else itx
-            itxn_type = itxn.get("type") or itx.get("tx-type")
-            if itxn_type == "pay":
-                pay_details = itxn.get("payment-transaction") or itxn
-                withdrawn_amount = pay_details.get("amt") or pay_details.get("amount") or 0
-                break
-                
+            if not isinstance(itx, dict):
+                continue
+            itx_type = itx.get("tx-type") or itx.get("type")
+            itx_txn = itx.get("txn", {}) if isinstance(itx.get("txn"), dict) else {}
+            itx_type = itx_type or itx_txn.get("type") or itx_txn.get("tx-type")
+            
+            if itx_type == "pay" or itx_type == b"pay":
+                pay_details = itx.get("payment-transaction")
+                if isinstance(pay_details, dict):
+                    withdrawn_amount = pay_details.get("amount") or pay_details.get("amt") or 0
+                if withdrawn_amount == 0:
+                    withdrawn_amount = itx.get("amount") or itx.get("amt") or 0
+                if withdrawn_amount == 0 and isinstance(itx_txn, dict):
+                    pay_details_txn = itx_txn.get("payment-transaction")
+                    if isinstance(pay_details_txn, dict):
+                        withdrawn_amount = pay_details_txn.get("amount") or pay_details_txn.get("amt") or 0
+                    if withdrawn_amount == 0:
+                        withdrawn_amount = itx_txn.get("amount") or itx_txn.get("amt") or 0
+                if withdrawn_amount > 0:
+                    break
+                    
+    # Fallback to available earnings in database if inner txns parse returns zero
     if withdrawn_amount <= 0:
         summary = await db.get_creator_earnings_summary(data.wallet_address)
-        withdrawn_amount = summary.get("available_microalgo", 0)
+        withdrawn_amount = int(summary.get("available_microalgo", 0))
 
     if withdrawn_amount <= 0:
         raise HTTPException(status_code=400, detail="No earnings available or found to withdraw")
 
-    # 4. Log the withdrawal in the database ledger
+    # 5. Log the withdrawal in the database ledger
     await db.log_creator_earning(
         creator_wallet=data.wallet_address,
         agent_id="",
@@ -286,4 +329,5 @@ async def confirm_withdrawal(data: ConfirmWithdrawalIn):
         "amount_microalgo": withdrawn_amount,
         "amount_algo": withdrawn_amount / 1_000_000
     }
+
 
