@@ -636,14 +636,12 @@ async def auto_refund_session(user_wallet: str) -> bool:
         signer = AccountTransactionSigner(private_key)
 
         params = algod_client.suggested_params()
+        params.fee = 2000
+        params.flat_fee = True
         atc = AtomicTransactionComposer()
 
         # ABI definition for auto_refund_session (matches contract.py)
-        method = abi.Method(
-            name="auto_refund_session",
-            args=[{"type": "address", "name": "target_user"}],
-            returns={"type": "uint64"}
-        )
+        method = abi.Method.from_signature("auto_refund_session(address)uint64")
 
         user_addr_bytes = algosdk.encoding.decode_address(user_wallet)
 
@@ -661,14 +659,17 @@ async def auto_refund_session(user_wallet: str) -> bool:
             sp=params,
             signer=signer,
             method_args=[user_wallet],
-            boxes=box_set
+            boxes=box_set,
+            accounts=[user_wallet]
         )
 
         await asyncio.to_thread(atc.execute, algod_client, 4)
         print(f"Auto-refunded session for {user_wallet}")
         return True
     except Exception as e:
-        # Ignore if session not expired or already refunded
-        if "SESSION_NOT_EXPIRED" not in str(e):
-            print(f"Auto-refund failed for {user_wallet}: {e}")
+        err_msg = str(e)
+        # Ignore if session not expired (pc=504) or user has no balance (pc=481)
+        if "assert failed pc=504" in err_msg or "assert failed pc=481" in err_msg or "SESSION_NOT_EXPIRED" in err_msg or "NO_BALANCE" in err_msg:
+            return False
+        print(f"Auto-refund failed for {user_wallet}: {e}")
         return False

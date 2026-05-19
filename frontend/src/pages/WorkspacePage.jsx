@@ -459,7 +459,10 @@ const WorkspacePage = () => {
             // Single immediate status sync — no slow polling loop
             setPayingStatus('Session active! ✅');
             await checkSessionStatus();
-            setTimeout(() => setPayingStatus(''), 800);
+            setTimeout(() => {
+                setPayingStatus('');
+                setIsSessionModalOpen(false);
+            }, 1500);
 
         } catch (e) {
             setError(friendlyError(e));
@@ -500,6 +503,7 @@ const WorkspacePage = () => {
             atc.addMethodCall({
                 appID: appId, method, methodArgs: [],
                 sender: wallet, suggestedParams: doubleFeeParams, signer: dummySigner,
+                accounts: [wallet],
                 boxes: [
                     { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('b_'), ...algosdk.decodeAddress(wallet).publicKey]) },
                     { appIndex: appId, name: new Uint8Array([...new TextEncoder().encode('sb_'), ...algosdk.decodeAddress(wallet).publicKey]) },
@@ -516,13 +520,14 @@ const WorkspacePage = () => {
 
             setSessionStatus('inactive');
             setSessionBalance(0);
-            setPayingStatus('Refund successful! 💸');
+            setIsSessionModalOpen(false);
+            setPayingStatus('Refund successful! Session ended. 💸');
             setTimeout(() => {
-                setIsSessionModalOpen(false);
                 setPayingStatus('');
-            }, 1500);
+            }, 2500);
 
         } catch (e) {
+            console.error('Refund failed:', e);
             // If the transaction actually succeeded but confirmation timed out, don't show error
             if (e.message?.includes('timeout') || e.message?.includes('Confirmation took too long')) {
                 setSessionStatus('inactive');
@@ -982,7 +987,22 @@ const WorkspacePage = () => {
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#fff7df]/80 backdrop-blur-sm" onClick={() => !isStartingSession && setIsSessionModalOpen(false)} />
                     <div className="animate-fadeUp relative w-full max-w-sm rounded-2xl border-4 border-[#111] bg-white p-6 shadow-[8px_8px_0px_#111]">
-                        {sessionStatus === 'active' ? (
+                        {isStartingSession ? (
+                            <div className="flex flex-col items-center justify-center py-6 text-center">
+                                <div className="relative mb-6">
+                                    <div className="h-16 w-16 animate-spin rounded-full border-4 border-dashed border-[#111] border-t-neo-blue" />
+                                    <span className="absolute inset-0 flex items-center justify-center text-xl">⏳</span>
+                                </div>
+                                <h3 className="text-base font-black mb-1">
+                                    {payingStatus || 'Action Required'}
+                                </h3>
+                                <p className="text-xs font-bold opacity-60 max-w-[220px]">
+                                    {payingStatus.includes('active') || payingStatus.includes('successful') 
+                                        ? 'Your wallet balance has been updated!' 
+                                        : 'Please approve the transaction in your Pera Wallet app.'}
+                                </p>
+                            </div>
+                        ) : sessionStatus === 'active' ? (
                             <>
                                 <div className="flex items-center justify-between mb-2">
                                     <h2 className="text-xl font-black">⚡ Active Session</h2>
@@ -1335,54 +1355,74 @@ const WorkspacePage = () => {
                     </div>
 
                     <div className="sticky bottom-0 shrink-0 bg-[#fff7df] p-2">
-                        <form onSubmit={handleSendPrompt} className="flex items-center gap-2 rounded-xl border-2 border-[#111] bg-white p-2 md:border-4">
-                            <textarea
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                placeholder={(sessionStatus !== 'active' && service?.creator_wallet !== wallet) ? 'Start a session to continue...' : (messages.length === 0 ? 'Type prompt...' : 'Type a follow-up...')}
-                                className="h-11 min-w-0 flex-1 resize-none rounded-lg border-2 border-[#111] bg-white px-3 py-2 text-sm outline-none md:h-12 md:border-4 md:text-base"
-                                disabled={isLoading || (sessionStatus !== 'active' && service?.creator_wallet !== wallet)}
-                                maxLength={2000}
-                            />
-                            
-                            <div className="flex items-center gap-2">
-                                {service?.is_community ? (
-                                    <div className="hidden h-11 items-center rounded-lg border-2 border-[#111] bg-yellow-200 px-3 text-xs font-black shadow-[3px_3px_0px_#111] md:flex md:h-12 md:border-4 md:px-4 md:text-sm">
-                                        🤖 {service.name.length > 15 ? service.name.slice(0, 13) + '...' : service.name}
+                        {(sessionStatus !== 'active' && service?.creator_wallet !== wallet) ? (
+                            <div 
+                                onClick={() => setIsSessionModalOpen(true)}
+                                className="flex items-center justify-between gap-4 rounded-xl border-2 border-[#111] bg-yellow-100 p-3 md:border-4 cursor-pointer hover:bg-yellow-200 transition-all shadow-[4px_4px_0px_#111] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none animate-fadeUp"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl">🔒</span>
+                                    <div>
+                                        <p className="text-xs font-black text-[#111] uppercase tracking-wide">Session Locked</p>
+                                        <p className="text-[10px] font-bold text-zinc-600 leading-snug">Start a pay-per-use smart session to chat with this agent.</p>
                                     </div>
-                                ) : (
-                                    <select
-                                        value={service?.id || ''}
-                                        onChange={(e) => {
-                                            const selected = allServices.find(s => s.id === e.target.value);
-                                            if (selected) {
-                                                setService(selected);
-                                                // Allow changing models within the same chat without clearing messages
-                                            }
-                                        }}
-                                        className="hidden h-11 cursor-pointer appearance-none rounded-lg border-2 border-[#111] bg-yellow-200 px-3 pr-8 text-xs font-black shadow-[3px_3px_0px_#111] outline-none transition-all focus:border-[#111] md:block md:h-12 md:border-4 md:px-4 md:pr-10 md:text-sm bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[right_12px_center] bg-no-repeat"
-                                        disabled={isLoading}
-                                    >
-                                        {allServices.filter(s => ['llama3', 'gpt4o_mini', 'gemini_flash', 'qwen25'].includes(s?.id)).map((s) => {
-                                            const badge = PROVIDER_BADGE[s.id];
-                                            return (
-                                                <option key={s.id} value={s.id}>
-                                                    {ICONS[s.id] || '✨'} {s.name}{badge ? ` · ${badge.label}` : ''} — {s.price_algo > 0 ? `${s.price_algo} ALGO` : 'Token-Based'}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                )}
-
+                                </div>
                                 <button
-                                    type="submit"
-                                    disabled={isLoading || !prompt.trim() || (sessionStatus !== 'active' && service?.creator_wallet !== wallet)}
-                                    className="h-11 whitespace-nowrap rounded-lg border-2 border-[#111] bg-green-200 px-4 text-sm font-black shadow-[3px_3px_0px_#111] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 md:h-12 md:border-4 md:px-5 md:text-base"
+                                    type="button"
+                                    className="rounded-lg border-2 border-[#111] bg-neo-blue px-3 py-1.5 text-xs font-black text-white shadow-[2px_2px_0px_#111] active:translate-y-0.5 active:shadow-none whitespace-nowrap"
                                 >
-                                    {isLoading ? 'Wait...' : 'Send'}
+                                    🔑 Start Session
                                 </button>
                             </div>
-                        </form>
+                        ) : (
+                            <form onSubmit={handleSendPrompt} className="flex items-center gap-2 rounded-xl border-2 border-[#111] bg-white p-2 md:border-4">
+                                <textarea
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    placeholder={messages.length === 0 ? 'Type prompt...' : 'Type a follow-up...'}
+                                    className="h-11 min-w-0 flex-1 resize-none rounded-lg border-2 border-[#111] bg-white px-3 py-2 text-sm outline-none md:h-12 md:border-4 md:text-base"
+                                    disabled={isLoading}
+                                    maxLength={2000}
+                                />
+                                
+                                <div className="flex items-center gap-2">
+                                    {service?.is_community ? (
+                                        <div className="hidden h-11 items-center rounded-lg border-2 border-[#111] bg-yellow-200 px-3 text-xs font-black shadow-[3px_3px_0px_#111] md:flex md:h-12 md:border-4 md:px-4 md:text-sm">
+                                            🤖 {service.name.length > 15 ? service.name.slice(0, 13) + '...' : service.name}
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={service?.id || ''}
+                                            onChange={(e) => {
+                                                const selected = allServices.find(s => s.id === e.target.value);
+                                                if (selected) {
+                                                    setService(selected);
+                                                }
+                                            }}
+                                            className="hidden h-11 cursor-pointer appearance-none rounded-lg border-2 border-[#111] bg-yellow-200 px-3 pr-8 text-xs font-black shadow-[3px_3px_0px_#111] outline-none transition-all focus:border-[#111] md:block md:h-12 md:border-4 md:px-4 md:pr-10 md:text-sm bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[right_12px_center] bg-no-repeat"
+                                            disabled={isLoading}
+                                        >
+                                            {allServices.filter(s => ['llama3', 'gpt4o_mini', 'gemini_flash', 'qwen25'].includes(s?.id)).map((s) => {
+                                                const badge = PROVIDER_BADGE[s.id];
+                                                return (
+                                                    <option key={s.id} value={s.id}>
+                                                        {ICONS[s.id] || '✨'} {s.name}{badge ? ` · ${badge.label}` : ''} — {s.price_algo > 0 ? `${s.price_algo} ALGO` : 'Token-Based'}
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                    )}
+ 
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading || !prompt.trim()}
+                                        className="h-11 whitespace-nowrap rounded-lg border-2 border-[#111] bg-green-200 px-4 text-sm font-black shadow-[3px_3px_0px_#111] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 md:h-12 md:border-4 md:px-5 md:text-base"
+                                    >
+                                        {isLoading ? 'Wait...' : 'Send'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
                     </div>
                 </main>
             </div>
