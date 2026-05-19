@@ -535,20 +535,26 @@ const WorkspacePage = () => {
 
             setPayingStatus('Processing refund...');
             const { txId } = await client.sendRawTransaction(signed).do();
-            await algosdk.waitForConfirmation(client, txId, 4);
 
+            // Set states immediately & close modal so user feedback is instant
             setSessionStatus('inactive');
             setSessionBalance(0);
             setIsSessionModalOpen(false);
             setPayingStatus('Refund successful! Session ended. 💸');
+            
             setTimeout(() => {
                 setPayingStatus('');
             }, 2500);
 
-            // Sync with blockchain after 3 seconds
-            setTimeout(() => {
+            // Wait for confirmation & sync in the background
+            (async () => {
+                try {
+                    await algosdk.waitForConfirmation(client, txId, 6);
+                } catch (confErr) {
+                    console.warn('Background refund confirmation check warning:', confErr);
+                }
                 checkSessionStatus().catch(() => {});
-            }, 3000);
+            })();
 
         } catch (e) {
             console.error('Refund failed:', e);
