@@ -450,7 +450,16 @@ const WorkspacePage = () => {
             });
 
             const group = atc.buildGroup().map(t => t.txn);
-            const signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
+            let signed;
+            try {
+                signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
+            } catch (signErr) {
+                console.warn('Initial session sign failed, trying refresh:', signErr);
+                await pw.disconnect().catch(() => {});
+                const freshAccounts = await pw.connect();
+                if (freshAccounts[0] !== wallet) throw new Error('Wallet address mismatch after reconnect');
+                signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
+            }
 
             setPayingStatus('Sending to Algorand...');
             const { txId } = await client.sendRawTransaction(signed).do();
@@ -529,7 +538,16 @@ const WorkspacePage = () => {
             });
 
             const group = atc.buildGroup().map(t => t.txn);
-            const signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
+            let signed;
+            try {
+                signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
+            } catch (signErr) {
+                console.warn('Initial refund sign failed, trying refresh:', signErr);
+                await pw.disconnect().catch(() => {});
+                const freshAccounts = await pw.connect();
+                if (freshAccounts[0] !== wallet) throw new Error('Wallet address mismatch after reconnect');
+                signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
+            }
 
             setPayingStatus('Processing refund...');
             const { txId } = await client.sendRawTransaction(signed).do();
@@ -577,13 +595,14 @@ const WorkspacePage = () => {
         try {
             setIsOptingIn(true);
             setError(null);
-            const { PeraWalletConnect } = await import('@perawallet/connect');
             const algosdk = (await import('algosdk')).default;
 
-            const pw = new PeraWalletConnect();
+            const pw = peraWallet;
+            let accounts = [];
             try {
-                await pw.reconnectSession();
+                accounts = await pw.reconnectSession();
             } catch (_) {}
+            if (!accounts || !accounts.length) accounts = await pw.connect();
 
             const algodClient = new algosdk.Algodv2('', ALGOD_API, '');
             const params = await algodClient.getTransactionParams().do();
@@ -596,7 +615,16 @@ const WorkspacePage = () => {
                 suggestedParams: params,
             });
 
-            const signed = await pw.signTransaction([[{ txn, signers: [wallet] }]]);
+            let signed;
+            try {
+                signed = await pw.signTransaction([[{ txn, signers: [wallet] }]]);
+            } catch (signErr) {
+                console.warn('Initial opt-in sign failed, trying refresh:', signErr);
+                await pw.disconnect().catch(() => {});
+                const freshAccounts = await pw.connect();
+                if (freshAccounts[0] !== wallet) throw new Error('Wallet address mismatch after reconnect');
+                signed = await pw.signTransaction([[{ txn, signers: [wallet] }]]);
+            }
             await algodClient.sendRawTransaction(signed).do();
             await algosdk.waitForConfirmation(algodClient, txn.txID().toString(), 4);
 
