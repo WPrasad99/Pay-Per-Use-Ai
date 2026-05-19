@@ -18,8 +18,8 @@ export default function EarningsDashboard() {
 
     useEffect(() => { if (wallet) loadData(); }, [wallet]);
 
-    const loadData = async () => {
-        setLoading(true);
+    const loadData = async (showSpinner = true) => {
+        if (showSpinner) setLoading(true);
         try {
             const [p, e, a] = await Promise.all([
                 getCreatorProfile(wallet).catch(() => null),
@@ -30,7 +30,7 @@ export default function EarningsDashboard() {
             setEarnings(e);
             setAnalytics(a);
         } catch (err) { console.error(err); }
-        setLoading(false);
+        if (showSpinner) setLoading(false);
     };
 
     const handleWithdraw = async () => {
@@ -123,7 +123,7 @@ export default function EarningsDashboard() {
 
             setWithdrawStatus('success');
             setStatusMessage('Withdrawal successful! Real-time balance updated.');
-            loadData(); // Reload analytics and earnings history
+            loadData(false); // Reload analytics and earnings history silently
         } catch (err) {
             console.error('Withdrawal failed:', err);
             setWithdrawStatus('error');

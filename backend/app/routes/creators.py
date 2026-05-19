@@ -97,7 +97,13 @@ async def get_earnings(wallet: str):
             "history": []
         }
 
+    from app.services.algorand_service import get_creator_earnings_from_chain
+    on_chain_available = get_creator_earnings_from_chain(wallet)
+    
     summary = await db.get_creator_earnings_summary(wallet)
+    summary["available_microalgo"] = on_chain_available
+    summary["total_earned_microalgo"] = on_chain_available + summary["total_withdrawn_microalgo"]
+
     history = await db.get_creator_earnings_history(wallet, limit=20)
     return {
         "summary": summary,
