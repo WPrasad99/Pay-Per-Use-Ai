@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'; // Refresh V3
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSiwa } from '../hooks/useSiwa';
+import { peraWallet } from '../config/peraWallet';
 import {
     depositWalletFunds,
     generateImage,
@@ -395,13 +396,8 @@ const WorkspacePage = () => {
             setIsStartingSession(true);
             setError(null);
 
-            const { PeraWalletConnect } = await import('@perawallet/connect');
             const algosdk = (await import('algosdk')).default;
-
-            if (!peraWalletRef.current) {
-                peraWalletRef.current = new PeraWalletConnect({ shouldShowSignTxnToast: true });
-            }
-            const pw = peraWalletRef.current;
+            const pw = peraWallet;
 
             let accounts = [];
             try { accounts = await pw.reconnectSession(); } catch (_) {}
@@ -502,13 +498,8 @@ const WorkspacePage = () => {
         try {
             setIsStartingSession(true);
             setError(null);
-            const { PeraWalletConnect } = await import('@perawallet/connect');
             const algosdk = (await import('algosdk')).default;
-
-            if (!peraWalletRef.current) {
-                peraWalletRef.current = new PeraWalletConnect({ shouldShowSignTxnToast: true });
-            }
-            const pw = peraWalletRef.current;
+            const pw = peraWallet;
             let accounts = [];
             try { accounts = await pw.reconnectSession(); } catch (_) {}
             if (!accounts.length) accounts = await pw.connect();
