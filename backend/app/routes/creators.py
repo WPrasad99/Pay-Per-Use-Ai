@@ -17,11 +17,17 @@ from typing import Optional
 
 from app import database as db
 from app.core.encryption import encrypt_api_key, get_key_hint
+from app.config import settings
 
 router = APIRouter(tags=["Creators"])
 
 
 # ── Request Models ────────────────────────────────────
+
+class ConfirmWithdrawalIn(BaseModel):
+    wallet_address: str
+    tx_id: str
+
 
 class CreateProfileIn(BaseModel):
     wallet_address: str
@@ -96,6 +102,8 @@ async def get_earnings(wallet: str):
     return {
         "summary": summary,
         "history": history,
+        "app_id": settings.app_id_int,
+        "algod_url": settings.algod_url,
     }
 
 
@@ -186,3 +194,96 @@ async def delete_api_key(wallet: str, provider: str):
     """Delete a stored API key."""
     await db.delete_creator_api_key(wallet, provider)
     return {"status": "deleted", "provider": provider}
+
+
+@router.post("/withdraw/confirm")
+async def confirm_withdrawal(data: ConfirmWithdrawalIn):
+    """
+    Verify on-chain withdraw transaction and log to DB ledger.
+    """
+    from algosdk.v2client import algod
+    import algosdk
+    import requests
+    
+    # 1. Initialize client
+    client = algod.AlgodClient(settings.algod_token, settings.algod_url)
+    
+    try:
+        # Fetch transaction info from blockchain
+        tx_info = client.pending_transaction_info(data.tx_id)
+    except Exception as e:
+        try:
+            # Let's try standard lookup
+            tx_info = client.transaction_info(data.wallet_address, data.tx_id)
+        except Exception as e2:
+            try:
+                # We can also lookup by indexer if algod client fails
+                url = f"{settings.indexer_url}/v2/transactions/{data.tx_id}"
+                resp = requests.get(url, timeout=10)
+                if resp.status_code == 200:
+                    tx_info = resp.json().get("transaction", {})
+                else:
+                    raise Exception("Indexer lookup failed")
+            except Exception as e3:
+                raise HTTPException(status_code=400, detail=f"Transaction not found or verified yet: {e2}")
+
+    # 2. Extract transaction fields
+    txn = tx_info.get("txn", {}).get("txn", {}) if "txn" in tx_info else tx_info
+    
+    # Verify app call and app ID
+    apid = txn.get("apid") or tx_info.get("application-transaction", {}).get("application-id")
+    if apid is None:
+        apid = tx_info.get("txn", {}).get("apid")
+        
+    if apid != settings.app_id_int:
+        raise HTTPException(status_code=400, detail=f"Transaction is for app {apid}, expected {settings.app_id_int}")
+
+    # Verify sender
+    sender = txn.get("snd") or tx_info.get("sender")
+    
+    # Decode sender address if base64 encoded
+    import base64
+    if sender and len(sender) == 44: # base64
+        sender_bytes = base64.b64decode(sender)
+        sender = algosdk.encoding.encode_address(sender_bytes)
+        
+    if sender != data.wallet_address:
+        raise HTTPException(status_code=400, detail=f"Transaction sender ({sender}) does not match creator wallet ({data.wallet_address})")
+
+    # 3. Extract inner transaction payment amount
+    inner_txs = tx_info.get("inner-txns") or tx_info.get("inner-transactions")
+    if not inner_txs and "txn" in tx_info:
+        inner_txs = tx_info.get("txn", {}).get("inner-txns") or tx_info.get("txn", {}).get("inner-transactions")
+        
+    withdrawn_amount = 0
+    if inner_txs:
+        for itx in inner_txs:
+            itxn = itx.get("txn", {}).get("txn", {}) if "txn" in itx else itx
+            itxn_type = itxn.get("type") or itx.get("tx-type")
+            if itxn_type == "pay":
+                pay_details = itxn.get("payment-transaction") or itxn
+                withdrawn_amount = pay_details.get("amt") or pay_details.get("amount") or 0
+                break
+                
+    if withdrawn_amount <= 0:
+        summary = await db.get_creator_earnings_summary(data.wallet_address)
+        withdrawn_amount = summary.get("available_microalgo", 0)
+
+    if withdrawn_amount <= 0:
+        raise HTTPException(status_code=400, detail="No earnings available or found to withdraw")
+
+    # 4. Log the withdrawal in the database ledger
+    await db.log_creator_earning(
+        creator_wallet=data.wallet_address,
+        agent_id="",
+        amount_microalgo=withdrawn_amount,
+        tx_type="withdrawal"
+    )
+
+    return {
+        "status": "confirmed",
+        "tx_id": data.tx_id,
+        "amount_microalgo": withdrawn_amount,
+        "amount_algo": withdrawn_amount / 1_000_000
+    }
+

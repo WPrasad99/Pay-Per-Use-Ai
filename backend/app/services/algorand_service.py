@@ -79,6 +79,36 @@ def get_escrow_balance(wallet_address: str) -> int:
         return 0
 
 
+def get_creator_earnings_from_chain(wallet_address: str) -> int:
+    """
+    Reads the creator's earnings balance from the smart contract BoxMap.
+    The box key is prefixed with 'e_' + raw 32-byte address.
+    Returns earnings in microALGO, or 0 if not found.
+    """
+    app_id = settings.app_id_int
+    if app_id <= 0:
+        return 0
+
+    try:
+        from algosdk.encoding import decode_address
+        raw_addr = decode_address(wallet_address)
+        box_key = b"e_" + raw_addr
+        box_name_b64 = base64.b64encode(box_key).decode()
+
+        resp = requests.get(
+            f"{settings.algod_url}/v2/applications/{app_id}/box?name=b64:{box_name_b64}",
+            timeout=5
+        )
+        if resp.status_code == 200:
+            box_data = resp.json()
+            val_b64 = box_data.get("value")
+            if val_b64:
+                return int.from_bytes(base64.b64decode(val_b64), 'big')
+        return 0
+    except Exception:
+        return 0
+
+
 # ────────────────────────────────────────────────────────
 # SERVICE PRICE READ (from contract BoxMap)
 # ────────────────────────────────────────────────────────

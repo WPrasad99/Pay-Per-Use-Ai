@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.database import upsert_service, get_all_services, log_transaction
-from app.services.algorand_service import get_escrow_balance
+from app.services.algorand_service import get_escrow_balance, get_creator_earnings_from_chain
 
 router = APIRouter(tags=["Marketplace"])
 
@@ -140,10 +140,9 @@ async def get_earnings(wallet_address: str):
     """
     Check creator earnings. In a full deployment, this reads from
     the smart contract's creator_earnings BoxMap.
-    Falls back to escrow balance read.
     """
-    # Read on-chain balance as proxy for earnings
-    balance = get_escrow_balance(wallet_address)
+    # Read on-chain creator earnings balance
+    balance = get_creator_earnings_from_chain(wallet_address)
     
     return {
         "wallet_address": wallet_address,
@@ -159,7 +158,7 @@ async def withdraw_earnings(data: WithdrawIn):
     Creator withdraws accumulated earnings.
     On a deployed contract, this would call withdraw_earnings() on-chain.
     """
-    balance = get_escrow_balance(data.wallet_address)
+    balance = get_creator_earnings_from_chain(data.wallet_address)
     if balance <= 0:
         raise HTTPException(status_code=400, detail="No earnings to withdraw")
 

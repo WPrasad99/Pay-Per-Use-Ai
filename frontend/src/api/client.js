@@ -246,6 +246,15 @@ export const getCreatorAnalytics = async (wallet) => {
     return handleResponse(res);
 };
 
+export const confirmWithdrawal = async (walletAddress, txId) => {
+    const res = await apiFetch(`${BASE_URL}/api/v1/creators/withdraw/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet_address: walletAddress, tx_id: txId })
+    });
+    return handleResponse(res);
+};
+
 export const saveCreatorApiKey = async (walletAddress, provider, apiKey) => {
     const res = await apiFetch(`${BASE_URL}/api/v1/creators/api-keys`, {
         method: 'POST',

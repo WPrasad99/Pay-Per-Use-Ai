@@ -1096,7 +1096,7 @@ async def get_creator_analytics(creator_wallet: str) -> dict:
                       COALESCE(SUM(tokens_input + tokens_output), 0) as total_tokens,
                       COALESCE(SUM(creator_cut_microalgo), 0) as total_earnings,
                       COUNT(DISTINCT user_wallet) as unique_users,
-                      COUNT(DISTINCT agent_id) as active_agents
+                      COUNT(DISTINCT a.agent_id) as active_agents
                FROM ai_agent_usage au
                JOIN ai_agents a ON au.agent_id = a.agent_id
                WHERE a.creator_wallet = $1""",
