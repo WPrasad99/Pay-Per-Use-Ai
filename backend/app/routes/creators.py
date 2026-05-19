@@ -82,7 +82,14 @@ async def get_earnings(wallet: str):
     """Get creator earnings summary."""
     profile = await db.get_creator_profile(wallet)
     if not profile:
-        raise HTTPException(status_code=404, detail="Creator not found")
+        return {
+            "summary": {
+                "total_earned_microalgo": 0,
+                "total_withdrawn_microalgo": 0,
+                "available_microalgo": 0
+            },
+            "history": []
+        }
 
     summary = await db.get_creator_earnings_summary(wallet)
     history = await db.get_creator_earnings_history(wallet, limit=20)
@@ -97,7 +104,22 @@ async def get_analytics(wallet: str):
     """Get full creator analytics."""
     profile = await db.get_creator_profile(wallet)
     if not profile:
-        raise HTTPException(status_code=404, detail="Creator not found")
+        return {
+            "profile": None,
+            "analytics": {
+                "total_uses": 0,
+                "total_tokens": 0,
+                "total_earnings": 0,
+                "unique_users": 0,
+                "active_agents": 0
+            },
+            "earnings": {
+                "total_earned_microalgo": 0,
+                "total_withdrawn_microalgo": 0,
+                "available_microalgo": 0
+            },
+            "agents_count": 0,
+        }
 
     analytics = await db.get_creator_analytics(wallet)
     earnings = await db.get_creator_earnings_summary(wallet)

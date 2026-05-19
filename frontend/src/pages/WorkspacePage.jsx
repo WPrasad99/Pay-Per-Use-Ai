@@ -61,6 +61,8 @@ const WorkspacePage = () => {
     const wallet = sessionStorage.getItem('wallet_address');
     const messagesEndRef = useRef(null);
     const peraWalletRef = useRef(null);
+    const isStartingSessionRef = useRef(false);
+    const isEndingSessionRef = useRef(false);
 
     const [service, setService] = useState(null);
     const [serviceLoading, setServiceLoading] = useState(true);
@@ -387,6 +389,8 @@ const WorkspacePage = () => {
     };
 
     const handleStartSession = async () => {
+        if (isStartingSessionRef.current) return;
+        isStartingSessionRef.current = true;
         try {
             setIsStartingSession(true);
             setError(null);
@@ -488,10 +492,13 @@ const WorkspacePage = () => {
             }
         } finally {
             setIsStartingSession(false);
+            isStartingSessionRef.current = false;
         }
     };
 
     const handleEndSessionAndWithdraw = async () => {
+        if (isEndingSessionRef.current) return;
+        isEndingSessionRef.current = true;
         try {
             setIsStartingSession(true);
             setError(null);
@@ -570,6 +577,7 @@ const WorkspacePage = () => {
             }
         } finally {
             setIsStartingSession(false);
+            isEndingSessionRef.current = false;
         }
     };
 
