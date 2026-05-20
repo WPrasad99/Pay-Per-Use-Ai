@@ -344,10 +344,10 @@ const Home = () => {
                   whileInView={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ duration: 0.6, type: 'spring', bounce: 0.3 }}
                   viewport={{ once: true }}
-                  className="relative w-full aspect-video border-[4px] border-black bg-white shadow-[12px_12px_0px_#000] rounded-xl overflow-hidden group hover:-translate-y-1 hover:shadow-[16px_16px_0px_#000] transition-all duration-300"
+                  className="relative w-full aspect-[4/3] border-[4px] border-black bg-white shadow-[12px_12px_0px_#000] rounded-xl overflow-hidden group hover:-translate-y-1 hover:shadow-[16px_16px_0px_#000] transition-all duration-300"
                 >
                    <iframe 
-                    className="w-full h-full"
+                    className="w-full h-full bg-black"
                     src="https://www.youtube.com/embed/wxWkeq6ea4A?si=LGrK6iG_M4s6TImq" 
                     title="PayPerAI Explainer Video"
                     frameBorder="0" 
