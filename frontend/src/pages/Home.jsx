@@ -348,7 +348,7 @@ const Home = () => {
                 >
                    <iframe 
                     className="w-full h-full grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500"
-                    src="https://www.youtube.com/embed/QmCzqssu4M0" 
+                    src="https://www.youtube.com/embed/wxWkeq6ea4A?si=LGrK6iG_M4s6TImq" 
                     title="PayPerAI Explainer Video"
                     frameBorder="0" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; compute-pressure" 
