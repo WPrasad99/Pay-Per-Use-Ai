@@ -338,16 +338,16 @@ const Home = () => {
               </div>
 
               {/* RIGHT: VIDEO */}
-              <div className="order-1 lg:order-2 flex flex-col items-center justify-center w-full h-full mt-4 lg:mt-0">
+              <div className="order-1 lg:order-2 flex flex-col items-center justify-center w-full h-full mt-8 lg:mt-0 lg:pl-6">
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9, rotate: 3, y: 20 }}
-                  whileInView={{ opacity: 1, scale: 1.05, rotate: -1.5, y: 0 }}
-                  transition={{ duration: 0.7, type: 'spring', bounce: 0.4 }}
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.6, type: 'spring', bounce: 0.3 }}
                   viewport={{ once: true }}
-                  className="relative w-full md:w-[115%] aspect-video border-[6px] border-black bg-[#ffb3b3] p-1.5 shadow-[16px_16px_0px_#000] rounded-2xl group z-10 hover:-translate-y-2 hover:shadow-[20px_20px_0px_#000] transition-all duration-300"
+                  className="relative w-full aspect-video border-[4px] border-black bg-white shadow-[12px_12px_0px_#000] rounded-xl overflow-hidden group hover:-translate-y-1 hover:shadow-[16px_16px_0px_#000] transition-all duration-300"
                 >
                    <iframe 
-                    className="w-full h-full rounded-xl grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700"
+                    className="w-full h-full"
                     src="https://www.youtube.com/embed/wxWkeq6ea4A?si=LGrK6iG_M4s6TImq" 
                     title="PayPerAI Explainer Video"
                     frameBorder="0" 
