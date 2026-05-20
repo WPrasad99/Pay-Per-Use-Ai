@@ -338,34 +338,22 @@ const Home = () => {
               </div>
 
               {/* RIGHT: VIDEO */}
-              <div className="order-1 lg:order-2 flex flex-col items-center">
+              <div className="order-1 lg:order-2 flex flex-col items-center justify-center w-full h-full mt-4 lg:mt-0">
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9, rotate: 2 }}
-                  whileInView={{ opacity: 1, scale: 1, rotate: -1 }}
-                  transition={{ duration: 0.6, type: 'spring' }}
+                  initial={{ opacity: 0, scale: 0.9, rotate: 3, y: 20 }}
+                  whileInView={{ opacity: 1, scale: 1.05, rotate: -1.5, y: 0 }}
+                  transition={{ duration: 0.7, type: 'spring', bounce: 0.4 }}
                   viewport={{ once: true }}
-                  className="relative w-full aspect-video border-[4px] border-black bg-white shadow-[12px_12px_0px_#000] overflow-hidden rounded-xl group"
+                  className="relative w-full md:w-[115%] aspect-video border-[6px] border-black bg-[#ffb3b3] p-1.5 shadow-[16px_16px_0px_#000] rounded-2xl group z-10 hover:-translate-y-2 hover:shadow-[20px_20px_0px_#000] transition-all duration-300"
                 >
                    <iframe 
-                    className="w-full h-full grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500"
+                    className="w-full h-full rounded-xl grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700"
                     src="https://www.youtube.com/embed/wxWkeq6ea4A?si=LGrK6iG_M4s6TImq" 
                     title="PayPerAI Explainer Video"
                     frameBorder="0" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; compute-pressure" 
                     allowFullScreen
                   ></iframe>
-                </motion.div>
-                
-                {/* Decorative sub-label for video */}
-                <motion.div 
-                  initial={{ y: 20, opacity: 0 }}
-                  whileInView={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  viewport={{ once: true }}
-                  className="mt-10 inline-flex items-center gap-3 border-[3px] border-black bg-[#ffb3b3] px-6 py-2 font-black uppercase tracking-widest text-sm shadow-[4px_4px_0px_#000] rotate-1 hover:rotate-0 transition-transform cursor-default"
-                >
-                  <span className="h-3 w-3 animate-pulse rounded-full bg-red-600 ring-2 ring-black" />
-                  Live Explainer
                 </motion.div>
               </div>
 
