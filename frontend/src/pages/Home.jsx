@@ -338,7 +338,7 @@ const Home = () => {
               </div>
 
               {/* RIGHT: VIDEO */}
-              <div className="order-1 lg:order-2 flex flex-col items-center justify-center w-full h-full mt-8 lg:mt-0 lg:pl-6">
+              <div className="order-1 lg:order-2 flex flex-col justify-start w-full h-full mt-8 lg:mt-0 lg:pl-6">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
                   whileInView={{ opacity: 1, scale: 1, y: 0 }}
@@ -354,6 +354,29 @@ const Home = () => {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; compute-pressure" 
                     allowFullScreen
                   ></iframe>
+                </motion.div>
+
+                {/* EXTRA CONTENT TO BALANCE COLUMN HEIGHT */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  viewport={{ once: true }}
+                  className="mt-10 w-full border-[4px] border-black bg-[#e8f4fd] p-6 shadow-[8px_8px_0px_#000] rounded-xl flex flex-col sm:flex-row items-center justify-between gap-6 hover:-translate-y-1 hover:shadow-[12px_12px_0px_#000] transition-all duration-300"
+                >
+                  <div className="flex-1 text-center sm:text-left">
+                    <h4 className="text-xl font-black uppercase tracking-tight">Ready to test it?</h4>
+                    <p className="mt-2 text-sm font-semibold text-neo-muted leading-relaxed">
+                      Watch the demo, then jump straight into the decentralized workspace. Connect Pera Wallet to begin.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={handleConnect}
+                    disabled={isConnecting}
+                    className="shrink-0 border-[3px] border-black bg-[#ffb3b3] px-6 py-3 font-black uppercase text-sm shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-[0px_0px_0px_#000] transition-all whitespace-nowrap"
+                  >
+                    Start Now →
+                  </button>
                 </motion.div>
               </div>
 
