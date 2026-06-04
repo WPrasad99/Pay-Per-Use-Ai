@@ -104,9 +104,30 @@ app.add_middleware(
 )
 
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def security_and_log_middleware(request: Request, call_next):
+    """
+    Combined middleware for:
+    1. Request logging
+    2. Security headers injection (prevents clickjacking, MIME sniffing, XSS)
+    3. CORS failsafe (manual header injection if CORSMiddleware missed it)
+    4. Server header suppression (don't leak backend version info)
+    """
     print(f"Request: {request.method} {request.url}")
     response = await call_next(request)
+
+    # ── Security Headers ─────────────────────────────────────────
+    # Prevent this page from being embedded in iframes (clickjacking)
+    response.headers["X-Frame-Options"] = "DENY"
+    # Prevent browsers from guessing content types (MIME sniffing attack)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    # Legacy XSS filter (for older browsers)
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    # Don't leak full URL in Referer header to third-party sites
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # Don't tell attackers what server/version is running
+    response.headers["Server"] = "PayPerAI"
+
+    # ── CORS Failsafe ─────────────────────────────────────────────
     # Manual CORS failsafe - only apply if standard middleware did not
     origin = request.headers.get("origin")
     if origin in origins:

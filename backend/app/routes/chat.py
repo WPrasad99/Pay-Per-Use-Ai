@@ -6,9 +6,10 @@ Protected by SIWA JWT authentication and rate limiting.
 import uuid
 import hashlib
 import json
+import re
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import Optional, List
 
 from app.database import (
@@ -24,6 +25,9 @@ COST_PER_TOKEN = 0.00002
 
 router = APIRouter(tags=["Chat"])
 
+# Valid service_id pattern: alphanumeric + underscore/hyphen only (no injection possible)
+_SERVICE_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_\-]{1,64}$')
+
 
 class ChatIn(BaseModel):
     service_id: str
@@ -31,6 +35,21 @@ class ChatIn(BaseModel):
     prompt: str
     conversation_id: Optional[str] = None
     tx_id: Optional[str] = None
+
+    @validator('prompt')
+    def validate_prompt(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError("Prompt cannot be empty")
+        if len(v) > 4000:
+            raise ValueError("Prompt must be 4000 characters or less")
+        return v
+
+    @validator('service_id')
+    def validate_service_id(cls, v):
+        if not _SERVICE_ID_PATTERN.match(v):
+            raise ValueError("Invalid service_id format")
+        return v
 
 
 class MessageOut(BaseModel):

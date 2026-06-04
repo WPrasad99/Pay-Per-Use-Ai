@@ -4,6 +4,9 @@ Handles all smart contract calls, on-chain reads, and transaction verification.
 
 Architecture role: This is the bridge between the backend (execution layer)
 and the blockchain (trust layer). All financial decisions are made by the contract.
+
+Scaling: Uses multi-node RPC rotation (free) so that if AlgoNode rate-limits us,
+requests automatically fall through to Nodely and other free public nodes.
 """
 import requests
 import base64
@@ -13,6 +16,61 @@ from app.config import settings
 
 # In-memory cache for app address
 _cached_app_address = None
+
+# ────────────────────────────────────────────────────────
+# FREE MULTI-NODE RPC ROTATION — No paid tier needed
+# ────────────────────────────────────────────────────────
+
+# Free public Algorand nodes. Requests rotate through them.
+# If one is rate-limited or down, the next one is tried automatically.
+_FREE_ALGOD_NODES = [
+    "https://testnet-api.algonode.cloud",
+    "https://testnet-api.nodely.io",
+]
+_FREE_INDEXER_NODES = [
+    "https://testnet-idx.algonode.cloud",
+    "https://testnet-idx.nodely.io",
+]
+
+
+def _algod_get_sync(path: str, timeout: int = 5) -> requests.Response | None:
+    """
+    Synchronous RPC call with free multi-node fallback.
+    Tries the configured node first, then falls back through the free node list.
+    Returns the first successful response, or None if all fail.
+    """
+    nodes_to_try = [settings.algod_url] + [
+        n for n in _FREE_ALGOD_NODES if n != settings.algod_url
+    ]
+    for node_url in nodes_to_try:
+        try:
+            resp = requests.get(f"{node_url}{path}", timeout=timeout)
+            if resp.status_code == 200:
+                return resp
+        except Exception:
+            continue
+    return None
+
+
+async def _algod_get_async(path: str, timeout: int = 5):
+    """
+    Async RPC call with free multi-node fallback using httpx.
+    Non-blocking — does NOT stall the FastAPI event loop under high concurrency.
+    Returns parsed JSON dict or None if all nodes fail.
+    """
+    import httpx
+    nodes_to_try = [settings.algod_url] + [
+        n for n in _FREE_ALGOD_NODES if n != settings.algod_url
+    ]
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        for node_url in nodes_to_try:
+            try:
+                resp = await client.get(f"{node_url}{path}")
+                if resp.status_code == 200:
+                    return resp.json()
+            except Exception:
+                continue
+    return None
 
 
 def get_app_address(app_id: int) -> str:
@@ -65,11 +123,8 @@ def get_escrow_balance(wallet_address: str) -> int:
         box_key = b"b_" + raw_addr
         box_name_b64 = base64.b64encode(box_key).decode()
 
-        resp = requests.get(
-            f"{settings.algod_url}/v2/applications/{app_id}/box?name=b64:{box_name_b64}",
-            timeout=5
-        )
-        if resp.status_code == 200:
+        resp = _algod_get_sync(f"/v2/applications/{app_id}/box?name=b64:{box_name_b64}")
+        if resp is not None:
             box_data = resp.json()
             val_b64 = box_data.get("value")
             if val_b64:
@@ -95,11 +150,8 @@ def get_creator_earnings_from_chain(wallet_address: str) -> int:
         box_key = b"e_" + raw_addr
         box_name_b64 = base64.b64encode(box_key).decode()
 
-        resp = requests.get(
-            f"{settings.algod_url}/v2/applications/{app_id}/box?name=b64:{box_name_b64}",
-            timeout=5
-        )
-        if resp.status_code == 200:
+        resp = _algod_get_sync(f"/v2/applications/{app_id}/box?name=b64:{box_name_b64}")
+        if resp is not None:
             box_data = resp.json()
             val_b64 = box_data.get("value")
             if val_b64:
@@ -430,8 +482,11 @@ async def transfer_asset(receiver_wallet: str, asset_id: int):
 
 async def precheck_session_balance(user_wallet: str, min_required_microalgo: int = 50_000) -> tuple[bool, str]:
     """
-    Fast, read-only check of the contract's BoxMap to ensure the user has enough
+    Fast, read-only async check of the contract's BoxMap to ensure the user has enough
     balance to start an AI generation stream.
+    
+    Scaling: Now uses async httpx (non-blocking) + multi-node RPC fallback so that
+    10,000 concurrent users checking balances don't stall the event loop.
     """
     app_id = settings.app_id_int
     if app_id <= 0:
@@ -440,31 +495,26 @@ async def precheck_session_balance(user_wallet: str, min_required_microalgo: int
     try:
         from algosdk.encoding import decode_address
         raw_addr = decode_address(user_wallet)
-        # Check overall balance
+        
+        # ── Check overall escrow balance (async, non-blocking) ──
         box_key_b = b"b_" + raw_addr
         box_name_b64_b = base64.b64encode(box_key_b).decode()
-        resp_b = requests.get(
-            f"{settings.algod_url}/v2/applications/{app_id}/box?name=b64:{box_name_b64_b}",
-            timeout=3
-        )
-        if resp_b.status_code != 200:
+        data_b = await _algod_get_async(f"/v2/applications/{app_id}/box?name=b64:{box_name_b64_b}")
+        if data_b is None:
             return False, "INSUFFICIENT_BALANCE"
             
-        balance = int.from_bytes(base64.b64decode(resp_b.json().get("value")), 'big')
+        balance = int.from_bytes(base64.b64decode(data_b.get("value", "AA==")), 'big')
         if balance < min_required_microalgo:
             return False, "INSUFFICIENT_BALANCE"
             
-        # Check session expiry
+        # ── Check session expiry (async, non-blocking) ──
         box_key_se = b"se_" + raw_addr
         box_name_b64_se = base64.b64encode(box_key_se).decode()
-        resp_se = requests.get(
-            f"{settings.algod_url}/v2/applications/{app_id}/box?name=b64:{box_name_b64_se}",
-            timeout=3
-        )
-        if resp_se.status_code != 200:
+        data_se = await _algod_get_async(f"/v2/applications/{app_id}/box?name=b64:{box_name_b64_se}")
+        if data_se is None:
             return False, "NO_SESSION"
             
-        expiry = int.from_bytes(base64.b64decode(resp_se.json().get("value")), 'big')
+        expiry = int.from_bytes(base64.b64decode(data_se.get("value", "AA==")), 'big')
         import time
         if expiry < int(time.time()):
             return False, "SESSION_EXPIRED"

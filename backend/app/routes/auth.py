@@ -2,7 +2,7 @@
 SIWA auth routes — uses signData (message signing, no transaction).
 Backend tries multiple ed25519 prefixes to handle Pera Wallet v1.5.x.
 """
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Response, Request, status
 from pydantic import BaseModel
 from datetime import datetime, timezone
 
@@ -10,6 +10,7 @@ from app.core.security import (
     generate_nonce, get_pending_nonce, get_pending_nonce_expiry,
     consume_nonce, create_access_token,
 )
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -51,7 +52,8 @@ def verify_message_signature(wallet_address: str, message: str, sig_b64: str) ->
 
 
 @router.get("/nonce")
-async def get_nonce(wallet: str):
+@limiter.limit("10/minute")
+async def get_nonce(request: Request, wallet: str):
     if not wallet or len(wallet) != 58:
         raise HTTPException(status_code=400, detail="Invalid wallet address")
     nonce = await generate_nonce(wallet)
@@ -59,7 +61,8 @@ async def get_nonce(wallet: str):
 
 
 @router.post("/verify")
-async def verify_signature(data: VerifyIn, response: Response):
+@limiter.limit("5/minute")
+async def verify_signature(request: Request, data: VerifyIn, response: Response):
     # 1. Check nonce exists and is fresh
     nonce = await get_pending_nonce(data.wallet_address)
     if nonce is None:

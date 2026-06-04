@@ -55,10 +55,13 @@ async def init_pool(database_url: str) -> asyncpg.Pool:
         host=parsed.hostname,
         port=parsed.port or 5432,
         ssl=ssl_context,
-        min_size=2,
-        max_size=10,
+        # ── Scaling: increased pool to handle 1000-10000 concurrent users ──
+        min_size=5,
+        max_size=50,
         command_timeout=30,
         statement_cache_size=0,
+        # Recycle idle connections after 5 minutes to free resources
+        max_inactive_connection_lifetime=300,
     )
     return _pool
 

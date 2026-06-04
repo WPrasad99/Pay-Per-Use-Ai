@@ -2,7 +2,7 @@
 API endpoints for wallet balance management.
 Balance is NOW on-chain (smart contract escrow) — NOT in database.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.database import (
@@ -11,6 +11,7 @@ from app.database import (
     log_transaction, get_transaction_ledger
 )
 from app.services.algorand_service import verify_payment_transaction
+from app.core.limiter import limiter
 
 router = APIRouter(tags=["Wallet"])
 
@@ -27,7 +28,8 @@ class WalletBalanceOut(BaseModel):
     balance_algo: float
 
 @router.get("/wallet/{wallet_address}/balance", response_model=WalletBalanceOut)
-async def get_balance(wallet_address: str):
+@limiter.limit("20/minute")
+async def get_balance(request: Request, wallet_address: str):
     """
     Get the on-chain escrow balance for a wallet.
     Reads directly from the smart contract BoxMap — NOT from database.
@@ -50,7 +52,8 @@ async def get_ledger(wallet_address: str):
     return {"wallet_address": wallet_address, "ledger": entries}
 
 @router.post("/wallet/deposit")
-async def deposit_funds(data: DepositIn):
+@limiter.limit("5/minute")
+async def deposit_funds(request: Request, data: DepositIn):
     """
     Verify an on-chain deposit transaction and log it.
     
