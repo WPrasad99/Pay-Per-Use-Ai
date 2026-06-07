@@ -32,24 +32,25 @@ async def refund_loop():
     """
     from app.services.algorand_service import auto_refund_session
     from app.database import get_pool
-    import time
+    import logging
     
-    print("Background Task: Refund Loop started.")
+    logging.info("Background Task: Refund Loop started.")
+    semaphore = asyncio.Semaphore(5)
+    
+    async def safe_refund(wallet):
+        async with semaphore:
+            return await auto_refund_session(wallet)
+            
     while True:
         try:
             pool = await get_pool()
             async with pool.acquire() as conn:
-                # We check all users who have registered to see if they have expired sessions on-chain
-                # In a large scale app, we would only check 'active' users from a sessions table.
+                # Fetch users who have recently transacted or all users to check
                 users = await conn.fetch("SELECT wallet_address FROM users")
-                
-                for row in users:
-                    wallet = row['wallet_address']
-                    # This function internally checks for expiration before sending tx
-                    await auto_refund_session(wallet)
+                await asyncio.gather(*[safe_refund(row['wallet_address']) for row in users])
                     
         except Exception as e:
-            print(f"Refund loop error: {e}")
+            logging.error(f"Refund loop error: {e}")
             
         await asyncio.sleep(300) # Check every 5 minutes
 
@@ -126,20 +127,9 @@ async def security_and_log_middleware(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     # Don't tell attackers what server/version is running
     response.headers["Server"] = "PayPerAI"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://testnet-api.algonode.cloud"
 
-    # ── CORS Failsafe ─────────────────────────────────────────────
-    # Manual CORS failsafe - only apply if standard middleware did not
-    origin = request.headers.get("origin")
-    if origin in origins:
-        if "Access-Control-Allow-Origin" not in response.headers:
-            response.headers["Access-Control-Allow-Origin"] = origin
-        if "Access-Control-Allow-Credentials" not in response.headers:
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-        if "Access-Control-Allow-Methods" not in response.headers:
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        if "Access-Control-Allow-Headers" not in response.headers:
-            req_headers = request.headers.get("Access-Control-Request-Headers", "Content-Type, Authorization, X-Requested-With, Accept")
-            response.headers["Access-Control-Allow-Headers"] = req_headers
     return response
 
 # ── Rate Limiter ─────────────────────────────────────────────

@@ -414,7 +414,7 @@ async def mint_image_nft(buyer_wallet: str, image_url: str, prompt: str) -> int:
         try:
             import os
             os.makedirs("static/nfts", exist_ok=True)
-            image_data = requests.get(image_url).content
+            image_data = requests.get(image_url, timeout=15).content
             file_path = f"static/nfts/{image_uuid}.png"
             with open(file_path, "wb") as f:
                 f.write(image_data)

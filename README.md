@@ -85,7 +85,7 @@ PayPerAI introduces a groundbreaking shift in how we access, secure, and monetiz
 
 * **👥 For Consumers (Stop Monthly Waste):** Avoid flat-rate monthly AI subscriptions that charge you regardless of usage. Pay only for the exact tokens you consume, with average prompt costs under $0.001!
 * **💻 For Developers (DeFi API Sharing):** If you have an API key that you don’t use often, you can securely plug it into our marketplace, host custom agents, and generate instant, cash-flowing passive income when others use your idle quotas.
-* **🔒 For Creators (Secure BYOK):** Retain absolute ownership of your credentials. Using our AES-256-GCM secure Bring Your Own Key (BYOK) manager, your keys are encrypted on-chain and only decrypted inside volatile RAM during active executions—guaranteeing complete sovereignty.
+* **🔒 For Creators (Secure BYOK):** Retain absolute ownership of your credentials. Using our AES-256-GCM secure Bring Your Own Key (BYOK) manager, your keys are encrypted and securely stored off-chain in our PostgreSQL vault, and only decrypted inside volatile RAM during active executions—guaranteeing complete sovereignty without exposing ciphertext on the public ledger.
 
 ---
 

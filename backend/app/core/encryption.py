@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
 def _get_encryption_key() -> bytes:
-    """Load the 32-byte encryption key from environment, with dynamic reloading and robust SHA-256 fallback."""
+    """Load the 32-byte encryption key from environment."""
     from app.config import settings
     secret = settings.api_key_encryption_secret
     if not secret:
@@ -28,21 +28,17 @@ def _get_encryption_key() -> bytes:
             secret = ""
 
     if not secret:
-        # Fallback to deriving a stable, secure 32-byte key from APP_SECRET_KEY so it NEVER crashes
-        import hashlib
-        fallback_source = settings.app_secret_key or "payperai-default-encryption-secret-fallback-key-2026"
-        return hashlib.sha256(fallback_source.encode()).digest()
-
+        raise RuntimeError(
+            "FATAL: API_KEY_ENCRYPTION_SECRET is not configured. "
+            "Generate a 32-byte hex key with: python -c \"import os; print(os.urandom(32).hex())\""
+        )
     try:
-        # Support both hex-encoded and raw 32-byte keys
         key_bytes = bytes.fromhex(secret)
         if len(key_bytes) != 32:
-            import hashlib
-            key_bytes = hashlib.sha256(secret.encode()).digest()
+            raise ValueError("Key must be exactly 32 bytes (64 hex characters)")
         return key_bytes
-    except Exception:
-        import hashlib
-        return hashlib.sha256(secret.encode()).digest()
+    except (ValueError, Exception) as e:
+        raise RuntimeError(f"Invalid API_KEY_ENCRYPTION_SECRET: {e}")
 
 
 def encrypt_api_key(plaintext_key: str) -> str:

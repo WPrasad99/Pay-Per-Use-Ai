@@ -269,7 +269,7 @@ CREATE TABLE IF NOT EXISTS creator_api_keys (
 -- AI Agent Usage Logs
 CREATE TABLE IF NOT EXISTS ai_agent_usage (
     id SERIAL PRIMARY KEY,
-    agent_id TEXT NOT NULL,
+    agent_id TEXT NOT NULL REFERENCES ai_agents(agent_id) ON DELETE CASCADE,
     user_wallet TEXT NOT NULL,
     prompt_hash TEXT,
     response_hash TEXT,
@@ -299,7 +299,21 @@ CREATE TABLE IF NOT EXISTS creator_earnings_ledger (
     agent_id TEXT,
     amount_microalgo BIGINT NOT NULL,
     tx_type TEXT NOT NULL,
+    on_chain_tx_id TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Pending Settlements (Two-Phase Locking Pattern queue)
+CREATE TABLE IF NOT EXISTS pending_settlements (
+    id SERIAL PRIMARY KEY,
+    user_wallet TEXT NOT NULL,
+    service_id TEXT NOT NULL,
+    amount_microalgo BIGINT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    error_reason TEXT,
+    retry_count INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 """
 
@@ -348,6 +362,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_usage_created ON ai_agent_usage(created_at)
 CREATE INDEX IF NOT EXISTS idx_reviews_agent ON marketplace_reviews(agent_id);
 CREATE INDEX IF NOT EXISTS idx_earnings_creator ON creator_earnings_ledger(creator_wallet);
 CREATE INDEX IF NOT EXISTS idx_creator_apikeys_wallet ON creator_api_keys(creator_wallet);
+CREATE INDEX IF NOT EXISTS idx_pending_settlements_status ON pending_settlements(status);
 """
 
 
@@ -521,7 +536,7 @@ async def get_conversation_messages(conversation_id: str) -> list[dict]:
         return [dict(r) for r in rows]
 
 
-async def get_wallet_conversations(wallet_address: str, service_id: str = None) -> list[dict]:
+async def get_wallet_conversations(wallet_address: str, service_id: str = None, limit: int = 20, offset: int = 0) -> list[dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
         query = """
@@ -537,13 +552,13 @@ async def get_wallet_conversations(wallet_address: str, service_id: str = None) 
         """
         if service_id:
             rows = await conn.fetch(
-                query + " WHERE c.wallet_address = $1 AND c.service_id = $2 ORDER BY c.created_at DESC LIMIT 20",
-                wallet_address, service_id
+                query + " WHERE c.wallet_address = $1 AND c.service_id = $2 ORDER BY c.created_at DESC LIMIT $3 OFFSET $4",
+                wallet_address, service_id, limit, offset
             )
         else:
             rows = await conn.fetch(
-                query + " WHERE c.wallet_address = $1 ORDER BY c.created_at DESC LIMIT 20",
-                wallet_address
+                query + " WHERE c.wallet_address = $1 ORDER BY c.created_at DESC LIMIT $2 OFFSET $3",
+                wallet_address, limit, offset
             )
         return [dict(r) for r in rows]
 
@@ -782,6 +797,7 @@ async def get_user(wallet_address: str) -> Optional[dict]:
 async def save_nonce(wallet_address: str, nonce: str, expires_at: datetime):
     pool = await get_pool()
     async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM siwa_nonces WHERE expires_at < $1", datetime.now(timezone.utc))
         await conn.execute(
             """INSERT INTO siwa_nonces(wallet_address, nonce, expires_at)
                VALUES ($1, $2, $3)
@@ -1156,14 +1172,15 @@ async def get_agent_reviews(agent_id: str, limit: int = 20) -> list[dict]:
 # ════════════════════════════════════════════════════════
 
 async def log_creator_earning(creator_wallet: str, agent_id: str,
-                               amount_microalgo: int, tx_type: str = 'earning'):
+                               amount_microalgo: int, tx_type: str = 'earning',
+                               on_chain_tx_id: str = None):
     now = datetime.now(timezone.utc)
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
-            """INSERT INTO creator_earnings_ledger (creator_wallet, agent_id, amount_microalgo, tx_type, created_at)
-               VALUES ($1, $2, $3, $4, $5)""",
-            creator_wallet, agent_id, amount_microalgo, tx_type, now
+            """INSERT INTO creator_earnings_ledger (creator_wallet, agent_id, amount_microalgo, tx_type, on_chain_tx_id, created_at)
+               VALUES ($1, $2, $3, $4, $5, $6)""",
+            creator_wallet, agent_id, amount_microalgo, tx_type, on_chain_tx_id, now
         )
 
 
@@ -1199,6 +1216,33 @@ async def get_creator_earnings_summary(creator_wallet: str) -> dict:
             "available_microalgo": total_earned - total_withdrawn,
         }
 
+
+# ────────────────────────────────────────────────────────
+# PENDING SETTLEMENTS
+# ────────────────────────────────────────────────────────
+
+async def create_pending_settlement(user_wallet: str, service_id: str, amount_microalgo: int) -> int:
+    now = datetime.now(timezone.utc)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """INSERT INTO pending_settlements (user_wallet, service_id, amount_microalgo, status, created_at, updated_at)
+               VALUES ($1, $2, $3, 'pending', $4, $4) RETURNING id""",
+            user_wallet, service_id, amount_microalgo, now
+        )
+        return row['id']
+
+async def update_pending_settlement(settlement_id: int, status: str, error_reason: str = None):
+    now = datetime.now(timezone.utc)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """UPDATE pending_settlements
+               SET status = $1, error_reason = $2, updated_at = $3,
+                   retry_count = retry_count + (CASE WHEN $1 = 'failed' THEN 1 ELSE 0 END)
+               WHERE id = $4""",
+            status, error_reason, now, settlement_id
+        )
 
 # ────────────────────────────────────────────────────────
 # INIT (called from main.py lifespan)

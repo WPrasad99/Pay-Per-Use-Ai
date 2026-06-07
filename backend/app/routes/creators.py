@@ -255,7 +255,8 @@ async def confirm_withdrawal(data: ConfirmWithdrawalIn):
                 creator_wallet=data.wallet_address,
                 agent_id="",
                 amount_microalgo=withdrawn_amount,
-                tx_type="withdrawal"
+                tx_type="withdrawal",
+                on_chain_tx_id=data.tx_id
             )
             return {
                 "status": "confirmed",
@@ -383,7 +384,8 @@ async def confirm_withdrawal(data: ConfirmWithdrawalIn):
         creator_wallet=data.wallet_address,
         agent_id="",
         amount_microalgo=withdrawn_amount,
-        tx_type="withdrawal"
+        tx_type="withdrawal",
+        on_chain_tx_id=data.tx_id
     )
     return {
         "status": "confirmed",

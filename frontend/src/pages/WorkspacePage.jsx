@@ -375,7 +375,13 @@ const WorkspacePage = () => {
 
     // Helper to convert raw blockchain/wallet errors into user-friendly messages
     const friendlyError = (e) => {
-        const msg = (e?.message || '').toLowerCase();
+        let msg = '';
+        if (typeof e === 'string') msg = e.toLowerCase();
+        else if (e?.message) msg = e.message.toLowerCase();
+        else {
+            try { msg = JSON.stringify(e).toLowerCase(); } catch (_) { msg = 'unknown error'; }
+        }
+        
         if (msg.includes('cancel') || msg.includes('rejected') || msg.includes('declined'))
             return 'Transaction cancelled. You can try again anytime.';
         if (msg.includes('wallet mismatch'))
@@ -485,7 +491,27 @@ const WorkspacePage = () => {
 
         } catch (e) {
             console.error('Session start failed:', e);
-            if (e.message?.includes('timeout') || e.message?.includes('Confirmation took too long')) {
+            
+            // Failsafe: even if Pera throws an error after user allows request,
+            // let's do a quick check if the session actually went active.
+            try {
+                const isActive = await checkSessionStatus();
+                if (isActive) {
+                    setIsSessionModalOpen(false);
+                    setPayingStatus('');
+                    setError(null);
+                    return;
+                }
+            } catch (innerErr) {}
+
+            let msg = '';
+            if (typeof e === 'string') msg = e.toLowerCase();
+            else if (e?.message) msg = e.message.toLowerCase();
+            else {
+                try { msg = JSON.stringify(e).toLowerCase(); } catch (_) { msg = ''; }
+            }
+
+            if (msg.includes('timeout') || msg.includes('confirmation took too long')) {
                 setSessionStatus('active');
                 setSessionBalance(maxSpend);
                 setSessionExpiry(expiryTime);

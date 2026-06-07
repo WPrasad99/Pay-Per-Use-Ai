@@ -15,13 +15,15 @@ Endpoints:
 """
 import uuid
 import json
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 
 from app import database as db
 from app.services.gateway import execute_agent_chat
+from app.core.security import get_current_user
+from app.core.limiter import limiter
 
 router = APIRouter(tags=["Agents"])
 
@@ -250,11 +252,14 @@ async def deactivate_agent(agent_id: str, wallet_address: str = Query(...)):
 # ── Agent Chat (SSE Stream) ──────────────────────────
 
 @router.post("/{agent_id}/chat")
-async def chat_with_agent(agent_id: str, data: AgentChatIn):
+@limiter.limit("10/minute")
+async def chat_with_agent(request: Request, agent_id: str, data: AgentChatIn, auth_wallet: str = Depends(get_current_user)):
     """
     Chat with a marketplace AI agent via SSE streaming.
     Uses the creator's encrypted API key through the execution gateway.
     """
+    if data.wallet_address != auth_wallet:
+        raise HTTPException(status_code=403, detail="Unauthorized wallet")
     agent = await db.get_ai_agent(agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")

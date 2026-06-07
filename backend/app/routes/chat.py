@@ -88,6 +88,9 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
     """
     Multi-turn conversational AI endpoint with Server-Sent Events (SSE).
     """
+    if data.wallet_address != wallet_address:
+        raise HTTPException(status_code=403, detail="Wallet mismatch: request wallet does not match authenticated session")
+        
     from app.services.ai_service import SERVICE_CATALOG, stream_ai_response_with_context
     if data.service_id not in SERVICE_CATALOG:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -125,9 +128,14 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
 
     async def generate():
         from app.services.algorand_service import precheck_session_balance, settle_service_cost
+        from app.database import create_pending_settlement, update_pending_settlement
+        
+        service_config = SERVICE_CATALOG[data.service_id]
+        estimated_cost = int((500 * service_config["price_input_microalgo"] / 1_000_000) + (500 * service_config["price_output_microalgo"] / 1_000_000))
+        estimated_cost = max(estimated_cost, 50_000)
         
         # Precheck balance before starting heavy AI generation
-        can_start, reason = await precheck_session_balance(data.wallet_address, 50_000)
+        can_start, reason = await precheck_session_balance(data.wallet_address, estimated_cost)
         if not can_start:
             yield f"data: {json.dumps({'error': reason})}\n\n"
             return
@@ -153,7 +161,6 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
             tokens_used = input_tokens + output_tokens
             
             # Calculate dynamic cost based on exact tokens used
-            service_config = SERVICE_CATALOG[data.service_id]
             cost_microalgo = int(
                 (input_tokens * service_config["price_input_microalgo"] / 1_000_000) + 
                 (output_tokens * service_config["price_output_microalgo"] / 1_000_000)
@@ -163,15 +170,19 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
             if cost_microalgo == 0:
                 cost_microalgo = 100
                 
-            # ── On-chain Dynamic Settlement via Smart Contract ──
+            # Phase 1: Create pending settlement
+            settlement_id = await create_pending_settlement(data.wallet_address, data.service_id, cost_microalgo)
+                
+            # Phase 2: On-chain Dynamic Settlement via Smart Contract
             success, reason = await settle_service_cost(data.wallet_address, data.service_id, cost_microalgo)
             
             if not success:
-                error_detail = reason
-                if reason in ("SESSION_EXPIRED", "NO_SESSION", "SESSION_LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE"):
-                    error_detail = reason
-                yield f"data: {json.dumps({'error': error_detail})}\n\n"
-                return
+                # Log failed settlement for background retry worker
+                await update_pending_settlement(settlement_id, 'failed', reason)
+                import logging
+                logging.error(f"Settlement failed for {data.wallet_address}, queued for retry. Reason: {reason}")
+            else:
+                await update_pending_settlement(settlement_id, 'completed')
             
             cost_algo = cost_microalgo / 1_000_000
             cost_usd = round(cost_algo * 0.20, 6) # Approximate USD visual display

@@ -14,7 +14,7 @@ The backend does NOT decide payments — it only reacts to verified on-chain eve
 """
 import asyncio
 import base64
-import requests
+import httpx
 from datetime import datetime, timezone
 from app.config import settings
 
@@ -37,9 +37,10 @@ class EventListener:
 
         # Get current round as starting point
         try:
-            resp = requests.get(f"{settings.algod_url}/v2/status", timeout=5)
-            if resp.status_code == 200:
-                self.last_round = resp.json().get("last-round", 0)
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(f"{settings.algod_url}/v2/status", timeout=5.0)
+                if resp.status_code == 200:
+                    self.last_round = resp.json().get("last-round", 0)
         except Exception:
             pass
 
@@ -69,11 +70,12 @@ class EventListener:
                 f"&tx-type=appl"
                 f"&limit=25"
             )
-            resp = requests.get(url, timeout=10)
-            if resp.status_code != 200:
-                return
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(url, timeout=10.0)
+                if resp.status_code != 200:
+                    return
 
-            data = resp.json()
+                data = resp.json()
             transactions = data.get("transactions", [])
 
             for tx in transactions:
@@ -83,7 +85,7 @@ class EventListener:
 
                 await self._process_transaction(tx)
 
-        except requests.Timeout:
+        except httpx.TimeoutException:
             pass
         except Exception as e:
             print(f"[WARN] Event poll error: {e}")
