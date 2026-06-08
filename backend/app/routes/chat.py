@@ -131,7 +131,16 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
         from app.database import create_pending_settlement, update_pending_settlement
         
         service_config = SERVICE_CATALOG[data.service_id]
-        estimated_cost = int((500 * service_config["price_input_microalgo"] / 1_000_000) + (500 * service_config["price_output_microalgo"] / 1_000_000))
+        
+        from app.services.price_oracle import get_algo_usd_price
+        algo_price = await get_algo_usd_price()
+        
+        if "price_input_usd" in service_config:
+            est_usd = (500 * service_config["price_input_usd"] / 1_000_000) + (500 * service_config["price_output_usd"] / 1_000_000)
+            estimated_cost = int((est_usd / algo_price) * 1_000_000)
+        else:
+            estimated_cost = int((500 * service_config["price_input_microalgo"] / 1_000_000) + (500 * service_config["price_output_microalgo"] / 1_000_000))
+            
         estimated_cost = max(estimated_cost, 50_000)
         
         # Precheck balance before starting heavy AI generation
@@ -161,10 +170,14 @@ async def chat(request: Request, data: ChatIn, wallet_address: str = Depends(get
             tokens_used = input_tokens + output_tokens
             
             # Calculate dynamic cost based on exact tokens used
-            cost_microalgo = int(
-                (input_tokens * service_config["price_input_microalgo"] / 1_000_000) + 
-                (output_tokens * service_config["price_output_microalgo"] / 1_000_000)
-            )
+            if "price_input_usd" in service_config:
+                total_usd_cost = (input_tokens * service_config["price_input_usd"] / 1_000_000) + (output_tokens * service_config["price_output_usd"] / 1_000_000)
+                cost_microalgo = int((total_usd_cost / algo_price) * 1_000_000)
+            else:
+                cost_microalgo = int(
+                    (input_tokens * service_config["price_input_microalgo"] / 1_000_000) + 
+                    (output_tokens * service_config["price_output_microalgo"] / 1_000_000)
+                )
             
             # Prevent 0 cost transactions from failing contract validation
             if cost_microalgo == 0:
