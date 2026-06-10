@@ -1,34 +1,26 @@
 const TICKER_ITEMS = [
-  "⚡ Real-Time AI Streaming",
-  "🔗 Smart Sessions Active",
-  "💸 Pay-Per-Use Billing",
-  "🚀 Multi-Model Intelligence",
-  "💎 NFT Minting Enabled",
-  "🧠 GPT-4o + Gemini + Llama",
+  { value: "Pay Only For What You Use", label: "" },
+  { value: "90% Revenue Goes To Creators", label: "" },
+  { value: "Custom AI Agent Marketplace", label: "" },
+  { value: "Blockchain-Powered Payments", label: "" },
+  { value: "DID-Based Creator Identity", label: "" },
+  { value: "No Monthly Subscriptions", label: "" },
 ];
 
-export default function LiveTicker({ variant = "dark" }) {
-  const isDark = variant === "dark";
-
+export default function LiveTicker() {
   return (
-    <section
-      className={`w-full overflow-hidden border-y-2 border-black py-2 ${
-        isDark ? "bg-black" : "bg-yellow-200"
-      }`}
-    >
-      <div className="ticker-track flex whitespace-nowrap">
-
+    <section className="w-full overflow-hidden border-y border-foreground/[0.06] py-3 bg-background">
+      <div className="ticker-track flex items-center whitespace-nowrap">
         {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, index) => (
           <div
             key={index}
-            className={`mx-8 text-lg md:text-xl font-black uppercase ${
-              isDark ? "text-white" : "text-black"
-            }`}
+            className="mx-10 flex items-baseline gap-2"
           >
-            {item}
+            <span className="text-2xl md:text-3xl font-bold tracking-tight text-foreground uppercase">
+              {item.value}
+            </span>
           </div>
         ))}
-
       </div>
     </section>
   );

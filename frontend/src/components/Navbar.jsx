@@ -41,8 +41,15 @@ const Navbar = () => {
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [onboardingData, setOnboardingData] = useState({ name: '', dob: '', email: '' });
     const [isRegistering, setIsRegistering] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
     const location  = useLocation();
     const navigate  = useNavigate();
+
+    useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     useEffect(() => {
         const storedAddr = getPersistedWallet();
@@ -186,21 +193,21 @@ const Navbar = () => {
 
     const ConnectBtn = ({ mobile = false }) =>
         accountAddress ? (
-            <div className={`flex items-center gap-3${mobile ? ' flex-col w-full mt-4' : ''}`}>
+            <div className={`flex items-center gap-2${mobile ? ' flex-col w-full mt-4' : ''}`}>
                 <Link
                     to="/dashboard"
-                    className={`btn-primary text-sm !px-6 !py-2.5${mobile ? ' w-full text-center' : ''}`}
+                    className={`btn-primary text-sm !px-5 !py-2${mobile ? ' w-full text-center' : ''}`}
                     onClick={mobile ? () => setIsOpen(false) : undefined}
                 >
                     Open Workspace
                 </Link>
                 <button
                     onClick={(ev) => { handleDisconnectWalletClick(ev); if (mobile) setIsOpen(false); }}
-                    className={`btn-secondary text-sm !px-4 !py-2.5${mobile ? ' w-full text-center' : ''}`}
+                    className={`rounded-full border border-foreground/15 p-2 text-foreground/60 hover:text-foreground hover:border-foreground/30 transition-all duration-300${mobile ? ' w-full flex justify-center' : ''}`}
                     title="Disconnect Wallet"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                 </button>
             </div>
@@ -208,11 +215,11 @@ const Navbar = () => {
             <button
                 onClick={(ev) => { handleConnectWalletClick(ev); if (mobile) setIsOpen(false); }}
                 disabled={isConnecting}
-                className={`btn-primary text-sm !px-6 !py-2.5 disabled:opacity-60 flex items-center justify-center gap-2${mobile ? ' w-full mt-4' : ' min-w-[160px]'}`}
+                className={`btn-primary text-sm !px-5 !py-2 disabled:opacity-60 flex items-center justify-center gap-2${mobile ? ' w-full mt-4' : ' min-w-[150px]'}`}
             >
                 {isConnecting ? (
                     <>
-                        <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                         </svg>
@@ -223,60 +230,63 @@ const Navbar = () => {
         );
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 px-4 py-4">
-            <div className="max-w-7xl mx-auto floating-nav rounded-2xl px-6 py-3 flex items-center justify-between">
-                <Link to="/" className="flex items-center gap-2 group">
-                    <span className="text-xl font-black tracking-[-0.04em] text-neo-ink transition-colors group-hover:text-neo-blue">
+        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'pt-4 px-4' : 'pt-6 px-6 md:px-8'}`}>
+            <div className={`mx-auto flex items-center justify-between transition-all duration-500 ${scrolled ? 'w-full max-w-[1000px] rounded-lg px-6 py-3 shadow-xl border border-foreground/10 bg-background/90 backdrop-blur-xl' : 'w-full max-w-7xl rounded-lg px-2 py-2 bg-transparent'}`}>
+                {/* Logo */}
+                <Link to="/" className="flex items-center gap-1.5 group shrink-0">
+                    <span className="text-base font-semibold tracking-[-0.02em] text-foreground transition-colors">
                         PayPerAI
                     </span>
+                    <span className="text-[10px] font-medium text-muted tracking-wide">TM</span>
                 </Link>
 
-                {/* Desktop links */}
-                <div className="hidden md:flex items-center gap-6">
+                {/* Desktop links — centered */}
+                <div className="hidden md:flex items-center gap-1">
                     {navLinks.map(link =>
                         link.isRoute ? (
                             <Link key={link.label} to={link.to}
                                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                className="text-sm font-black text-neo-muted transition-colors hover:text-neo-ink">
+                                className="px-3 py-1.5 text-sm font-normal text-foreground/60 transition-colors duration-200 hover:text-foreground rounded-full hover:bg-foreground/[0.04]">
                                 {link.label}
                             </Link>
                         ) : (
                             <a key={link.label} href={link.to}
                                 onClick={(e) => scrollToSection(e, link.to.replace('/', ''))}
-                                className="text-sm font-black text-neo-muted transition-colors hover:text-neo-ink">
+                                className="px-3 py-1.5 text-sm font-normal text-foreground/60 transition-colors duration-200 hover:text-foreground rounded-full hover:bg-foreground/[0.04]">
                                 {link.label}
                             </a>
                         )
                     )}
                 </div>
 
-                <div className="hidden md:flex items-center gap-3">
+                {/* Desktop CTA */}
+                <div className="hidden md:flex items-center gap-2 shrink-0">
                     <ConnectBtn />
                 </div>
 
                 {/* Mobile toggle */}
-                <button onClick={() => setIsOpen(o => !o)} className="md:hidden text-neo-ink p-2">
+                <button onClick={() => setIsOpen(o => !o)} className="md:hidden text-foreground p-1.5 rounded-full hover:bg-foreground/[0.04] transition-colors">
                     {isOpen
-                        ? <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        ? <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                        : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" /></svg>
                     }
                 </button>
             </div>
 
             {/* Mobile menu */}
             {isOpen && (
-                <div className="md:hidden mt-2 mx-auto max-w-7xl floating-nav rounded-2xl p-6 space-y-4 animate-fade-in">
+                <div className="md:hidden mt-2 mx-auto max-w-5xl floating-nav rounded-2xl p-5 space-y-1 animate-fade-in">
                     {navLinks.map(link =>
                         link.isRoute ? (
                             <Link key={link.label} to={link.to}
-                                className="block font-black text-neo-muted transition-colors hover:text-neo-ink"
+                                className="block px-3 py-2.5 font-normal text-foreground/60 transition-colors hover:text-foreground rounded-xl hover:bg-foreground/[0.04]"
                                 onClick={() => { setIsOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                                 {link.label}
                             </Link>
                         ) : (
                             <a key={link.label} href={link.to}
                                 onClick={(e) => scrollToSection(e, link.to.replace('/', ''))}
-                                className="block font-black text-neo-muted transition-colors hover:text-neo-ink">
+                                className="block px-3 py-2.5 font-normal text-foreground/60 transition-colors hover:text-foreground rounded-xl hover:bg-foreground/[0.04]">
                                 {link.label}
                             </a>
                         )
@@ -288,49 +298,49 @@ const Navbar = () => {
             {/* Onboarding Modal */}
             {showOnboarding && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#fff7df]/80 backdrop-blur-sm" />
-                    <div className="animate-fadeUp relative w-full max-w-md rounded-2xl border-4 border-[#111] bg-white p-6 shadow-[8px_8px_0px_#111]">
-                        <h2 className="mb-2 text-2xl font-black">Complete Profile</h2>
-                        <p className="mb-6 text-sm font-bold opacity-60">Please provide your details to continue.</p>
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
+                    <div className="animate-fade-in relative w-full max-w-md rounded-2xl border border-foreground/10 bg-white p-8 shadow-card-hover">
+                        <h2 className="mb-1 text-xl font-semibold text-foreground">Complete Profile</h2>
+                        <p className="mb-6 text-sm text-muted">Please provide your details to continue.</p>
                         
                         <form onSubmit={handleRegisterSubmit} className="space-y-4">
                             <div>
-                                <label className="mb-1 block text-sm font-black">Full Name</label>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
                                 <input 
                                     required 
                                     type="text" 
                                     value={onboardingData.name}
                                     onChange={e => setOnboardingData({...onboardingData, name: e.target.value})}
-                                    className="w-full rounded-xl border-2 border-[#111] px-4 py-2 font-black outline-none transition-all focus:border-4 focus:shadow-[4px_4px_0px_#111]"
+                                    className="w-full rounded-xl border border-foreground/15 bg-white px-4 py-2.5 text-sm font-normal text-foreground outline-none transition-all focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
                                     placeholder="John Doe"
                                 />
                             </div>
                             <div>
-                                <label className="mb-1 block text-sm font-black">Email</label>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
                                 <input 
                                     required 
                                     type="email" 
                                     value={onboardingData.email}
                                     onChange={e => setOnboardingData({...onboardingData, email: e.target.value})}
-                                    className="w-full rounded-xl border-2 border-[#111] px-4 py-2 font-black outline-none transition-all focus:border-4 focus:shadow-[4px_4px_0px_#111]"
+                                    className="w-full rounded-xl border border-foreground/15 bg-white px-4 py-2.5 text-sm font-normal text-foreground outline-none transition-all focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
                                     placeholder="john@example.com"
                                 />
                             </div>
                             <div>
-                                <label className="mb-1 block text-sm font-black">Date of Birth</label>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">Date of Birth</label>
                                 <input 
                                     required 
                                     type="date" 
                                     value={onboardingData.dob}
                                     onChange={e => setOnboardingData({...onboardingData, dob: e.target.value})}
-                                    className="w-full rounded-xl border-2 border-[#111] px-4 py-2 font-black outline-none transition-all focus:border-4 focus:shadow-[4px_4px_0px_#111]"
+                                    className="w-full rounded-xl border border-foreground/15 bg-white px-4 py-2.5 text-sm font-normal text-foreground outline-none transition-all focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
                                 />
-                                <p className="mt-1 text-[10px] font-bold opacity-60">You must be at least 18 years old.</p>
+                                <p className="mt-1.5 text-xs text-muted">You must be at least 18 years old.</p>
                             </div>
                             <button 
                                 type="submit" 
                                 disabled={isRegistering}
-                                className="mt-6 w-full rounded-xl border-2 border-[#111] bg-neo-blue py-3 font-black text-white shadow-[4px_4px_0px_#111] transition-all hover:-translate-y-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-50 md:border-4"
+                                className="mt-2 w-full btn-primary !py-3 disabled:opacity-50"
                             >
                                 {isRegistering ? 'Creating Profile...' : 'Continue'}
                             </button>
