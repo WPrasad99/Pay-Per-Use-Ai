@@ -288,9 +288,9 @@ const staggerItem = {
 
 
 const Home = () => {
-  const [isWalletConnected, setIsWalletConnected] = useState(() => !!getPersistedWallet());
-  const [mounted, setMounted] = useState(false);
+  const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectStatus, setConnectStatus] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingData, setOnboardingData] = useState({ name: '', dob: '', email: '' });
   const [isRegistering, setIsRegistering] = useState(false);
@@ -311,6 +311,7 @@ const Home = () => {
       return;
     }
     setIsConnecting(true);
+    setConnectStatus('Connecting to Pera...');
     try {
       let accounts = [];
       try { accounts = await peraWallet.reconnectSession(); } catch (_) { }
@@ -323,10 +324,16 @@ const Home = () => {
         setIsWalletConnected(false);
       });
       const addr = accounts[0];
+      
+      setConnectStatus('Getting challenge...');
       const { nonce } = await getNonce(addr);
       const message = `PayPerAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
       const msgBytes = new TextEncoder().encode(message);
+      
+      setConnectStatus('Please sign in wallet...');
       const signedData = await peraWallet.signData([{ data: msgBytes, message }], addr);
+      
+      setConnectStatus('Verifying...');
       const sigBytes = signedData[0] instanceof Uint8Array
         ? signedData[0]
         : new Uint8Array(Object.values(signedData[0]));
@@ -350,6 +357,7 @@ const Home = () => {
       }
     } finally {
       setIsConnecting(false);
+      setConnectStatus('');
     }
   };
 
@@ -445,7 +453,7 @@ const Home = () => {
                 disabled={isConnecting}
                 className="btn-primary text-base !px-8 !py-4"
               >
-                {isConnecting ? 'Connecting...' : 'Start free trial'}
+                {isConnecting ? (connectStatus || 'Connecting...') : 'Start free trial'}
                 <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
@@ -1063,7 +1071,7 @@ const Home = () => {
                   disabled={isConnecting}
                   className="w-full sm:w-auto bg-black text-white px-8 py-3.5 rounded-full text-sm font-medium flex items-center justify-center hover:bg-black/90 transition-colors"
                 >
-                  {isConnecting ? 'Connecting...' : 'Start building free'}
+                  {isConnecting ? (connectStatus || 'Connecting...') : 'Start building free'}
                   <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
