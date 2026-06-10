@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { peraWallet } from '../config/peraWallet';
 
 const ALGOD_SERVER = 'https://testnet-api.algonode.cloud';
 
@@ -18,11 +19,8 @@ export function usePeraPay() {
      * Returns the transaction ID on success.
      */
     const sendPayment = useCallback(async (fromAddress, toAddress, amountMicroAlgo) => {
-        const { PeraWalletConnect } = await import('@perawallet/connect');
         const algosdk = (await import('algosdk')).default;
         const algodClient = await getAlgodClient();
-
-        const peraWallet = new PeraWalletConnect();
 
         // Ensure connected
         let accounts = [];
