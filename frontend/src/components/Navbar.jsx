@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LogOut, Menu, X, Wallet, Loader2, ArrowRight, User, Mail, Calendar, Sparkles } from 'lucide-react';
 import { peraWallet } from '../config/peraWallet';
 import { getUserProfile, getNonce, verifySiwa, authLogout, registerUser } from '../api/client';
 
@@ -42,14 +44,60 @@ const Navbar = () => {
     const [onboardingData, setOnboardingData] = useState({ name: '', dob: '', email: '' });
     const [isRegistering, setIsRegistering] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const [activeSection, setActiveSection] = useState('');
     const location  = useLocation();
     const navigate  = useNavigate();
+    const observerRef = useRef(null);
 
+    // ── Scroll listener ──
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    // ── IntersectionObserver for active section tracking ──
+    useEffect(() => {
+        if (location.pathname !== '/') {
+            setActiveSection('');
+            return;
+        }
+
+        const sectionIds = ['about', 'how-it-works', 'services-preview', 'marketplace-preview', 'why-us', 'join-us'];
+
+        const callback = (entries) => {
+            const visible = entries
+                .filter(e => e.isIntersecting)
+                .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+            if (visible.length > 0) {
+                setActiveSection(visible[0].target.id);
+            }
+        };
+
+        observerRef.current = new IntersectionObserver(callback, {
+            rootMargin: '-20% 0px -60% 0px',
+            threshold: [0, 0.25, 0.5],
+        });
+
+        sectionIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) observerRef.current.observe(el);
+        });
+
+        return () => {
+            if (observerRef.current) observerRef.current.disconnect();
+        };
+    }, [location.pathname]);
+
+    // ── Lock body scroll when mobile menu is open ──
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [isOpen]);
 
     useEffect(() => {
         const storedAddr = getPersistedWallet();
@@ -191,164 +239,427 @@ const Navbar = () => {
         return null;
     }
 
+    // ── Helper: check if a nav link is the active section ──
+    const isActive = (link) => {
+        if (link.isRoute) {
+            return activeSection === '' && location.pathname === '/' && window.scrollY < 200;
+        }
+        const hash = link.to.replace('/#', '');
+        return activeSection === hash;
+    };
+
+    // ── Connect Button component ──
     const ConnectBtn = ({ mobile = false }) =>
         accountAddress ? (
-            <div className={`flex items-center gap-2${mobile ? ' flex-col w-full mt-4' : ''}`}>
+            <div className={`flex items-center gap-2.5 ${mobile ? 'flex-col w-full mt-6' : ''}`}>
                 <Link
                     to="/dashboard"
-                    className={`btn-primary text-sm !px-5 !py-2${mobile ? ' w-full text-center' : ''}`}
+                    className={`group btn-primary text-sm !px-6 !py-2.5 flex items-center gap-2 ${mobile ? 'w-full text-center justify-center' : ''}`}
                     onClick={mobile ? () => setIsOpen(false) : undefined}
                 >
+                    <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                    </span>
                     Open Workspace
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
                 </Link>
-                <button
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={(ev) => { handleDisconnectWalletClick(ev); if (mobile) setIsOpen(false); }}
-                    className={`rounded-full border border-foreground/15 p-2 text-foreground/60 hover:text-foreground hover:border-foreground/30 transition-all duration-300${mobile ? ' w-full flex justify-center' : ''}`}
+                    className={`rounded-full border border-foreground/10 p-2.5 text-foreground/50 hover:text-foreground hover:border-foreground/25 hover:bg-foreground/[0.04] transition-all duration-300 ${mobile ? 'w-full flex justify-center' : ''}`}
                     title="Disconnect Wallet"
                 >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                </button>
+                    <LogOut className="w-4 h-4" />
+                </motion.button>
             </div>
         ) : (
-            <button
-                onClick={(ev) => { handleConnectWalletClick(ev); if (mobile) setIsOpen(false); }}
-                disabled={isConnecting}
-                className={`btn-primary text-sm !px-5 !py-2 disabled:opacity-60 flex items-center justify-center gap-2${mobile ? ' w-full mt-4' : ' min-w-[150px]'}`}
-            >
-                {isConnecting ? (
-                    <>
-                        <svg className="w-3.5 h-3.5 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                        </svg>
-                        <span className="truncate text-xs">{connectStatus || 'Connecting...'}</span>
-                    </>
-                ) : 'Connect Wallet'}
-            </button>
+            <div className="relative">
+                {/* Pulse ring when disconnected */}
+                {!isConnecting && (
+                    <span className="absolute inset-0 rounded-full animate-pulse-ring pointer-events-none" />
+                )}
+                <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={(ev) => { handleConnectWalletClick(ev); if (mobile) setIsOpen(false); }}
+                    disabled={isConnecting}
+                    className={`btn-primary text-sm !px-6 !py-2.5 disabled:opacity-60 flex items-center justify-center gap-2.5 relative z-10 ${mobile ? 'w-full mt-6' : 'min-w-[160px]'}`}
+                >
+                    {isConnecting ? (
+                        <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                            <span className="truncate text-xs">{connectStatus || 'Connecting...'}</span>
+                        </>
+                    ) : (
+                        <>
+                            <Wallet className="w-3.5 h-3.5" />
+                            Connect Wallet
+                        </>
+                    )}
+                </motion.button>
+            </div>
         );
 
+    // ── Mobile menu link animation variants ──
+    const overlayVariants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { duration: 0.3, ease: 'easeOut' } },
+        exit: { opacity: 0, transition: { duration: 0.25, ease: 'easeIn' } },
+    };
+
+    const menuContainerVariants = {
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } },
+        exit: { transition: { staggerChildren: 0.03, staggerDirection: -1 } },
+    };
+
+    const menuItemVariants = {
+        hidden: { opacity: 0, y: 30, filter: 'blur(8px)' },
+        visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
+        exit: { opacity: 0, y: -15, filter: 'blur(4px)', transition: { duration: 0.2, ease: 'easeIn' } },
+    };
+
+    // ── Onboarding modal animation ──
+    const modalBackdropVariants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { duration: 0.35 } },
+        exit: { opacity: 0, transition: { duration: 0.25 } },
+    };
+
+    const modalContentVariants = {
+        hidden: { opacity: 0, scale: 0.92, y: 20, filter: 'blur(10px)' },
+        visible: { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 } },
+        exit: { opacity: 0, scale: 0.95, y: 10, filter: 'blur(6px)', transition: { duration: 0.25 } },
+    };
+
     return (
-        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'pt-4 px-4' : 'pt-6 px-6 md:px-8'}`}>
-            <div className={`mx-auto flex items-center justify-between transition-all duration-500 ${scrolled ? 'w-full max-w-[1000px] rounded-lg px-6 py-3 shadow-xl border border-foreground/10 bg-background/90 backdrop-blur-xl' : 'w-full max-w-7xl rounded-lg px-2 py-2 bg-transparent'}`}>
-                {/* Logo */}
-                <Link to="/" className="flex items-center gap-1.5 group shrink-0">
-                    <span className="text-base font-semibold tracking-[-0.02em] text-foreground transition-colors">
-                        PayPerAI
-                    </span>
-                    <span className="text-[10px] font-medium text-muted tracking-wide">TM</span>
-                </Link>
+        <>
+            {/* ═══════ MAIN NAVBAR ═══════ */}
+            <motion.nav
+                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    scrolled ? 'pt-3 px-4' : 'pt-5 px-5 md:px-8'
+                }`}
+                initial={{ y: -80, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            >
+                <div
+                    className={`mx-auto flex items-center justify-between transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                        scrolled
+                            ? 'w-full max-w-[900px] rounded-full px-5 py-2.5 floating-nav shadow-elevated'
+                            : 'w-full max-w-7xl rounded-2xl px-3 py-3 bg-transparent'
+                    }`}
+                    style={scrolled ? {
+                        boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.5), 0 4px 30px rgba(0,0,0,0.06)',
+                    } : {}}
+                >
+                    {/* ─── Logo ─── */}
+                    <Link to="/" className="flex items-center gap-1.5 group shrink-0">
+                        <motion.span
+                            className="text-base font-semibold text-foreground select-none"
+                            style={{ letterSpacing: '-0.02em' }}
+                            whileHover={{ letterSpacing: '0.06em' }}
+                            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                            PayPerAI
+                        </motion.span>
+                        <span className="text-[9px] font-medium text-foreground/30 tracking-wide group-hover:text-accent transition-colors duration-500">
+                            TM
+                        </span>
+                    </Link>
 
-                {/* Desktop links — centered */}
-                <div className="hidden md:flex items-center gap-1">
-                    {navLinks.map(link =>
-                        link.isRoute ? (
-                            <Link key={link.label} to={link.to}
-                                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                className="px-3 py-1.5 text-sm font-normal text-foreground/60 transition-colors duration-200 hover:text-foreground rounded-full hover:bg-foreground/[0.04]">
-                                {link.label}
-                            </Link>
-                        ) : (
-                            <a key={link.label} href={link.to}
-                                onClick={(e) => scrollToSection(e, link.to.replace('/', ''))}
-                                className="px-3 py-1.5 text-sm font-normal text-foreground/60 transition-colors duration-200 hover:text-foreground rounded-full hover:bg-foreground/[0.04]">
-                                {link.label}
-                            </a>
-                        )
-                    )}
-                </div>
+                    {/* ─── Desktop Nav Links ─── */}
+                    <div className="hidden md:flex items-center gap-0.5">
+                        {navLinks.map(link => {
+                            const active = isActive(link);
+                            const linkClasses = `relative px-3.5 py-1.5 text-[13px] font-medium transition-all duration-300 rounded-full ${
+                                active
+                                    ? 'text-foreground'
+                                    : 'text-foreground/50 hover:text-foreground hover:bg-foreground/[0.04]'
+                            }`;
 
-                {/* Desktop CTA */}
-                <div className="hidden md:flex items-center gap-2 shrink-0">
-                    <ConnectBtn />
-                </div>
-
-                {/* Mobile toggle */}
-                <button onClick={() => setIsOpen(o => !o)} className="md:hidden text-foreground p-1.5 rounded-full hover:bg-foreground/[0.04] transition-colors">
-                    {isOpen
-                        ? <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                        : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                    }
-                </button>
-            </div>
-
-            {/* Mobile menu */}
-            {isOpen && (
-                <div className="md:hidden mt-2 mx-auto max-w-5xl floating-nav rounded-2xl p-5 space-y-1 animate-fade-in">
-                    {navLinks.map(link =>
-                        link.isRoute ? (
-                            <Link key={link.label} to={link.to}
-                                className="block px-3 py-2.5 font-normal text-foreground/60 transition-colors hover:text-foreground rounded-xl hover:bg-foreground/[0.04]"
-                                onClick={() => { setIsOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                                {link.label}
-                            </Link>
-                        ) : (
-                            <a key={link.label} href={link.to}
-                                onClick={(e) => scrollToSection(e, link.to.replace('/', ''))}
-                                className="block px-3 py-2.5 font-normal text-foreground/60 transition-colors hover:text-foreground rounded-xl hover:bg-foreground/[0.04]">
-                                {link.label}
-                            </a>
-                        )
-                    )}
-                    <ConnectBtn mobile />
-                </div>
-            )}
-
-            {/* Onboarding Modal */}
-            {showOnboarding && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
-                    <div className="animate-fade-in relative w-full max-w-md rounded-2xl border border-foreground/10 bg-white p-8 shadow-card-hover">
-                        <h2 className="mb-1 text-xl font-semibold text-foreground">Complete Profile</h2>
-                        <p className="mb-6 text-sm text-muted">Please provide your details to continue.</p>
-                        
-                        <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
-                                <input 
-                                    required 
-                                    type="text" 
-                                    value={onboardingData.name}
-                                    onChange={e => setOnboardingData({...onboardingData, name: e.target.value})}
-                                    className="w-full rounded-xl border border-foreground/15 bg-white px-4 py-2.5 text-sm font-normal text-foreground outline-none transition-all focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
-                                    placeholder="John Doe"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
-                                <input 
-                                    required 
-                                    type="email" 
-                                    value={onboardingData.email}
-                                    onChange={e => setOnboardingData({...onboardingData, email: e.target.value})}
-                                    className="w-full rounded-xl border border-foreground/15 bg-white px-4 py-2.5 text-sm font-normal text-foreground outline-none transition-all focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
-                                    placeholder="john@example.com"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-foreground">Date of Birth</label>
-                                <input 
-                                    required 
-                                    type="date" 
-                                    value={onboardingData.dob}
-                                    onChange={e => setOnboardingData({...onboardingData, dob: e.target.value})}
-                                    className="w-full rounded-xl border border-foreground/15 bg-white px-4 py-2.5 text-sm font-normal text-foreground outline-none transition-all focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
-                                />
-                                <p className="mt-1.5 text-xs text-muted">You must be at least 18 years old.</p>
-                            </div>
-                            <button 
-                                type="submit" 
-                                disabled={isRegistering}
-                                className="mt-2 w-full btn-primary !py-3 disabled:opacity-50"
-                            >
-                                {isRegistering ? 'Creating Profile...' : 'Continue'}
-                            </button>
-                        </form>
+                            return link.isRoute ? (
+                                <Link
+                                    key={link.label}
+                                    to={link.to}
+                                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                    className={linkClasses}
+                                >
+                                    {link.label}
+                                    {/* Active indicator dot */}
+                                    {active && (
+                                        <motion.span
+                                            layoutId="nav-active-indicator"
+                                            className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent"
+                                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                        />
+                                    )}
+                                </Link>
+                            ) : (
+                                <a
+                                    key={link.label}
+                                    href={link.to}
+                                    onClick={(e) => scrollToSection(e, link.to.replace('/', ''))}
+                                    className={linkClasses}
+                                >
+                                    {link.label}
+                                    {active && (
+                                        <motion.span
+                                            layoutId="nav-active-indicator"
+                                            className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent"
+                                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                        />
+                                    )}
+                                </a>
+                            );
+                        })}
                     </div>
+
+                    {/* ─── Desktop CTA ─── */}
+                    <div className="hidden md:flex items-center gap-2 shrink-0">
+                        <ConnectBtn />
+                    </div>
+
+                    {/* ─── Mobile Menu Toggle ─── */}
+                    <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setIsOpen(o => !o)}
+                        className="md:hidden relative text-foreground p-2 rounded-full hover:bg-foreground/[0.06] transition-colors duration-300 z-[61]"
+                    >
+                        <AnimatePresence mode="wait" initial={false}>
+                            {isOpen ? (
+                                <motion.div
+                                    key="close"
+                                    initial={{ rotate: -90, opacity: 0 }}
+                                    animate={{ rotate: 0, opacity: 1 }}
+                                    exit={{ rotate: 90, opacity: 0 }}
+                                    transition={{ duration: 0.25 }}
+                                >
+                                    <X className="w-5 h-5" />
+                                </motion.div>
+                            ) : (
+                                <motion.div
+                                    key="menu"
+                                    initial={{ rotate: 90, opacity: 0 }}
+                                    animate={{ rotate: 0, opacity: 1 }}
+                                    exit={{ rotate: -90, opacity: 0 }}
+                                    transition={{ duration: 0.25 }}
+                                >
+                                    <Menu className="w-5 h-5" />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </motion.button>
                 </div>
-            )}
-        </nav>
+            </motion.nav>
+
+            {/* ═══════ MOBILE FULL-SCREEN OVERLAY ═══════ */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        className="fixed inset-0 z-[55] md:hidden"
+                        variants={overlayVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                    >
+                        {/* Frosted glass backdrop */}
+                        <div
+                            className="absolute inset-0"
+                            style={{
+                                background: 'rgba(245, 245, 240, 0.88)',
+                                backdropFilter: 'blur(30px) saturate(1.8)',
+                                WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
+                            }}
+                        />
+
+                        {/* Content */}
+                        <motion.div
+                            className="relative flex flex-col items-center justify-center h-full px-8"
+                            variants={menuContainerVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                        >
+                            {/* Nav Links */}
+                            <div className="flex flex-col items-center gap-2 w-full max-w-xs">
+                                {navLinks.map((link, i) => {
+                                    const active = isActive(link);
+                                    return (
+                                        <motion.div
+                                            key={link.label}
+                                            variants={menuItemVariants}
+                                            className="w-full"
+                                        >
+                                            {link.isRoute ? (
+                                                <Link
+                                                    to={link.to}
+                                                    className={`block w-full text-center text-2xl font-medium py-3 rounded-2xl transition-all duration-300 ${
+                                                        active
+                                                            ? 'text-foreground bg-foreground/[0.05]'
+                                                            : 'text-foreground/50 hover:text-foreground hover:bg-foreground/[0.03]'
+                                                    }`}
+                                                    onClick={() => { setIsOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                                >
+                                                    {link.label}
+                                                    {active && (
+                                                        <span className="inline-block ml-2 w-1.5 h-1.5 rounded-full bg-accent align-middle" />
+                                                    )}
+                                                </Link>
+                                            ) : (
+                                                <a
+                                                    href={link.to}
+                                                    onClick={(e) => scrollToSection(e, link.to.replace('/', ''))}
+                                                    className={`block w-full text-center text-2xl font-medium py-3 rounded-2xl transition-all duration-300 ${
+                                                        active
+                                                            ? 'text-foreground bg-foreground/[0.05]'
+                                                            : 'text-foreground/50 hover:text-foreground hover:bg-foreground/[0.03]'
+                                                    }`}
+                                                >
+                                                    {link.label}
+                                                    {active && (
+                                                        <span className="inline-block ml-2 w-1.5 h-1.5 rounded-full bg-accent align-middle" />
+                                                    )}
+                                                </a>
+                                            )}
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Divider */}
+                            <motion.div
+                                variants={menuItemVariants}
+                                className="w-16 h-px bg-foreground/10 my-6"
+                            />
+
+                            {/* Connect Button */}
+                            <motion.div variants={menuItemVariants} className="w-full max-w-xs">
+                                <ConnectBtn mobile />
+                            </motion.div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ═══════ ONBOARDING MODAL ═══════ */}
+            <AnimatePresence>
+                {showOnboarding && (
+                    <motion.div
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                        variants={modalBackdropVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                    >
+                        {/* Backdrop */}
+                        <div className="absolute inset-0 bg-background/80 backdrop-blur-xl" />
+
+                        {/* Modal Card */}
+                        <motion.div
+                            className="relative w-full max-w-md glass-card p-8 md:p-10"
+                            variants={modalContentVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            style={{
+                                boxShadow: '0 25px 80px rgba(0,0,0,0.08), 0 0 0 1px rgba(139,115,85,0.08), inset 0 1px 0 rgba(255,255,255,0.7)',
+                            }}
+                        >
+                            {/* Decorative sparkle */}
+                            <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                                <Sparkles className="w-4 h-4 text-accent" />
+                            </div>
+
+                            {/* Header */}
+                            <div className="mb-8">
+                                <h2 className="text-2xl font-semibold text-foreground tracking-tight">
+                                    Complete Profile
+                                </h2>
+                                <p className="mt-1.5 text-sm text-foreground/50">
+                                    Please provide your details to continue.
+                                </p>
+                            </div>
+
+                            <form onSubmit={handleRegisterSubmit} className="space-y-5">
+                                {/* Full Name */}
+                                <div className="group">
+                                    <label className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground/70">
+                                        <User className="w-3.5 h-3.5 text-accent/60" />
+                                        Full Name
+                                    </label>
+                                    <input
+                                        required
+                                        type="text"
+                                        value={onboardingData.name}
+                                        onChange={e => setOnboardingData({...onboardingData, name: e.target.value})}
+                                        className="w-full rounded-xl border border-foreground/10 bg-white/60 px-4 py-3 text-sm font-normal text-foreground outline-none transition-all duration-300 focus:border-accent/40 focus:ring-2 focus:ring-accent/10 focus:bg-white placeholder:text-foreground/25"
+                                        placeholder="John Doe"
+                                    />
+                                </div>
+
+                                {/* Email */}
+                                <div className="group">
+                                    <label className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground/70">
+                                        <Mail className="w-3.5 h-3.5 text-accent/60" />
+                                        Email
+                                    </label>
+                                    <input
+                                        required
+                                        type="email"
+                                        value={onboardingData.email}
+                                        onChange={e => setOnboardingData({...onboardingData, email: e.target.value})}
+                                        className="w-full rounded-xl border border-foreground/10 bg-white/60 px-4 py-3 text-sm font-normal text-foreground outline-none transition-all duration-300 focus:border-accent/40 focus:ring-2 focus:ring-accent/10 focus:bg-white placeholder:text-foreground/25"
+                                        placeholder="john@example.com"
+                                    />
+                                </div>
+
+                                {/* Date of Birth */}
+                                <div className="group">
+                                    <label className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground/70">
+                                        <Calendar className="w-3.5 h-3.5 text-accent/60" />
+                                        Date of Birth
+                                    </label>
+                                    <input
+                                        required
+                                        type="date"
+                                        value={onboardingData.dob}
+                                        onChange={e => setOnboardingData({...onboardingData, dob: e.target.value})}
+                                        className="w-full rounded-xl border border-foreground/10 bg-white/60 px-4 py-3 text-sm font-normal text-foreground outline-none transition-all duration-300 focus:border-accent/40 focus:ring-2 focus:ring-accent/10 focus:bg-white"
+                                    />
+                                    <p className="mt-1.5 text-xs text-foreground/35">
+                                        You must be at least 18 years old.
+                                    </p>
+                                </div>
+
+                                {/* Submit */}
+                                <motion.button
+                                    whileHover={{ scale: 1.01 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="submit"
+                                    disabled={isRegistering}
+                                    className="mt-3 w-full btn-primary !py-3.5 disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isRegistering ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Creating Profile...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Continue
+                                            <ArrowRight className="w-4 h-4" />
+                                        </>
+                                    )}
+                                </motion.button>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 };
 
