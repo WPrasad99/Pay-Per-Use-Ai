@@ -289,6 +289,7 @@ const staggerItem = {
 
 const Home = () => {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectStatus, setConnectStatus] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(false);
