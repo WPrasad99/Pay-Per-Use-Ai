@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { peraWallet } from '../config/peraWallet';
 import { getUserProfile, getNonce, verifySiwa, registerUser } from '../api/client';
@@ -22,10 +22,191 @@ const persistWallet = (addr) => {
   sessionStorage.setItem('wallet_address', addr);
 };
 import LiveTicker from "../components/LiveTicker";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView, useMotionValue, useTransform, useSpring } from "framer-motion";
+
+/* ═══════════════════════════════════════════════════════════════
+   CONSTANTS & DATA
+   ═══════════════════════════════════════════════════════════════ */
 
 const ROTATING_WORDS = ["trap.", "lock-in.", "friction.", "fees."];
 
+const STEPS = [
+  { num: 'I', title: 'Connect your wallet', desc: 'Link your Pera Wallet in seconds. Authorize a tiny ALGO allowance — no subscription, no surprise renewal.', icon: '🎯' },
+  { num: 'II', title: 'Pick an AI worker', desc: 'Choose the AI service you need for one task: code, analysis, writing, support, or content generation.', icon: '🛡️' },
+  { num: 'III', title: 'Ship to production', desc: 'Get your result with on-chain verification proof. Every paid usage is auditable and transparent.', icon: '⚡' },
+];
+
+const FEATURES = [
+  {
+    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
+    title: 'On-chain proof of usage',
+    desc: 'Each paid action is tied to Algorand verification, making spend easier to audit.'
+  },
+  {
+    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+    title: 'True pay-per-use pricing',
+    desc: 'A practical fit for SMEs, colleges, agencies, and teams that cannot justify monthly AI seats.'
+  },
+  {
+    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
+    title: 'Wallet-first access',
+    desc: 'Reduce account friction while keeping payment consent explicit through Pera Wallet.'
+  },
+  {
+    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>,
+    title: 'Usage dashboard',
+    desc: 'Track balance, sessions, history, and analytics from one focused workspace.'
+  },
+  {
+    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
+    title: 'Task-specific AI workers',
+    desc: 'Services are packaged around real outcomes instead of a blank generic chatbot.'
+  },
+  {
+    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+    title: 'Enterprise-ready transparency',
+    desc: 'Clear pricing, transaction proof, and explainable flow help build industry trust.'
+  },
+];
+
+const ABOUT_FEATURES = [
+  {
+    num: "01",
+    title: "Instant Deployment",
+    desc: "Push to production in seconds. Our edge network ensures your applications load instantly, anywhere in the world.",
+    icon: (
+      <svg className="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="4" width="18" height="16" rx="1" />
+        <path d="M6 8h12M6 12h12M6 16h8" />
+      </svg>
+    )
+  },
+  {
+    num: "02",
+    title: "AI-Native Workflows",
+    desc: "Build intelligent applications with built-in AI capabilities. From inference to training, everything scales automatically.",
+    icon: (
+      <svg className="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="4" r="1.5" />
+        <circle cx="12" cy="20" r="1.5" />
+        <circle cx="4" cy="12" r="1.5" />
+        <circle cx="20" cy="12" r="1.5" />
+        <path d="M12 7v2M12 15v2M7 12h2M15 12h2" />
+      </svg>
+    )
+  },
+  {
+    num: "03",
+    title: "Usage-Based Billing",
+    desc: "Pay only for the exact AI tokens you consume instead of expensive monthly subscriptions.",
+    icon: (
+      <svg className="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+      </svg>
+    )
+  },
+  {
+    num: "04",
+    title: "Future AI Economy",
+    desc: "A decentralized infrastructure for AI orchestration, NFT ownership, and wallet-native intelligence systems.",
+    icon: (
+      <svg className="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
+        <polyline points="12 22 12 12" />
+        <polyline points="22 8.5 12 12 2 8.5" />
+      </svg>
+    )
+  },
+];
+
+const TRUST_STATS = [
+  { value: '$0', label: 'monthly lock-in', prefix: '' },
+  { value: '$0.001', label: 'per completion', prefix: '' },
+  { value: '$0.002', label: 'per reasoning task', prefix: '' },
+  { value: '$0.05', label: 'per complex generation', prefix: '' },
+];
+
+const AI_MODELS = [
+  {
+    name: 'GPT-4o Mini',
+    provider: 'OpenAI · Reasoning & Writing',
+    icon: <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2057 5.9847 5.9847 0 0 0 3.989-2.9 6.051 6.051 0 0 0-.7388-7.0732z"/></svg>,
+    tag: 'MOST POPULAR',
+    desc: 'Fast and intelligent multi-purpose assistant from OpenAI.',
+    usdInput: '$0.45',
+    usdOutput: '$1.80',
+    algoInput: '1.30 ALGO',
+    algoOutput: '5.20 ALGO',
+    features: ['High reasoning capability', '128k context window', 'Vision support', 'Ideal for coding']
+  },
+  {
+    name: 'Gemini 1.5 Flash',
+    provider: 'Google · Vision & Analysis',
+    icon: <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z"/></svg>,
+    desc: "Google's lightweight, fast, and highly capable multimodal model.",
+    usdInput: '$0.22',
+    usdOutput: '$0.90',
+    algoInput: '0.35 ALGO',
+    algoOutput: '1.40 ALGO',
+    features: ['2M context window', 'Native multimodal', 'Fast processing', 'Data analysis']
+  },
+  {
+    name: 'Llama 3.3',
+    provider: 'Meta/Groq · Open-source Power',
+    icon: <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M21.996 9.878v4.22l-6.824 3.93-3.176-1.83-6.824 3.93v-4.22l6.824-3.93 3.176 1.83 6.824-3.93zM21.996 4.945v4.22l-6.824 3.93-3.176-1.83-6.824 3.93V4.945L12 1.01l9.996 3.935zM12 22.99l-9.996-3.935V14.83L12 18.76l9.996-3.93v4.225L12 22.99z"/></svg>,
+    desc: 'Lightning-fast general purpose reasoning model powered by Groq.',
+    usdInput: '$1.77',
+    usdOutput: '$2.37',
+    algoInput: '0.95 ALGO',
+    algoOutput: '2.80 ALGO',
+    features: ['Open-source weights', 'Low latency via Groq', 'High efficiency', 'General text generation']
+  },
+  {
+    name: 'Qwen 2.5',
+    provider: 'Alibaba · Multilingual AI',
+    icon: <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2zM2 12h20" stroke="currentColor" strokeWidth="2" fill="none"/></svg>,
+    desc: 'Powerful open-weights model capable of deep technical insights.',
+    usdInput: '$1.20',
+    usdOutput: '$1.20',
+    algoInput: '2.60 ALGO',
+    algoOutput: '5.50 ALGO',
+    features: ['Strong multilingual', 'Cost-effective', 'Coding support', 'Deep insights']
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATION VARIANTS
+   ═══════════════════════════════════════════════════════════════ */
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } },
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+  },
+};
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 25 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   SUB-COMPONENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+// ─── Rotating Text ───
 const RotatingText = () => {
   const [index, setIndex] = useState(0);
 
@@ -37,15 +218,15 @@ const RotatingText = () => {
   }, []);
 
   return (
-    <span className="relative inline-flex flex-col h-[1.1em] overflow-hidden align-bottom text-foreground/80 font-normal ml-3">
+    <span className="relative inline-flex flex-col h-[1.1em] overflow-hidden align-bottom ml-3">
       <AnimatePresence mode="wait">
         <motion.span
           key={index}
-          initial={{ y: 40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 40, opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="whitespace-nowrap"
+          initial={{ y: 40, opacity: 0, filter: 'blur(4px)' }}
+          animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
+          exit={{ y: -40, opacity: 0, filter: 'blur(4px)' }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="whitespace-nowrap text-gradient"
         >
           {ROTATING_WORDS[index]}
         </motion.span>
@@ -54,238 +235,268 @@ const RotatingText = () => {
   );
 };
 
-// Top-class abstract high-tech animation for the Hero section
-const AbstractHeroAnimation = () => {
+// ─── Animated Counter ───
+const AnimatedCounter = ({ value, suffix = '', prefix = '' }) => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, amount: 0.5 });
+  const [displayed, setDisplayed] = useState(prefix + '0' + suffix);
+
+  useEffect(() => {
+    if (!inView) return;
+    // Just animate in the final value with a delay
+    const timer = setTimeout(() => setDisplayed(prefix + value + suffix), 200);
+    return () => clearTimeout(timer);
+  }, [inView, value, suffix, prefix]);
+
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none perspective-[1500px] opacity-[0.9]">
-      <motion.div 
-        className="relative w-[360px] h-[360px]"
-        style={{ transformStyle: 'preserve-3d' }}
-        animate={{ 
-          rotateX: [0, 360], 
-          rotateY: [0, 360],
-          rotateZ: [0, 360]
-        }}
-        transition={{ 
-          duration: 50, 
-          repeat: Infinity, 
-          ease: "linear" 
-        }}
-      >
-        {/* Main large cube with internal grid */}
-        {[
-          { rotateY: 0, translateZ: 180 },
-          { rotateY: 90, translateZ: 180 },
-          { rotateY: 180, translateZ: 180 },
-          { rotateY: -90, translateZ: 180 },
-          { rotateX: 90, translateZ: 180 },
-          { rotateX: -90, translateZ: 180 }
-        ].map((face, i) => (
-          <div
-            key={i}
-            className="absolute inset-0 border border-foreground/30 bg-background/5 backdrop-blur-[2px]"
-            style={{
-              transform: `rotateX(${face.rotateX || 0}deg) rotateY(${face.rotateY || 0}deg) translateZ(${face.translateZ}px)`,
-            }}
-          >
-            {/* Elegant 4x4 inner grid on each face */}
-            <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
-               {Array.from({length: 16}).map((_, j) => (
-                 <div key={j} className="border border-foreground/10" />
-               ))}
-            </div>
-          </div>
-        ))}
-        
-        {/* Inner floating core cube */}
-        {[
-          { rotateY: 0, translateZ: 80 },
-          { rotateY: 90, translateZ: 80 },
-          { rotateY: 180, translateZ: 80 },
-          { rotateY: -90, translateZ: 80 },
-          { rotateX: 90, translateZ: 80 },
-          { rotateX: -90, translateZ: 80 }
-        ].map((face, i) => (
-          <div
-            key={`core-${i}`}
-            className="absolute inset-0 m-auto w-[160px] h-[160px] border border-foreground/50 bg-foreground/5 backdrop-blur-sm"
-            style={{
-              transform: `rotateX(${face.rotateX || 0}deg) rotateY(${face.rotateY || 0}deg) translateZ(${face.translateZ}px)`,
-            }}
-          />
-        ))}
-      </motion.div>
+    <motion.span
+      ref={ref}
+      initial={{ opacity: 0, y: 15 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {displayed}
+    </motion.span>
+  );
+};
+
+// ─── Orbiting Ring System (Hero Animation) ───
+const OrbitingRings = () => {
+  return (
+    <div className="relative w-[400px] h-[400px] flex items-center justify-center">
+      {/* Central core */}
+      <div className="absolute w-3 h-3 rounded-full bg-foreground/30" />
+      <div className="absolute w-6 h-6 rounded-full border border-foreground/10 animate-pulse-ring" />
+
+      {/* Ring 1 - Inner */}
+      <div className="absolute w-[160px] h-[160px] rounded-full border border-foreground/[0.08]" style={{ transform: 'rotateX(70deg)' }}>
+        <div
+          className="absolute w-2.5 h-2.5 rounded-full bg-accent/60"
+          style={{ '--orbit-radius': '80px', '--orbit-duration': '8s', animation: 'orbit 8s linear infinite', top: '50%', left: '50%', marginTop: '-5px', marginLeft: '-5px' }}
+        />
+      </div>
+
+      {/* Ring 2 - Middle */}
+      <div className="absolute w-[260px] h-[260px] rounded-full border border-foreground/[0.06]" style={{ transform: 'rotateX(70deg) rotateZ(30deg)' }}>
+        <div
+          className="absolute w-2 h-2 rounded-full bg-foreground/40"
+          style={{ '--orbit-radius': '130px', '--orbit-duration': '14s', animation: 'orbit 14s linear infinite', top: '50%', left: '50%', marginTop: '-4px', marginLeft: '-4px' }}
+        />
+        <div
+          className="absolute w-1.5 h-1.5 rounded-full bg-accent/40"
+          style={{ '--orbit-radius': '130px', '--orbit-duration': '14s', animation: 'orbit-reverse 14s linear infinite', top: '50%', left: '50%', marginTop: '-3px', marginLeft: '-3px' }}
+        />
+      </div>
+
+      {/* Ring 3 - Outer */}
+      <div className="absolute w-[360px] h-[360px] rounded-full border border-foreground/[0.04]" style={{ transform: 'rotateX(70deg) rotateZ(-15deg)' }}>
+        <div
+          className="absolute w-2 h-2 rounded-full bg-foreground/25"
+          style={{ '--orbit-radius': '180px', '--orbit-duration': '22s', animation: 'orbit 22s linear infinite', top: '50%', left: '50%', marginTop: '-4px', marginLeft: '-4px' }}
+        />
+      </div>
+
+      {/* Vertical ring */}
+      <div className="absolute w-[220px] h-[220px] rounded-full border border-foreground/[0.05]" style={{ transform: 'rotateY(70deg) rotateZ(45deg)' }}>
+        <div
+          className="absolute w-1.5 h-1.5 rounded-full bg-accent/50"
+          style={{ '--orbit-radius': '110px', '--orbit-duration': '18s', animation: 'orbit-reverse 18s linear infinite', top: '50%', left: '50%', marginTop: '-3px', marginLeft: '-3px' }}
+        />
+      </div>
+
+      {/* Ambient glow */}
+      <div className="absolute w-32 h-32 rounded-full bg-accent/[0.04] blur-3xl" />
     </div>
   );
 };
 
+// ─── Dot Grid Background ───
+const DotGridBg = () => {
+  const containerRef = useRef(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
 
-const STEPS = [
-  { num: 'I', title: 'Connect your wallet', desc: 'Link your Pera Wallet in seconds. Authorize a tiny ALGO allowance — no subscription, no surprise renewal.', icon: '🎯' },
-  { num: 'II', title: 'Pick an AI worker', desc: 'Choose the AI service you need for one task: code, analysis, writing, support, or content generation.', icon: '🛡️' },
-  { num: 'III', title: 'Ship to production', desc: 'Get your result with on-chain verification proof. Every paid usage is auditable and transparent.', icon: '⚡' },
-];
+  useEffect(() => {
+    const handleMove = (e) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width - 0.5) * 20;
+      const y = ((e.clientY - rect.top) / rect.height - 0.5) * 20;
+      setOffset({ x, y });
+    };
+    window.addEventListener('mousemove', handleMove);
+    return () => window.removeEventListener('mousemove', handleMove);
+  }, []);
 
-const FEATURES = [
-  { 
-    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>, 
-    title: 'On-chain proof of usage', 
-    desc: 'Each paid action is tied to Algorand verification, making spend easier to audit.' 
-  },
-  { 
-    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, 
-    title: 'True pay-per-use pricing', 
-    desc: 'A practical fit for SMEs, colleges, agencies, and teams that cannot justify monthly AI seats.' 
-  },
-  { 
-    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, 
-    title: 'Wallet-first access', 
-    desc: 'Reduce account friction while keeping payment consent explicit through Pera Wallet.' 
-  },
-  { 
-    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>, 
-    title: 'Usage dashboard', 
-    desc: 'Track balance, sessions, history, and analytics from one focused workspace.' 
-  },
-  { 
-    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, 
-    title: 'Task-specific AI workers', 
-    desc: 'Services are packaged around real outcomes instead of a blank generic chatbot.' 
-  },
-  { 
-    icon: <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>, 
-    title: 'Enterprise-ready transparency', 
-    desc: 'Clear pricing, transaction proof, and explainable flow help build industry trust.' 
-  },
-];
-
-const ABOUT_FEATURES = [
-  {
-    num: "01",
-    title: "Instant Deployment",
-    desc: "Push to production in seconds. Our edge network ensures your applications load instantly, anywhere in the world.",
-    icon: (
-      <svg className="w-20 h-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="3" y="4" width="18" height="16" rx="1" />
-        <path d="M6 8h12M6 12h12M6 16h8" />
-        <circle cx="12" cy="23" r="1" fill="currentColor" stroke="none" />
-      </svg>
-    )
-  },
-  {
-    num: "02",
-    title: "AI-Native Workflows",
-    desc: "Build intelligent applications with built-in AI capabilities. From inference to training, everything scales automatically.",
-    icon: (
-      <svg className="w-20 h-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />
-        <circle cx="12" cy="4" r="1.5" />
-        <circle cx="12" cy="20" r="1.5" />
-        <circle cx="4" cy="12" r="1.5" />
-        <circle cx="20" cy="12" r="1.5" />
-        <circle cx="6.5" cy="6.5" r="1.5" />
-        <circle cx="17.5" cy="17.5" r="1.5" />
-        <path d="M12 7v2M12 15v2M7 12h2M15 12h2M8 8l1.5 1.5M14.5 14.5l1.5 1.5" />
-      </svg>
-    )
-  },
-  {
-    num: "03",
-    title: "Usage-Based Billing",
-    desc: "Pay only for the exact AI tokens you consume instead of expensive monthly subscriptions.",
-    icon: (
-      <svg className="w-20 h-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-      </svg>
-    )
-  },
-  {
-    num: "04",
-    title: "Future AI Economy",
-    desc: "A decentralized infrastructure for AI orchestration, NFT ownership, and wallet-native intelligence systems.",
-    icon: (
-      <svg className="w-20 h-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
-        <polyline points="12 22 12 12" />
-        <polyline points="22 8.5 12 12 2 8.5" />
-      </svg>
-    )
-  },
-];
-
-const TRUST_STATS = [
-  { value: '0', label: 'monthly lock-in' },
-  { value: '$0.001', label: 'per completion' },
-  { value: '$0.002', label: 'per reasoning task' },
-  { value: '$0.05', label: 'per complex generation' },
-];
-
-const AI_MODELS = [
-  { 
-    name: 'GPT-4o Mini', 
-    provider: 'OpenAI · Reasoning & Writing', 
-    icon: <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2057 5.9847 5.9847 0 0 0 3.989-2.9 6.051 6.051 0 0 0-.7388-7.0732zM13.2599 22.3995c-2.0366 0-3.8966-1.1294-4.8217-2.9038l6.8184-3.9213V8.7188l3.6662 2.1121v6.9242c0 2.5532-2.0838 4.6444-4.6629 4.6444zm-9.3908-4.7088a4.4265 4.4265 0 0 1-1.3533-3.0483c0-2.4348 1.9056-4.4243 4.2575-4.5772l-.0048 7.8447 3.6663-2.1121v-4.2289L5.334 16.5935a4.4624 4.4624 0 0 1-1.4649 1.0972zm11.2335-5.3402-4.148-2.3891-4.148 2.3891v4.7781l4.148 2.389 4.148-2.389v-4.7781zM3.486 9.4187c.224-2.524 2.368-4.4338 4.9142-4.4338.4872 0 .9615.068 1.4143.1953L3.0003 9.1025v4.224l3.6662 2.112v-6.9242l-2.457-1.414a4.453 4.453 0 0 1-.7235 2.3184zm16.1558 3.064c0 2.4349-1.9056 4.4243-4.2575 4.5771l.0048-7.8446-3.6663 2.112v4.2288l5.1008-2.9436c.5533-.3182.993-.7871 1.2828-1.3444a4.4426 4.4426 0 0 0 .1819-3.0484V12.4827zM20.514 14.5813c-.224 2.524-2.368 4.4338-4.9142 4.4338-.4872 0-.9615-.068-1.4143-.1953l6.8142-3.9223v-4.224l-3.6662-2.112v6.9242l2.457 1.414c.2818.163.5358.3752.7538.6288v.373a4.453 4.453 0 0 0 .7235-2.3184v-.2318zM10.7401 1.6005c2.0366 0 3.8966 1.1294 4.8217 2.9038l-6.8184 3.9213v6.8556L5.0772 13.1691V6.2449C5.0772 3.6917 7.161 1.6005 10.7401 1.6005z"/></svg>,
-    tag: 'MOST POPULAR',
-    desc: 'Fast and intelligent multi-purpose assistant from OpenAI.',
-    usdInput: '$0.45',
-    usdOutput: '$1.80',
-    algoInput: '1.30 ALGO',
-    algoOutput: '5.20 ALGO',
-    features: ['High reasoning capability', '128k context window', 'Vision support', 'Ideal for coding']
-  },
-  { 
-    name: 'Gemini 1.5 Flash', 
-    provider: 'Google · Vision & Analysis', 
-    icon: <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z"/></svg>,
-    desc: "Google's lightweight, fast, and highly capable multimodal model.",
-    usdInput: '$0.22',
-    usdOutput: '$0.90',
-    algoInput: '0.35 ALGO',
-    algoOutput: '1.40 ALGO',
-    features: ['2M context window', 'Native multimodal', 'Fast processing', 'Data analysis']
-  },
-  { 
-    name: 'Llama 3.3', 
-    provider: 'Meta/Groq · Open-source Power', 
-    icon: <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M21.996 9.878v4.22l-6.824 3.93-3.176-1.83-6.824 3.93v-4.22l6.824-3.93 3.176 1.83 6.824-3.93zM21.996 4.945v4.22l-6.824 3.93-3.176-1.83-6.824 3.93V4.945L12 1.01l9.996 3.935zM12 22.99l-9.996-3.935V14.83L12 18.76l9.996-3.93v4.225L12 22.99z"/></svg>,
-    desc: 'Lightning-fast general purpose reasoning model powered by Groq.',
-    usdInput: '$1.77',
-    usdOutput: '$2.37',
-    algoInput: '0.95 ALGO',
-    algoOutput: '2.80 ALGO',
-    features: ['Open-source weights', 'Low latency via Groq', 'High efficiency', 'General text generation']
-  },
-  { 
-    name: 'Qwen 2.5', 
-    provider: 'Alibaba · Multilingual AI', 
-    icon: <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2zM2 12h20" stroke="currentColor" strokeWidth="2" fill="none"/></svg>,
-    desc: 'Powerful open-weights model capable of deep technical insights.',
-    usdInput: '$1.20',
-    usdOutput: '$1.20',
-    algoInput: '2.60 ALGO',
-    algoOutput: '5.50 ALGO',
-    features: ['Strong multilingual', 'Cost-effective', 'Coding support', 'Deep insights']
-  },
-];
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } },
+  return (
+    <div ref={containerRef} className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div
+        className="absolute inset-[-20px] dot-grid opacity-40 transition-transform duration-[2000ms] ease-out"
+        style={{
+          transform: `translate(${offset.x}px, ${offset.y}px)`,
+          maskImage: 'radial-gradient(ellipse at 60% 40%, black 20%, transparent 70%)',
+          WebkitMaskImage: 'radial-gradient(ellipse at 60% 40%, black 20%, transparent 70%)'
+        }}
+      />
+      {/* Aurora blob */}
+      <motion.div
+        className="absolute top-[10%] right-[15%] w-[500px] h-[500px] rounded-full opacity-30"
+        style={{
+          background: 'radial-gradient(circle, rgba(139,115,85,0.08) 0%, transparent 70%)'
+        }}
+        animate={{
+          x: [0, 30, -20, 0],
+          y: [0, -20, 30, 0],
+          scale: [1, 1.1, 0.95, 1],
+        }}
+        transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute bottom-[20%] left-[10%] w-[300px] h-[300px] rounded-full opacity-20"
+        style={{
+          background: 'radial-gradient(circle, rgba(10,10,10,0.05) 0%, transparent 70%)'
+        }}
+        animate={{
+          x: [0, -20, 30, 0],
+          y: [0, 30, -10, 0],
+          scale: [1, 0.95, 1.1, 1],
+        }}
+        transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
+      />
+    </div>
+  );
 };
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
+// ─── Terminal with Typing Effect ───
+const TerminalCard = () => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, amount: 0.3 });
+  const [visibleLines, setVisibleLines] = useState(0);
+  const [status, setStatus] = useState('idle');
+
+  const codeLines = [
+    { num: '1', parts: [{ text: 'payperai', cls: 'text-blue-400' }, { text: ".deploy({", cls: 'text-white/80' }] },
+    { num: '2', parts: [{ text: '  model: ', cls: 'text-white/50' }, { text: "'gpt-4o'", cls: 'text-emerald-400' }, { text: ',', cls: 'text-white/50' }] },
+    { num: '3', parts: [{ text: '  billing: ', cls: 'text-white/50' }, { text: "'per-token'", cls: 'text-emerald-400' }, { text: ',', cls: 'text-white/50' }] },
+    { num: '4', parts: [{ text: '  chain: ', cls: 'text-white/50' }, { text: "'algorand'", cls: 'text-emerald-400' }] },
+    { num: '5', parts: [{ text: '})', cls: 'text-white/80' }] },
+    { num: '6', parts: [{ text: '// Verified on-chain ✓', cls: 'text-white/25' }] },
+  ];
+
+  useEffect(() => {
+    if (!inView) return;
+    setStatus('typing');
+    const timers = codeLines.map((_, i) =>
+      setTimeout(() => {
+        setVisibleLines(i + 1);
+        if (i === codeLines.length - 1) {
+          setTimeout(() => setStatus('compiling'), 400);
+          setTimeout(() => setStatus('deployed'), 1200);
+          setTimeout(() => setStatus('verified'), 2000);
+        }
+      }, (i + 1) * 350)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [inView]);
+
+  return (
+    <div ref={ref} className="terminal-card p-6 md:p-8">
+      {/* macOS Chrome */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+          <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
+          <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-white/20 font-mono bg-white/[0.05] px-3 py-1 rounded-md">workflow.ts</span>
+        </div>
+      </div>
+
+      {/* Code content with typing effect */}
+      <div className="font-mono text-sm leading-[1.8]">
+        {codeLines.map((line, idx) => (
+          <motion.div
+            key={idx}
+            className="flex"
+            initial={{ opacity: 0, x: -10 }}
+            animate={idx < visibleLines ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <span className="text-white/15 w-8 shrink-0 select-none text-right mr-4">{line.num}</span>
+            <span>
+              {line.parts.map((part, j) => (
+                <span key={j} className={part.cls}>{part.text}</span>
+              ))}
+            </span>
+            {idx === visibleLines - 1 && status === 'typing' && (
+              <span className="inline-block w-[2px] h-4 bg-white/60 ml-0.5 animate-blink self-center" />
+            )}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Animated status bar */}
+      <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center gap-3">
+        <motion.div
+          className={`w-2 h-2 rounded-full ${
+            status === 'verified' ? 'bg-emerald-400' :
+            status === 'deployed' ? 'bg-blue-400' :
+            status === 'compiling' ? 'bg-amber-400' : 'bg-white/20'
+          }`}
+          animate={status === 'compiling' ? { opacity: [0.4, 1, 0.4] } : {}}
+          transition={{ duration: 0.8, repeat: Infinity }}
+        />
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={status}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className={`text-xs font-mono ${
+              status === 'verified' ? 'text-emerald-400/70' :
+              status === 'deployed' ? 'text-blue-400/70' :
+              status === 'compiling' ? 'text-amber-400/70' : 'text-white/30'
+            }`}
+          >
+            {status === 'idle' && 'Waiting...'}
+            {status === 'typing' && 'Writing...'}
+            {status === 'compiling' && 'Compiling contract...'}
+            {status === 'deployed' && 'Deploying to mainnet...'}
+            {status === 'verified' && '✓ Verified on Algorand'}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
 };
 
-const staggerItem = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } },
-};
+// ─── Scroll Indicator ───
+const ScrollIndicator = () => (
+  <motion.div
+    className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ delay: 2, duration: 1 }}
+  >
+    <span className="text-[10px] uppercase tracking-[0.3em] text-muted/50 font-medium">Scroll</span>
+    <motion.div
+      className="w-5 h-8 rounded-full border border-foreground/15 flex items-start justify-center p-1.5"
+      animate={{ borderColor: ['rgba(10,10,10,0.1)', 'rgba(10,10,10,0.2)', 'rgba(10,10,10,0.1)'] }}
+      transition={{ duration: 2, repeat: Infinity }}
+    >
+      <motion.div
+        className="w-1 h-1.5 rounded-full bg-foreground/30"
+        animate={{ y: [0, 10, 0] }}
+        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+      />
+    </motion.div>
+  </motion.div>
+);
 
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN HOME COMPONENT
+   ═══════════════════════════════════════════════════════════════ */
 
 const Home = () => {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
@@ -302,6 +513,14 @@ const Home = () => {
   useEffect(() => {
     setIsWalletConnected(!!getPersistedWallet());
     setMounted(true);
+  }, []);
+
+  // ─── Auto-cycle steps in "How it Works" ───
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveStep((prev) => (prev + 1) % STEPS.length);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleConnect = async () => {
@@ -325,15 +544,15 @@ const Home = () => {
         setIsWalletConnected(false);
       });
       const addr = accounts[0];
-      
+
       setConnectStatus('Getting challenge...');
       const { nonce } = await getNonce(addr);
       const message = `PayPerAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
       const msgBytes = new TextEncoder().encode(message);
-      
+
       setConnectStatus('Please sign in wallet...');
       const signedData = await peraWallet.signData([{ data: msgBytes, message }], addr);
-      
+
       setConnectStatus('Verifying...');
       const sigBytes = signedData[0] instanceof Uint8Array
         ? signedData[0]
@@ -409,15 +628,8 @@ const Home = () => {
 
       {/* ═══════════════════════════════════════════ HERO ═══════════════════════════════════════════ */}
       <section className="relative min-h-screen px-6 pt-32 pb-20 md:px-8 flex items-center">
-        {/* Subtle grid pattern */}
-        <div className="absolute inset-0 opacity-[0.35]" style={{
-          backgroundImage: `
-            linear-gradient(rgba(10,10,10,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(10,10,10,0.03) 1px, transparent 1px)
-          `,
-          backgroundSize: '80px 80px',
-          maskImage: 'radial-gradient(circle at 70% 30%, black 20%, transparent 70%)'
-        }} />
+        {/* Parallax dot grid + aurora background */}
+        <DotGridBg />
 
         <div className="relative z-10 mx-auto max-w-7xl w-full">
           <motion.div
@@ -431,13 +643,37 @@ const Home = () => {
               The pay-per-use AI platform
             </motion.div>
 
-            {/* Main heading */}
-            <motion.h1 variants={staggerItem} className="text-5xl md:text-7xl lg:text-[6.2rem] font-medium leading-[0.95] tracking-[-0.04em] text-foreground mb-8">
-              Industrial AI
+            {/* Main heading with split-text entrance */}
+            <motion.h1
+              variants={staggerItem}
+              className="text-5xl md:text-7xl lg:text-[6.2rem] font-medium leading-[0.95] tracking-[-0.04em] text-foreground mb-8"
+            >
+              <motion.span
+                className="inline-block"
+                initial={{ opacity: 0, y: 40, rotateX: -15 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              >
+                Industrial AI
+              </motion.span>
               <br />
-              without the
+              <motion.span
+                className="inline-block"
+                initial={{ opacity: 0, y: 40, rotateX: -15 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                transition={{ duration: 0.7, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              >
+                without the
+              </motion.span>
               <br />
-              subscription
+              <motion.span
+                className="inline-block"
+                initial={{ opacity: 0, y: 40, rotateX: -15 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                transition={{ duration: 0.7, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              >
+                subscription
+              </motion.span>
               <RotatingText />
             </motion.h1>
 
@@ -452,10 +688,10 @@ const Home = () => {
               <button
                 onClick={handleConnect}
                 disabled={isConnecting}
-                className="btn-primary text-base !px-8 !py-4"
+                className="btn-primary text-base !px-8 !py-4 group"
               >
                 {isConnecting ? (connectStatus || 'Connecting...') : 'Start free trial'}
-                <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </button>
@@ -468,25 +704,51 @@ const Home = () => {
                     window.scrollTo({ top, behavior: 'smooth' });
                   }
                 }}
-                className="btn-secondary text-base !px-8 !py-4 bg-transparent border border-black/10 shadow-none text-foreground hover:bg-black/5"
+                className="btn-secondary text-base !px-8 !py-4 group"
               >
                 Watch demo
+                <svg className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </button>
+            </motion.div>
+
+            {/* Floating stats strip */}
+            <motion.div
+              variants={staggerItem}
+              className="mt-14 flex flex-wrap items-center gap-3"
+            >
+              {['4 AI Models', '$0 Lock-in', 'On-Chain Verified', 'Pay Per Task'].map((item, idx) => (
+                <motion.span
+                  key={item}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.2 + idx * 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium text-foreground/60 bg-foreground/[0.03] border border-foreground/[0.06] backdrop-blur-sm"
+                >
+                  <span className="w-1 h-1 rounded-full bg-accent/60" />
+                  {item}
+                </motion.span>
+              ))}
             </motion.div>
           </motion.div>
 
-          {/* Hero Abstract Animation — right side on desktop */}
+          {/* Hero Orbiting Rings Animation — right side on desktop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 1.5, delay: 0.2 }}
+            transition={{ duration: 2, delay: 0.5 }}
             className="absolute top-0 right-[-5%] bottom-0 w-[55%] hidden lg:flex items-center justify-center pointer-events-none z-0 overflow-hidden"
           >
-            <div className="absolute inset-0 w-full h-[120%] -top-[10%] [mask-image:linear-gradient(to_left,black_20%,transparent_100%)] pointer-events-none">
-              <AbstractHeroAnimation />
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center" style={{ maskImage: 'linear-gradient(to left, black 30%, transparent 90%)', WebkitMaskImage: 'linear-gradient(to left, black 30%, transparent 90%)' }}>
+              <OrbitingRings />
             </div>
           </motion.div>
         </div>
+
+        {/* Scroll indicator */}
+        <ScrollIndicator />
       </section>
 
 
@@ -494,8 +756,11 @@ const Home = () => {
       <LiveTicker />
 
       {/* ═══════════════════════════════════════ ABOUT / FEATURES ═══════════════════════════════════════ */}
-      <section id="about" className="px-6 py-24 md:px-8 bg-foreground/[0.01] scroll-mt-32 border-y border-foreground/[0.03]">
-        <div className="mx-auto max-w-5xl">
+      <section id="about" className="px-6 py-28 md:px-8 scroll-mt-32 relative overflow-hidden">
+        {/* Subtle aurora background */}
+        <div className="absolute inset-0 aurora-bg pointer-events-none" />
+
+        <div className="relative mx-auto max-w-5xl">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -510,38 +775,44 @@ const Home = () => {
             <motion.h2 variants={staggerItem} className="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.05]">
               Everything you need.
               <br />
-              <span className="text-muted/60 font-medium">Nothing you don't.</span>
+              <span className="text-gradient">Nothing you don't.</span>
             </motion.h2>
           </motion.div>
 
-          {/* Feature list — Minimalist layout */}
+          {/* Feature list — Editorial layout with animated dividers */}
           <motion.div
-            className="flex flex-col border-t border-foreground/[0.08]"
+            className="flex flex-col"
             variants={staggerContainer}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
           >
+            {/* Top divider */}
+            <motion.div variants={staggerItem} className="divider-animated mb-0" />
+
             {ABOUT_FEATURES.map((feature, idx) => (
               <motion.div
                 key={feature.title}
-                className="py-16 border-b border-foreground/[0.08] flex flex-col md:flex-row items-start justify-between gap-12 group hover:bg-foreground/[0.02] transition-colors -mx-8 px-8"
+                className="group"
                 variants={staggerItem}
               >
-                <div className="flex items-start gap-8 max-w-2xl">
-                  <span className="text-sm font-semibold tracking-wider text-muted mt-1.5 shrink-0 uppercase">{feature.num}</span>
-                  <div>
-                    <h3 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground">
-                      {feature.title}
-                    </h3>
-                    <p className="mt-4 text-base md:text-lg text-muted leading-relaxed">
-                      {feature.desc}
-                    </p>
+                <div className="py-14 flex flex-col md:flex-row items-start justify-between gap-10 hover:bg-foreground/[0.015] transition-all duration-500 -mx-8 px-8 rounded-2xl cursor-default">
+                  <div className="flex items-start gap-8 max-w-2xl">
+                    <span className="text-sm font-semibold tracking-wider text-accent mt-1.5 shrink-0 uppercase font-mono">{feature.num}</span>
+                    <div>
+                      <h3 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground group-hover:text-gradient transition-all duration-500">
+                        {feature.title}
+                      </h3>
+                      <p className="mt-4 text-base md:text-lg text-muted leading-relaxed">
+                        {feature.desc}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="hidden md:flex shrink-0 opacity-20 group-hover:opacity-60 text-foreground transition-all duration-700 group-hover:scale-110">
+                    {feature.icon}
                   </div>
                 </div>
-                <div className="hidden md:flex shrink-0 opacity-40 group-hover:opacity-100 text-foreground transition-opacity duration-500">
-                  {feature.icon}
-                </div>
+                <div className="divider-animated" />
               </motion.div>
             ))}
           </motion.div>
@@ -552,13 +823,48 @@ const Home = () => {
       {/* ═══════════════════════════════════════ HOW IT WORKS (DARK) ═══════════════════════════════════════ */}
       <section
         id="how-it-works"
-        className="px-6 py-16 md:px-8 bg-[#0a0a0a] text-white scroll-mt-32 relative overflow-hidden"
+        className="px-6 py-24 md:px-8 bg-[#0a0a0a] text-white scroll-mt-32 relative overflow-hidden"
       >
         {/* Grid overlay */}
         <div className="absolute inset-0 grid-bg" />
 
-        {/* Subtle blue glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-500/[0.04] rounded-full blur-3xl" />
+        {/* Animated gradient orbs */}
+        <motion.div
+          className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] rounded-full opacity-[0.06]"
+          style={{ background: 'radial-gradient(circle, rgba(139,115,85,0.6) 0%, transparent 70%)' }}
+          animate={{ x: [0, 50, 0], y: [0, -30, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-[-10%] right-[10%] w-[400px] h-[400px] rounded-full opacity-[0.04]"
+          style={{ background: 'radial-gradient(circle, rgba(100,150,255,0.5) 0%, transparent 70%)' }}
+          animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+        />
+
+        {/* Floating particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(8)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 rounded-full bg-white/10"
+              style={{
+                left: `${10 + i * 12}%`,
+                top: `${20 + (i % 3) * 25}%`,
+              }}
+              animate={{
+                y: [-20, 20, -20],
+                opacity: [0.1, 0.4, 0.1],
+              }}
+              transition={{
+                duration: 4 + i * 0.5,
+                repeat: Infinity,
+                delay: i * 0.3,
+                ease: 'easeInOut',
+              }}
+            />
+          ))}
+        </div>
 
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="grid gap-16 lg:grid-cols-2 items-start">
@@ -577,49 +883,55 @@ const Home = () => {
               <motion.h2 variants={staggerItem} className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-[-0.03em] leading-[0.95]">
                 Three steps.
                 <br />
-                <span className="text-white/30">Zero SaaS drama.</span>
+                <span className="text-gradient-light">Zero SaaS drama.</span>
               </motion.h2>
 
-              {/* Interactive step selector */}
-              <div className="mt-14 flex flex-col">
+              {/* Interactive step selector with glass cards */}
+              <div className="mt-14 flex flex-col gap-3">
                 {STEPS.map((step, index) => (
                   <motion.button
                     key={step.num}
                     variants={staggerItem}
-                    className={`text-left py-7 border-b border-white/[0.06] transition-all duration-300 group cursor-pointer ${
-                      activeStep === index ? '' : 'opacity-40 hover:opacity-70'
+                    className={`text-left p-6 transition-all duration-500 group cursor-pointer rounded-2xl ${
+                      activeStep === index
+                        ? 'glass-card-dark !border-white/15'
+                        : 'opacity-40 hover:opacity-70 border border-transparent'
                     }`}
                     onClick={() => setActiveStep(index)}
                   >
                     <div className="flex items-start gap-4">
-                      <span className={`text-sm font-normal mt-1 transition-colors ${
-                        activeStep === index ? 'text-white/60' : 'text-white/30'
+                      <span className={`text-sm font-mono mt-1 transition-colors ${
+                        activeStep === index ? 'text-accent-light' : 'text-white/30'
                       }`}>
                         {step.num}
                       </span>
-                      <div>
+                      <div className="flex-1">
                         <h3 className="text-xl md:text-2xl font-medium tracking-[-0.02em]">
                           {step.title}
                         </h3>
-                        {activeStep === index && (
-                          <motion.p
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            transition={{ duration: 0.3 }}
-                            className="mt-2 text-sm text-white/50 leading-relaxed max-w-md"
-                          >
-                            {step.desc}
-                          </motion.p>
-                        )}
+                        <AnimatePresence>
+                          {activeStep === index && (
+                            <motion.p
+                              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                              animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                              className="text-sm text-white/50 leading-relaxed max-w-md overflow-hidden"
+                            >
+                              {step.desc}
+                            </motion.p>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
                     {/* Animated progress bar */}
                     {activeStep === index && (
                       <motion.div
-                        className="mt-4 h-[2px] bg-white/20 rounded-full ml-8"
+                        className="mt-4 h-[2px] bg-gradient-to-r from-accent/60 to-accent/20 rounded-full ml-8"
                         initial={{ width: 0 }}
                         animate={{ width: '100%' }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 4.5, ease: 'linear' }}
+                        key={`progress-${index}-${Date.now()}`}
                       />
                     )}
                   </motion.button>
@@ -631,66 +943,24 @@ const Home = () => {
             <motion.div
               initial={{ opacity: 0, x: 40 }}
               whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               viewport={{ once: true }}
               className="lg:pt-20"
             >
-              <div className="terminal-card p-6 md:p-8">
-                {/* Terminal dots */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-white/10" />
-                    <div className="w-3 h-3 rounded-full bg-white/10" />
-                    <div className="w-3 h-3 rounded-full bg-white/10" />
-                  </div>
-                  <span className="text-xs text-white/30 font-mono">workflow.ts</span>
-                </div>
-
-                {/* Code content */}
-                <div className="font-mono text-sm leading-relaxed">
-                  <div className="flex">
-                    <span className="text-white/20 w-8 shrink-0 select-none">1</span>
-                    <span><span className="text-blue-400">payperai</span>.deploy({'{'}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="text-white/20 w-8 shrink-0 select-none">2</span>
-                    <span className="text-white/60 ml-4">model: <span className="text-green-400">'gpt-4o'</span>,</span>
-                  </div>
-                  <div className="flex">
-                    <span className="text-white/20 w-8 shrink-0 select-none">3</span>
-                    <span className="text-white/60 ml-4">billing: <span className="text-green-400">'per-token'</span>,</span>
-                  </div>
-                  <div className="flex">
-                    <span className="text-white/20 w-8 shrink-0 select-none">4</span>
-                    <span className="text-white/60 ml-4">chain: <span className="text-green-400">'algorand'</span></span>
-                  </div>
-                  <div className="flex">
-                    <span className="text-white/20 w-8 shrink-0 select-none">5</span>
-                    <span>{'}'})</span>
-                  </div>
-                  <div className="flex mt-2">
-                    <span className="text-white/20 w-8 shrink-0 select-none">6</span>
-                    <span className="text-white/30">{'// Verified on-chain ✓'}</span>
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-400" />
-                  <span className="text-xs text-white/40">Ready</span>
-                </div>
-              </div>
+              <TerminalCard />
 
               {/* Warning note */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
+                transition={{ duration: 0.4, delay: 0.5 }}
                 viewport={{ once: true }}
-                className="mt-6 flex items-start gap-3 text-white/30"
+                className="mt-6 flex items-start gap-3 text-white/25 glass-card-dark p-4 !rounded-xl"
               >
-                <span className="text-lg mt-0.5">⚠</span>
-                <p className="text-sm leading-relaxed">
+                <svg className="w-4 h-4 mt-0.5 shrink-0 text-amber-400/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-xs leading-relaxed">
                   Missed usage limits reduce system priority and may restrict future requests.
                 </p>
               </motion.div>
@@ -701,8 +971,11 @@ const Home = () => {
 
 
       {/* ═══════════════════════════════════════ SERVICES ═══════════════════════════════════════ */}
-      <section id="services-preview" className="px-6 py-16 md:px-8 scroll-mt-32">
-        <div className="mx-auto max-w-7xl">
+      <section id="services-preview" className="px-6 py-28 md:px-8 scroll-mt-32 relative overflow-hidden">
+        {/* Subtle background */}
+        <div className="absolute inset-0 aurora-bg pointer-events-none" />
+
+        <div className="relative mx-auto max-w-7xl">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
 
             {/* LEFT — Content */}
@@ -719,16 +992,16 @@ const Home = () => {
               <motion.h2 variants={staggerItem} className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-[-0.03em] leading-[0.95]">
                 AI micro-
                 <br />
-                <span className="text-muted">services.</span>
+                <span className="text-gradient">services.</span>
               </motion.h2>
 
               <motion.p variants={staggerItem} className="mt-6 text-base text-muted leading-relaxed max-w-md">
                 Powered by the world's best models. Billed per task. Switch seamlessly without losing context.
               </motion.p>
 
-              {/* Model list */}
+              {/* Model list with premium styling */}
               <motion.div
-                className="mt-10 flex flex-col"
+                className="mt-10 flex flex-col gap-1"
                 variants={staggerContainer}
                 initial="hidden"
                 whileInView="visible"
@@ -739,23 +1012,29 @@ const Home = () => {
                     key={model.name}
                     onClick={() => setActiveModelIndex(idx)}
                     variants={staggerItem}
-                    className={`flex items-center gap-4 py-5 w-full text-left transition-all duration-300 ${
-                      idx !== AI_MODELS.length - 1 ? 'border-b border-foreground/[0.06]' : ''
-                    } ${activeModelIndex === idx ? 'pl-4 border-l-4 border-l-foreground' : 'hover:pl-2'}`}
+                    className={`flex items-center gap-4 p-4 w-full text-left transition-all duration-500 rounded-xl group ${
+                      activeModelIndex === idx
+                        ? 'glass-card !border-foreground/15 shadow-sm'
+                        : 'hover:bg-foreground/[0.02]'
+                    }`}
                   >
-                    <span className={`text-foreground transition-opacity ${activeModelIndex === idx ? 'opacity-100' : 'opacity-40'}`}>
+                    <span className={`text-foreground transition-all duration-300 ${
+                      activeModelIndex === idx ? 'opacity-100 scale-110' : 'opacity-30 group-hover:opacity-60'
+                    }`}>
                       {model.icon}
                     </span>
-                    <div className="flex-1">
-                      <h4 className={`text-lg font-medium transition-colors ${activeModelIndex === idx ? 'text-foreground' : 'text-muted'}`}>{model.name}</h4>
-                      <p className="text-sm text-muted/70">{model.provider}</p>
+                    <div className="flex-1 min-w-0">
+                      <h4 className={`text-lg font-medium transition-colors duration-300 ${
+                        activeModelIndex === idx ? 'text-foreground' : 'text-muted'
+                      }`}>{model.name}</h4>
+                      <p className="text-sm text-muted/70 truncate">{model.provider}</p>
                     </div>
                     {model.tag ? (
-                      <span className="text-[10px] font-medium uppercase tracking-[0.15em] bg-foreground text-background rounded-full px-3 py-1">
-                        {model.tag}
+                      <span className="text-[10px] font-medium uppercase tracking-[0.15em] bg-foreground text-background rounded-full px-3 py-1 shrink-0 relative overflow-hidden">
+                        <span className="relative z-10">{model.tag}</span>
                       </span>
                     ) : (
-                      <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-green-600 border border-green-600/20 rounded-full px-3 py-1">
+                      <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-emerald-600 border border-emerald-600/20 rounded-full px-3 py-1 shrink-0">
                         Live
                       </span>
                     )}
@@ -764,7 +1043,7 @@ const Home = () => {
 
                 <motion.div
                   variants={staggerItem}
-                  className="py-4 text-sm text-muted text-center border border-dashed border-foreground/10 rounded-xl mt-4"
+                  className="py-4 text-sm text-muted text-center border border-dashed border-foreground/10 rounded-xl mt-2"
                 >
                   + More models coming soon
                 </motion.div>
@@ -775,69 +1054,91 @@ const Home = () => {
             <motion.div
               initial={{ opacity: 0, x: 60 }}
               whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               viewport={{ once: true }}
               className="flex items-center justify-center lg:pt-20 relative"
             >
-              <motion.div 
-                key={activeModelIndex}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.4 }}
-                className="w-full max-w-[360px] bg-transparent rounded-[1.5rem] p-8 border border-black/10"
-              >
-                <div className="text-sm font-medium text-black/40 tracking-[0.2em] uppercase mb-4">
-                  0{activeModelIndex + 1}
-                </div>
-                <h3 className="text-3xl font-semibold text-black tracking-tight mb-3">
-                  {AI_MODELS[activeModelIndex].name.replace(' Mini', '').replace(' Flash', '')}
-                </h3>
-                <p className="text-sm text-black/60 leading-relaxed mb-6">
-                  {AI_MODELS[activeModelIndex].desc}
-                </p>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <div className="text-[11px] font-bold text-black/40 tracking-wider uppercase mb-1">Input (1M Tokens)</div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-[2rem] font-bold tracking-tighter text-black leading-none">
-                        {AI_MODELS[activeModelIndex].usdInput}
-                      </span>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeModelIndex}
+                  initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.97 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="w-full max-w-[380px] glass-card p-8 relative overflow-hidden"
+                >
+                  {/* Subtle gradient overlay */}
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-accent/[0.04] to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+                  <div className="relative">
+                    <div className="text-sm font-medium text-accent tracking-[0.2em] uppercase mb-4 font-mono">
+                      0{activeModelIndex + 1}
                     </div>
-                    <div className="text-xs font-medium text-black/50 mt-1">
-                      {AI_MODELS[activeModelIndex].algoInput}
+                    <h3 className="text-3xl font-semibold text-foreground tracking-tight mb-3">
+                      {AI_MODELS[activeModelIndex].name}
+                    </h3>
+                    <p className="text-sm text-muted leading-relaxed mb-6">
+                      {AI_MODELS[activeModelIndex].desc}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="p-3 rounded-xl bg-foreground/[0.02] border border-foreground/[0.04]">
+                        <div className="text-[10px] font-bold text-muted tracking-wider uppercase mb-1.5">Input (1M)</div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-bold tracking-tighter text-foreground leading-none">
+                            {AI_MODELS[activeModelIndex].usdInput}
+                          </span>
+                        </div>
+                        <div className="text-[11px] font-medium text-accent mt-1.5">
+                          {AI_MODELS[activeModelIndex].algoInput}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-foreground/[0.02] border border-foreground/[0.04]">
+                        <div className="text-[10px] font-bold text-muted tracking-wider uppercase mb-1.5">Output (1M)</div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-bold tracking-tighter text-foreground leading-none">
+                            {AI_MODELS[activeModelIndex].usdOutput}
+                          </span>
+                        </div>
+                        <div className="text-[11px] font-medium text-accent mt-1.5">
+                          {AI_MODELS[activeModelIndex].algoOutput}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-bold text-black/40 tracking-wider uppercase mb-1">Output (1M Tokens)</div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-[2rem] font-bold tracking-tighter text-black leading-none">
-                        {AI_MODELS[activeModelIndex].usdOutput}
-                      </span>
+
+                    <div className="divider-animated mb-6" />
+
+                    <div className="space-y-3 mb-8">
+                      {AI_MODELS[activeModelIndex].features.map((feature, i) => (
+                        <motion.div
+                          key={feature}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.08, duration: 0.3 }}
+                          className="flex items-center gap-3"
+                        >
+                          <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                            <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <span className="text-sm font-medium text-foreground/80">{feature}</span>
+                        </motion.div>
+                      ))}
                     </div>
-                    <div className="text-xs font-medium text-black/50 mt-1">
-                      {AI_MODELS[activeModelIndex].algoOutput}
-                    </div>
-                  </div>
-                </div>
-                
-                <hr className="border-black/5 mb-6" />
-                
-                <div className="space-y-3 mb-8">
-                  {AI_MODELS[activeModelIndex].features.map((feature, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+
+                    <button
+                      onClick={(e) => { e.preventDefault(); document.getElementById('join-us')?.scrollIntoView({behavior: 'smooth'})}}
+                      className="w-full btn-primary !py-3.5 group"
+                    >
+                      Start using
+                      <svg className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
-                      <span className="text-sm font-medium text-black/80">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-                
-                <button onClick={(e) => { e.preventDefault(); document.getElementById('join-us')?.scrollIntoView({behavior: 'smooth'})}} className="w-full bg-black text-white rounded-full py-3.5 text-sm font-medium hover:bg-black/90 transition-colors flex items-center justify-center gap-2">
-                  Start using <span className="ml-1">→</span>
-                </button>
-              </motion.div>
+                    </button>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
             </motion.div>
 
           </div>
@@ -850,8 +1151,10 @@ const Home = () => {
 
 
       {/* ═══════════════════════════════════════ MARKETPLACE ═══════════════════════════════════════ */}
-      <section id="marketplace-preview" className="px-6 py-10 md:py-12 md:px-8 scroll-mt-32">
-        <div className="mx-auto max-w-7xl">
+      <section id="marketplace-preview" className="px-6 py-20 md:py-24 md:px-8 scroll-mt-32 relative overflow-hidden">
+        <div className="absolute inset-0 aurora-bg pointer-events-none" />
+
+        <div className="relative mx-auto max-w-7xl">
 
           {/* Header */}
           <motion.div
@@ -859,7 +1162,7 @@ const Home = () => {
             whileInView="visible"
             viewport={{ once: true }}
             variants={staggerContainer}
-            className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-14"
+            className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-16"
           >
             <div>
               <motion.div variants={staggerItem} className="section-label mb-6">
@@ -868,7 +1171,7 @@ const Home = () => {
               <motion.h2 variants={staggerItem} className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-[-0.03em] leading-[0.95]">
                 AI Agent
                 <br />
-                <span className="text-muted">Marketplace.</span>
+                <span className="text-gradient">Marketplace.</span>
               </motion.h2>
             </div>
 
@@ -888,26 +1191,33 @@ const Home = () => {
             </motion.div>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 items-start">
 
-            {/* LEFT: Marketplace screenshot */}
+            {/* LEFT: Marketplace screenshot with floating effect */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               viewport={{ once: true }}
-              className="w-full flex items-center justify-center lg:-mt-12"
+              className="w-full flex items-center justify-center lg:-mt-8"
             >
-              <img
-                src="/ai marketplace.png"
-                alt="PayPerAI decentralized custom AI agent marketplace creator dashboard"
-                className="w-[80%] max-w-[420px] h-auto object-contain drop-shadow-xl"
-              />
+              <motion.div
+                className="relative"
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <div className="absolute inset-0 bg-accent/5 rounded-3xl blur-3xl scale-110" />
+                <img
+                  src="/ai marketplace.png"
+                  alt="PayPerAI decentralized custom AI agent marketplace creator dashboard"
+                  className="relative w-[85%] max-w-[440px] h-auto object-contain mx-auto drop-shadow-2xl rounded-2xl"
+                />
+              </motion.div>
             </motion.div>
 
             {/* RIGHT: Value prop cards */}
             <motion.div
-              className="flex flex-col gap-4"
+              className="flex flex-col gap-3"
               variants={staggerContainer}
               initial="hidden"
               whileInView="visible"
@@ -954,10 +1264,10 @@ const Home = () => {
                 <motion.div
                   key={card.title}
                   variants={staggerItem}
-                  className="clean-card p-6 group cursor-default"
+                  className="glass-card p-6 group cursor-default gradient-border"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground/[0.04] text-foreground/60 group-hover:bg-foreground/[0.08] transition-colors">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground/[0.04] text-foreground/60 group-hover:bg-accent/10 group-hover:text-accent transition-all duration-500">
                       {card.icon}
                     </div>
                     <div>
@@ -979,8 +1289,10 @@ const Home = () => {
 
 
       {/* ═══════════════════════════════════════ FEATURES / TRUST SIGNALS ═══════════════════════════════════════ */}
-      <section id="why-us" className="px-6 py-16 md:px-8 scroll-mt-32">
-        <div className="mx-auto max-w-7xl">
+      <section id="why-us" className="px-6 py-28 md:px-8 scroll-mt-32 relative overflow-hidden">
+        <div className="absolute inset-0 aurora-bg pointer-events-none" />
+
+        <div className="relative mx-auto max-w-7xl">
 
           <motion.div
             initial="hidden"
@@ -992,34 +1304,34 @@ const Home = () => {
               Why us
             </motion.div>
 
-            <motion.h2 variants={staggerItem} className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-[-0.03em] leading-[0.95] mb-14">
+            <motion.h2 variants={staggerItem} className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-[-0.03em] leading-[0.95] mb-16">
               Trust signals
               <br />
-              <span className="text-muted">that matter.</span>
+              <span className="text-gradient">that matter.</span>
             </motion.h2>
           </motion.div>
 
-          {/* Stats Grid — Optimus style */}
+          {/* Stats Grid — Premium with animated counters */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             viewport={{ once: true }}
-            className="stats-grid grid-cols-2 md:grid-cols-4 mb-16"
+            className="stats-grid grid-cols-2 md:grid-cols-4 mb-20"
           >
-            {TRUST_STATS.map((stat) => (
-              <div key={stat.label}>
-                <div className="text-5xl md:text-7xl font-semibold tracking-tight text-foreground">
-                  {stat.value}
+            {TRUST_STATS.map((stat, idx) => (
+              <div key={stat.label} className="group">
+                <div className="text-4xl md:text-6xl font-semibold tracking-tight text-foreground">
+                  <AnimatedCounter value={stat.value} />
                 </div>
-                <div className="mt-4 text-base font-medium uppercase tracking-[0.05em] text-muted">
+                <div className="mt-4 text-sm font-medium uppercase tracking-[0.08em] text-muted group-hover:text-accent transition-colors duration-500">
                   {stat.label}
                 </div>
               </div>
             ))}
           </motion.div>
 
-          {/* Features grid */}
+          {/* Features grid with 3D hover */}
           <motion.div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
             variants={staggerContainer}
@@ -1030,10 +1342,13 @@ const Home = () => {
             {FEATURES.map((f) => (
               <motion.div
                 key={f.title}
-                className="clean-card p-6 group cursor-default"
+                className="glass-card p-6 group cursor-default gradient-border"
                 variants={staggerItem}
+                whileHover={{ y: -4, transition: { duration: 0.3 } }}
               >
-                <div className="text-2xl mb-4">{f.icon}</div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground/[0.04] text-foreground/60 group-hover:bg-accent/10 group-hover:text-accent transition-all duration-500 mb-4">
+                  {f.icon}
+                </div>
                 <h3 className="text-base font-medium text-foreground">
                   {f.title}
                 </h3>
@@ -1049,57 +1364,74 @@ const Home = () => {
 
 
       {/* ═══════════════════════════════════════ FINAL CTA ═══════════════════════════════════════ */}
-      <section id="join-us" className="px-6 py-16 md:py-24 md:px-8 scroll-mt-32">
-        <div className="mx-auto max-w-6xl">
+      <section id="join-us" className="px-6 py-20 md:py-28 md:px-8 scroll-mt-32 relative overflow-hidden">
+        <div className="absolute inset-0 gradient-mesh pointer-events-none" />
+
+        <div className="relative mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="border border-foreground/10 bg-background flex flex-col md:flex-row relative"
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="glass-card !rounded-3xl overflow-hidden flex flex-col md:flex-row relative"
           >
-            <div className="p-10 md:p-16 lg:p-20 flex-1 z-10 flex flex-col justify-center">
-              <h2 className="text-4xl md:text-5xl lg:text-[3.5rem] font-medium tracking-tight leading-[1.05] text-foreground mb-6">
-                Ready to build<br />something great?
-              </h2>
+            {/* Ambient glow */}
+            <div className="absolute top-[-50%] left-[-20%] w-[500px] h-[500px] rounded-full bg-accent/[0.04] blur-[100px] pointer-events-none" />
+
+            <div className="p-10 md:p-16 lg:p-20 flex-1 z-10 flex flex-col justify-center relative">
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="text-4xl md:text-5xl lg:text-[3.5rem] font-medium tracking-tight leading-[1.05] text-foreground mb-6"
+              >
+                Ready to build<br />
+                <span className="text-gradient">something great?</span>
+              </motion.h2>
               <p className="text-lg text-muted/80 max-w-md leading-relaxed mb-10">
                 Join thousands of teams shipping faster with PayPerAI. Start free, scale infinitely.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
                 <button
                   onClick={handleConnect}
                   disabled={isConnecting}
-                  className="w-full sm:w-auto bg-black text-white px-8 py-3.5 rounded-full text-sm font-medium flex items-center justify-center hover:bg-black/90 transition-colors"
+                  className="w-full sm:w-auto btn-primary !px-10 !py-4 text-base group"
                 >
                   {isConnecting ? (connectStatus || 'Connecting...') : 'Start building free'}
-                  <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </button>
                 <button
                   onClick={() => window.open('mailto:sales@payperai.com')}
-                  className="w-full sm:w-auto bg-background text-foreground border border-foreground/10 px-8 py-3.5 rounded-full text-sm font-medium flex items-center justify-center hover:bg-foreground/5 transition-colors"
+                  className="w-full sm:w-auto btn-secondary !px-8 !py-4 text-base"
                 >
                   Talk to sales
                 </button>
               </div>
-              
-              <p className="text-xs text-muted/60 font-mono tracking-wider">
-                Connect Pera Wallet · Pay per task
-              </p>
+
+              <div className="flex items-center gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-xs text-muted/50 font-mono tracking-wider">
+                  Connect Pera Wallet · Pay per task · No credit card
+                </p>
+              </div>
             </div>
-            
-            {/* Video Graphic Right Side */}
-            <div className="flex-1 bg-background hidden md:flex items-center justify-center relative border-l border-foreground/10">
-              <iframe
-                className="absolute inset-0 w-full h-full object-cover"
-                src="https://www.youtube.com/embed/wxWkeq6ea4A?si=qIIFOSd3nooruOPk&rel=0"
-                title="PayPerAI Video"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
+
+            {/* Video Right Side */}
+            <div className="flex-1 hidden md:flex items-center justify-center relative min-h-[350px]">
+              <div className="absolute inset-2 rounded-2xl overflow-hidden border border-foreground/[0.06]">
+                <iframe
+                  className="absolute inset-0 w-full h-full object-cover"
+                  src="https://www.youtube.com/embed/wxWkeq6ea4A?si=qIIFOSd3nooruOPk&rel=0"
+                  title="PayPerAI Video"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -1107,57 +1439,81 @@ const Home = () => {
 
 
       {/* ═══════════════════════════════════════ ONBOARDING MODAL ═══════════════════════════════════════ */}
-      {showOnboarding && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
-          <div className="animate-fade-in relative w-full max-w-md rounded-2xl border border-foreground/10 bg-white p-8 shadow-card-hover">
-            <h2 className="mb-1 text-xl font-semibold text-foreground">Complete Profile</h2>
-            <p className="mb-6 text-sm text-muted">Please provide your details to continue.</p>
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="absolute inset-0 bg-background/70 backdrop-blur-xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowOnboarding(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="relative w-full max-w-md glass-card p-8 !bg-white/80"
+            >
+              {/* Accent glow */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-accent/[0.06] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
-                <input
-                  required
-                  type="text"
-                  value={onboardingData.name}
-                  onChange={e => setOnboardingData({...onboardingData, name: e.target.value})}
-                  className="w-full rounded-xl border border-foreground/15 bg-white px-4 py-2.5 text-sm text-foreground outline-none transition-all focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
-                  placeholder="John Doe"
-                />
+              <div className="relative">
+                <h2 className="mb-1 text-xl font-semibold text-foreground">Complete Profile</h2>
+                <p className="mb-6 text-sm text-muted">Please provide your details to continue.</p>
+
+                <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
+                    <input
+                      required
+                      type="text"
+                      value={onboardingData.name}
+                      onChange={e => setOnboardingData({...onboardingData, name: e.target.value})}
+                      className="w-full rounded-xl border border-foreground/10 bg-white/80 px-4 py-2.5 text-sm text-foreground outline-none transition-all duration-300 focus:border-accent/50 focus:ring-2 focus:ring-accent/10 focus:bg-white"
+                      placeholder="John Doe"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
+                    <input
+                      required
+                      type="email"
+                      value={onboardingData.email}
+                      onChange={e => setOnboardingData({...onboardingData, email: e.target.value})}
+                      className="w-full rounded-xl border border-foreground/10 bg-white/80 px-4 py-2.5 text-sm text-foreground outline-none transition-all duration-300 focus:border-accent/50 focus:ring-2 focus:ring-accent/10 focus:bg-white"
+                      placeholder="john@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Date of Birth</label>
+                    <input
+                      required
+                      type="date"
+                      value={onboardingData.dob}
+                      onChange={e => setOnboardingData({...onboardingData, dob: e.target.value})}
+                      className="w-full rounded-xl border border-foreground/10 bg-white/80 px-4 py-2.5 text-sm text-foreground outline-none transition-all duration-300 focus:border-accent/50 focus:ring-2 focus:ring-accent/10 focus:bg-white"
+                    />
+                  </div>
+                  <button
+                    disabled={isRegistering}
+                    type="submit"
+                    className="w-full btn-primary !py-3 disabled:opacity-50 mt-2"
+                  >
+                    {isRegistering ? 'Registering...' : 'Register Profile'}
+                  </button>
+                </form>
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
-                <input
-                  required
-                  type="email"
-                  value={onboardingData.email}
-                  onChange={e => setOnboardingData({...onboardingData, email: e.target.value})}
-                  className="w-full rounded-xl border border-foreground/15 bg-white px-4 py-2.5 text-sm text-foreground outline-none transition-all focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
-                  placeholder="john@example.com"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Date of Birth</label>
-                <input
-                  required
-                  type="date"
-                  value={onboardingData.dob}
-                  onChange={e => setOnboardingData({...onboardingData, dob: e.target.value})}
-                  className="w-full rounded-xl border border-foreground/15 bg-white px-4 py-2.5 text-sm text-foreground outline-none transition-all focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
-                />
-              </div>
-              <button
-                disabled={isRegistering}
-                type="submit"
-                className="w-full btn-primary !py-3 disabled:opacity-50"
-              >
-                {isRegistering ? 'Registering...' : 'Register Profile'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
