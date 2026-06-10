@@ -128,7 +128,7 @@ async def security_and_log_middleware(request: Request, call_next):
     # Don't tell attackers what server/version is running
     response.headers["Server"] = "PayPerAI"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://testnet-api.algonode.cloud"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; connect-src 'self' https://testnet-api.algonode.cloud; script-src 'self' 'unsafe-inline'"
 
     return response
 
