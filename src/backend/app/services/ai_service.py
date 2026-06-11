@@ -249,7 +249,7 @@ async def stream_ai_response_with_context(service_id: str, messages: list[dict])
         elif provider == "gemini":
             import google.generativeai as genai
             genai.configure(api_key=settings.gemini_api_key)
-            gemini_model = genai.GenerativeModel(model_name="gemini-2.0-flash", system_instruction=system_prompt)
+            gemini_model = genai.GenerativeModel(model_name=model, system_instruction=system_prompt)
             
             history = []
             for msg in messages[:-1]:
