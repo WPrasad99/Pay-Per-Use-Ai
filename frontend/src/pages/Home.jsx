@@ -260,6 +260,71 @@ const AnimatedCounter = ({ value, suffix = '', prefix = '' }) => {
   );
 };
 
+// ─── Abstract Cube Animation (Restored) ───
+const AbstractHeroAnimation = () => {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none perspective-[1500px] opacity-[0.9]">
+      <motion.div 
+        className="relative w-[360px] h-[360px]"
+        style={{ transformStyle: 'preserve-3d' }}
+        animate={{ 
+          rotateX: [0, 360], 
+          rotateY: [0, 360],
+          rotateZ: [0, 360]
+        }}
+        transition={{ 
+          duration: 50, 
+          repeat: Infinity, 
+          ease: "linear" 
+        }}
+      >
+        {/* Main large cube with internal grid */}
+        {[
+          { rotateY: 0, translateZ: 180 },
+          { rotateY: 90, translateZ: 180 },
+          { rotateY: 180, translateZ: 180 },
+          { rotateY: -90, translateZ: 180 },
+          { rotateX: 90, translateZ: 180 },
+          { rotateX: -90, translateZ: 180 }
+        ].map((face, i) => (
+          <div
+            key={i}
+            className="absolute inset-0 border border-foreground/30 bg-background/5 backdrop-blur-[2px]"
+            style={{
+              transform: `rotateX(${face.rotateX || 0}deg) rotateY(${face.rotateY || 0}deg) translateZ(${face.translateZ}px)`,
+            }}
+          >
+            {/* Elegant 4x4 inner grid on each face */}
+            <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
+               {Array.from({length: 16}).map((_, j) => (
+                 <div key={j} className="border border-foreground/10" />
+               ))}
+            </div>
+          </div>
+        ))}
+        
+        {/* Inner floating core cube */}
+        {[
+          { rotateY: 0, translateZ: 80 },
+          { rotateY: 90, translateZ: 80 },
+          { rotateY: 180, translateZ: 80 },
+          { rotateY: -90, translateZ: 80 },
+          { rotateX: 90, translateZ: 80 },
+          { rotateX: -90, translateZ: 80 }
+        ].map((face, i) => (
+          <div
+            key={`core-${i}`}
+            className="absolute inset-0 m-auto w-[160px] h-[160px] border border-foreground/50 bg-foreground/5 backdrop-blur-sm"
+            style={{
+              transform: `rotateX(${face.rotateX || 0}deg) rotateY(${face.rotateY || 0}deg) translateZ(${face.translateZ}px)`,
+            }}
+          />
+        ))}
+      </motion.div>
+    </div>
+  );
+};
+
 // ─── Orbiting Ring System (Hero Animation) ───
 const OrbitingRings = () => {
   return (
@@ -734,15 +799,15 @@ const Home = () => {
             </motion.div>
           </motion.div>
 
-          {/* Hero Orbiting Rings Animation — right side on desktop */}
+          {/* Hero Cube Animation — right side on desktop, shifted slightly right */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 2, delay: 0.5 }}
-            className="absolute top-0 right-[-5%] bottom-0 w-[55%] hidden lg:flex items-center justify-center pointer-events-none z-0 overflow-hidden"
+            className="absolute top-0 right-[-10%] bottom-0 w-[55%] hidden lg:flex items-center justify-center pointer-events-none z-0 overflow-hidden"
           >
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center" style={{ maskImage: 'linear-gradient(to left, black 30%, transparent 90%)', WebkitMaskImage: 'linear-gradient(to left, black 30%, transparent 90%)' }}>
-              <OrbitingRings />
+            <div className="absolute inset-0 w-full h-[120%] -top-[10%] flex items-center justify-center pointer-events-none" style={{ maskImage: 'linear-gradient(to left, black 30%, transparent 90%)', WebkitMaskImage: 'linear-gradient(to left, black 30%, transparent 90%)' }}>
+              <AbstractHeroAnimation />
             </div>
           </motion.div>
         </div>
