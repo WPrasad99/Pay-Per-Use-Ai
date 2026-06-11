@@ -126,36 +126,37 @@ This diagram illustrates the relational data flow and ownership structures withi
 
 ```mermaid
 erDiagram
-    USER ||--o{ SMART_SESSION : "authorizes"
-    USER ||--o{ AGENT_PROFILE : "creates"
+    USER ||--o{ SMART_SESSION : authorizes
+    USER ||--o{ AGENT_PROFILE : creates
+    SMART_SESSION ||--|{ INFERENCE_REQUEST : funds
+    AI_MODEL ||--|{ INFERENCE_REQUEST : processes
+    AGENT_PROFILE ||--o{ INFERENCE_REQUEST : facilitates
+
     USER {
         string wallet_address PK
         string encrypted_byok
         float total_spent
     }
-    SMART_SESSION ||--|{ INFERENCE_REQUEST : "funds"
     SMART_SESSION {
         string session_id PK
         float escrow_amount
-        timestamp expires_at
+        string expires_at
     }
-    INFERENCE_REQUEST }|--|| AI_MODEL : "uses"
     INFERENCE_REQUEST {
         string request_id PK
         int tokens_used
         float total_cost
-        timestamp created_at
+        string created_at
     }
     AI_MODEL {
         string model_name PK
         float cost_per_1k_input
         float cost_per_1k_output
     }
-    AGENT_PROFILE ||--o{ INFERENCE_REQUEST : "facilitates"
     AGENT_PROFILE {
         string agent_id PK
         string custom_prompt
-        float royalty_percentage
+        float royalty
     }
 ```
 
