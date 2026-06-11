@@ -376,7 +376,7 @@ const WorkspacePage = () => {
                 u.searchParams.set('session', convId);
                 window.history.pushState({}, '', u);
 
-                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100);
             } catch (e) {
                 setError(`Failed to load session: ${e.message}`);
             } finally {
@@ -395,7 +395,7 @@ const WorkspacePage = () => {
     }, [location.search, wallet, conversationId, isLoading, loadConversation]);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
     }, [messages]);
 
     const usageRows = useMemo(() => {
