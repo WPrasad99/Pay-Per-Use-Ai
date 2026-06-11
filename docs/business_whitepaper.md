@@ -1,4 +1,4 @@
-# <div align="center">📄 PayPerAI: Business & Product Whitepaper</div>
+# <div align="center">📄 PayPerUseAI: Business & Product Whitepaper</div>
 <div align="center"><b>Decentralized Micro-Payment Gateway for AI Inference & P2P API Key Sharing</b></div>
 
 <br/>
@@ -15,7 +15,7 @@
 
 ## 👥 1. Target Users (Ideal Customer Profiles)
 
-PayPerAI acts as a financial bridge connecting three distinct audience segments into a highly collaborative, self-sustaining ecosystem:
+PayPerUseAI acts as a financial bridge connecting three distinct audience segments into a highly collaborative, self-sustaining ecosystem:
 
 ```text
  ┌──────────────────────┐      ┌──────────────────────┐      ┌──────────────────────┐
@@ -28,17 +28,17 @@ PayPerAI acts as a financial bridge connecting three distinct audience segments 
 ### A. The Smart Consumer (AI Power-Users)
 * **Who they are:** Students, researchers, and professional writers who switch between models (GPT-4o, Claude 3.5, Gemini 1.5) depending on the task.
 * **Their pain point:** Paying **$20/month** to 3-4 different companies ($80+/month total) while only utilizing **15%** of their monthly prompt limit on each.
-* **PayPerAI Value:** They pay **zero subscriptions**. Instead, they connect Pera Wallet once and stream responses, paying **less than $0.001 per prompt** in MicroAlgos.
+* **PayPerUseAI Value:** They pay **zero subscriptions**. Instead, they connect Pera Wallet once and stream responses, paying **less than $0.001 per prompt** in MicroAlgos.
 
 ### B. The Idle Key Provider (P2P API Key Sellers)
 * **Who they are:** Developers and enterprise teams who have large, pre-paid API tier limits (e.g. Groq Enterprise, OpenAI Tier 5) that remain **90% idle** during off-peak hours.
 * **Their pain point:** Wasted capital on pre-purchased quotas that expire at the end of the billing cycle.
-* **PayPerAI Value:** They securely encrypt and plug their idle API key into our marketplace. Other users execute queries against it, turning their wasted developer quotas into **active passive income streams** paid directly to their wallet.
+* **PayPerUseAI Value:** They securely encrypt and plug their idle API key into our marketplace. Other users execute queries against it, turning their wasted developer quotas into **active passive income streams** paid directly to their wallet.
 
 ### C. Custom AI Agent Creators (The Prompt Engineers)
 * **Who they are:** Creators who build highly specialized AI personas, custom system prompts, or automated workflows.
 * **Their pain point:** Deploying AI agents requires hosting servers, setting up credit card billings, and bearing the cost of user queries.
-* **PayPerAI Value:** They deploy their agent to our on-chain marketplace for free. The Algorand contract automatically handles the payment billing, granting the creator an instant **90% split** of all token queries processed by their agent.
+* **PayPerUseAI Value:** They deploy their agent to our on-chain marketplace for free. The Algorand contract automatically handles the payment billing, granting the creator an instant **90% split** of all token queries processed by their agent.
 
 ---
 
@@ -72,12 +72,12 @@ graph LR
 
 ## 💰 3. Revenue & Monetization Model
 
-PayPerAI operates on a highly scalable, transaction-volume-driven revenue model. There are **no fixed overheads** or platform infrastructure subscription costs.
+PayPerUseAI operates on a highly scalable, transaction-volume-driven revenue model. There are **no fixed overheads** or platform infrastructure subscription costs.
 
 | Revenue Stream | Fee Structure | Recipient |
 | --- | --- | --- |
 | **Token Settle Split** | **90%** of dynamic token cost | AI Agent Creator / API Key Provider |
-| **Platform Hosting Cut** | **10%** of dynamic token cost | PayPerAI Platform Wallet |
+| **Platform Hosting Cut** | **10%** of dynamic token cost | PayPerUseAI Platform Wallet |
 | **1-Click NFT Minting** | **Flat Fee + Network Gas** | Minting contract splits: 90% Creator / 10% Platform |
 
 > [!NOTE]
@@ -91,19 +91,19 @@ Our business model is built on two core consumer behavioral insights:
 
 ### Hypothesis A: Lowering the Financial Entry Barrier
 * **Traditional Model:** Users must commit to a **$20/month** upfront subscription to test a premium model. This results in high user bounce rates (over 92%).
-* **PayPerAI Model:** By offering **$0.001 micro-payments**, we lower the barrier to entry to virtually zero. A user can run **2,000 queries** on PayPerAI before they match the cost of a single monthly ChatGPT subscription.
+* **PayPerUseAI Model:** By offering **$0.001 micro-payments**, we lower the barrier to entry to virtually zero. A user can run **2,000 queries** on PayPerUseAI before they match the cost of a single monthly ChatGPT subscription.
 * **Expected Outcome:** Massive user onboarding velocity, high retention rates, and immediate utility verification.
 
 ### Hypothesis B: The P2P Sharing Yield
 * **Traditional Model:** Flat API keys are private, expensive, and under-utilized.
-* **PayPerAI Model:** We create a liquid, peer-to-peer sharing economy for computing quotas. Key providers are highly motivated to keep their keys listed to collect continuous passive yield.
-* **Expected Outcome:** The price per token query decreases exponentially as more providers compete to route queries, making PayPerAI significantly cheaper than standard retail AI APIs.
+* **PayPerUseAI Model:** We create a liquid, peer-to-peer sharing economy for computing quotas. Key providers are highly motivated to keep their keys listed to collect continuous passive yield.
+* **Expected Outcome:** The price per token query decreases exponentially as more providers compete to route queries, making PayPerUseAI significantly cheaper than standard retail AI APIs.
 
 ---
 
-## ⛓️ 5. Why Algorand is the Ultimate Blockchain for PayPerAI
+## ⛓️ 5. Why Algorand is the Ultimate Blockchain for PayPerUseAI
 
-Traditional L1 blockchains (like Ethereum or Solana) are fundamentally unsuited for high-density, real-time micro-payments. Algorand is the only ledger that makes PayPerAI commercially viable:
+Traditional L1 blockchains (like Ethereum or Solana) are fundamentally unsuited for high-density, real-time micro-payments. Algorand is the only ledger that makes PayPerUseAI commercially viable:
 
 > [!TIP]
 > ### ⚡ Four Pillars of the Algorand Advantage:
@@ -119,7 +119,7 @@ Traditional L1 blockchains (like Ethereum or Solana) are fundamentally unsuited 
 Our long-term roadmap focuses on building a unified, chain-agnostic decentralized AI economy:
 
 ### Phase 1: Cross-Chain Bridging (Wormhole Integration)
-* **Vision:** Enable users from Ethereum, Solana, and Base to access PayPerAI.
+* **Vision:** Enable users from Ethereum, Solana, and Base to access PayPerUseAI.
 * **Mechanism:** Integrate Wormhole contracts so users can lock assets (like USDC) on their native chain, automatically spinning up an Algorand smart session in the background without needing Pera Wallet or holding ALGO.
 
 ### Phase 2: Yield-Bearing Active Escrows (Folks Finance Integration)

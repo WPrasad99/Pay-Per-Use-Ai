@@ -328,7 +328,7 @@ const Home = () => {
       
       setConnectStatus('Getting challenge...');
       const { nonce } = await getNonce(addr);
-      const message = `PayPerAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
+      const message = `PayPerUseAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
       const msgBytes = new TextEncoder().encode(message);
       
       setConnectStatus('Please sign in wallet...');
@@ -650,7 +650,7 @@ const Home = () => {
                 <div className="font-mono text-sm leading-relaxed">
                   <div className="flex">
                     <span className="text-white/20 w-8 shrink-0 select-none">1</span>
-                    <span><span className="text-blue-400">payperai</span>.deploy({'{'}</span>
+                    <span><span className="text-blue-400">PayPerUseAI</span>.deploy({'{'}</span>
                   </div>
                   <div className="flex">
                     <span className="text-white/20 w-8 shrink-0 select-none">2</span>
@@ -900,7 +900,7 @@ const Home = () => {
             >
               <img
                 src="/ai marketplace.png"
-                alt="PayPerAI decentralized custom AI agent marketplace creator dashboard"
+                alt="PayPerUseAI decentralized custom AI agent marketplace creator dashboard"
                 className="w-[80%] max-w-[420px] h-auto object-contain drop-shadow-xl"
               />
             </motion.div>
@@ -1063,7 +1063,7 @@ const Home = () => {
                 Ready to build<br />something great?
               </h2>
               <p className="text-lg text-muted/80 max-w-md leading-relaxed mb-10">
-                Join thousands of teams shipping faster with PayPerAI. Start free, scale infinitely.
+                Join thousands of teams shipping faster with PayPerUseAI. Start free, scale infinitely.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
@@ -1078,7 +1078,7 @@ const Home = () => {
                   </svg>
                 </button>
                 <button
-                  onClick={() => window.open('mailto:sales@payperai.com')}
+                  onClick={() => window.open('mailto:sales@PayPerUseAI.com')}
                   className="w-full sm:w-auto bg-background text-foreground border border-foreground/10 px-8 py-3.5 rounded-full text-sm font-medium flex items-center justify-center hover:bg-foreground/5 transition-colors"
                 >
                   Talk to sales
@@ -1095,7 +1095,7 @@ const Home = () => {
               <iframe
                 className="absolute inset-0 w-full h-full object-cover"
                 src="https://www.youtube.com/embed/wxWkeq6ea4A?si=qIIFOSd3nooruOPk&rel=0"
-                title="PayPerAI Video"
+                title="PayPerUseAI Video"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

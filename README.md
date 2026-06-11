@@ -1,6 +1,6 @@
 <div align="center">
   
-  <h1 align="center">🚀 PayPerAI</h1>
+  <h1 align="center">🚀 PayPerUseAI</h1>
   
   <p align="center">
     <b>The Future of Blockchain-Gated AI, One-Click NFT Generation & Custom AI Agent Marketplaces</b>
@@ -53,13 +53,13 @@ Explore our high-fidelity, comprehensive guides for setup, security specificatio
 
 ## 📖 1. Project Overview
 
-**PayPerAI** is a state-of-the-art decentralized platform bridging the gap between premium AI models and Web3 finance. We solve the issue of bloated monthly AI subscriptions by introducing a frictionless **Pay-Per-Use** model powered by the **Algorand Blockchain**. 
+**PayPerUseAI** is a state-of-the-art decentralized platform bridging the gap between premium AI models and Web3 finance. We solve the issue of bloated monthly AI subscriptions by introducing a frictionless **Pay-Per-Use** model powered by the **Algorand Blockchain**. 
 
 Users connect their wallets, authorize a smart contract session, and get instantly charged *only for the exact tokens they consume*. No credit cards. No lock-ins. Switch between world-class models like Llama 3, GPT-4o, and Gemini 1.5 in a single conversation.
 
 ### 📊 The Subscription Crisis: Why We Need X402 Pay-Per-Use
 
-Traditional monthly subscriptions are highly inefficient, resulting in massive financial waste. PayPerAI replaces fixed fee models with direct on-chain utility.
+Traditional monthly subscriptions are highly inefficient, resulting in massive financial waste. PayPerUseAI replaces fixed fee models with direct on-chain utility.
 
 <div align="center">
 
@@ -122,7 +122,7 @@ Traditional monthly subscriptions are highly inefficient, resulting in massive f
 ## 🧠 4. System Architecture & ER Diagram
 
 ### Entity-Relationship (ER) Diagram
-This diagram illustrates the relational data flow and ownership structures within the PayPerAI ecosystem, encompassing Users, Agents, Inference models, and On-chain Sessions.
+This diagram illustrates the relational data flow and ownership structures within the PayPerUseAI ecosystem, encompassing Users, Agents, Inference models, and On-chain Sessions.
 
 ```mermaid
 erDiagram
@@ -179,7 +179,7 @@ graph TD
 
 ## 💳 5. Token Pricing & Model Costs
 
-PayPerAI operates strictly on a Pay-Per-Token model. Users are charged fractions of an ALGO directly corresponding to the exact amount of Input (Prompt) and Output (Completion) tokens processed by the selected AI model. No markup—just raw computation value.
+PayPerUseAI operates strictly on a Pay-Per-Token model. Users are charged fractions of an ALGO directly corresponding to the exact amount of Input (Prompt) and Output (Completion) tokens processed by the selected AI model. No markup—just raw computation value.
 
 | Model Provider | AI Model | Input Cost (per 1K Tokens) | Output Cost (per 1K Tokens) | Key Strengths |
 |----------------|----------|----------------------------|-----------------------------|---------------|
@@ -204,7 +204,7 @@ PayPerAI operates strictly on a Pay-Per-Token model. Users are charged fractions
 * **Python (3.10+):** Drives the low-latency asynchronous API Gateway orchestration.
 * **JavaScript (ES6+):** Orchestrates state logic, persistent messaging, and wallet triggers in the client interface.
 * **PyTeal / TEAL:** Governs the compile scripts and logic verification assertions for our Algorand BoxMap smart escrow contract.
-* **W3C DID Standard:** Implements verifiable, decentralized credentials (`did:payperai:<wallet>`).
+* **W3C DID Standard:** Implements verifiable, decentralized credentials (`did:PayPerUseAI:<wallet>`).
 
 ### QR Verification System
 Pay-Per-Use-AI features a decentralized **QR Verification System** utilizing the Pera Wallet Connect SDK to securely authenticate consumer sessions.

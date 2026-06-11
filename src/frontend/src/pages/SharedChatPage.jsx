@@ -42,7 +42,7 @@ const SharedChatPage = () => {
         <div className="min-h-screen bg-[#050505] text-gray-100 flex flex-col">
             <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#000000]/80 backdrop-blur-md sticky top-0 z-30">
                 <div className="flex items-center gap-3">
-                    <div className="text-xl font-bold gradient-text">PayPerAI</div>
+                    <div className="text-xl font-bold gradient-text">PayPerUseAI</div>
                     <div className="h-4 w-[1px] bg-white/10 mx-2"></div>
                     <div className="text-sm font-medium text-gray-400">Shared Session: {conversation.service_id}</div>
                 </div>
@@ -54,7 +54,7 @@ const SharedChatPage = () => {
             <main className="flex-1 max-w-3xl mx-auto w-full p-4 md:p-8 space-y-6 overflow-y-auto">
                 <div className="text-center mb-12 animate-fade-in">
                     <h2 className="text-3xl font-bold mb-2">Public Conversation</h2>
-                    <p className="text-gray-500 text-sm italic">This chat was shared via PayPerAI X402 protocol.</p>
+                    <p className="text-gray-500 text-sm italic">This chat was shared via PayPerUseAI X402 protocol.</p>
                 </div>
 
                 {conversation.messages.map((msg, idx) => (
@@ -77,7 +77,7 @@ const SharedChatPage = () => {
             </main>
 
             <footer className="p-8 text-center text-gray-600 text-xs border-t border-white/5 mt-auto">
-                © 2024 PayPerAI. Secure X402 Algorand Payments.
+                © 2024 PayPerUseAI. Secure X402 Algorand Payments.
             </footer>
         </div>
     );

@@ -35,7 +35,7 @@ const OnboardingPage = () => {
         <div className="min-h-screen flex items-center justify-center pt-20 pb-10 px-4">
             <div className="glass-card max-w-md w-full p-8 rounded-2xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 glow-line"></div>
-                <h2 className="text-3xl font-bold mb-2 text-white">Welcome to <span className="gradient-text">PayPerAI</span></h2>
+                <h2 className="text-3xl font-bold mb-2 text-white">Welcome to <span className="gradient-text">PayPerUseAI</span></h2>
                 <p className="text-gray-400 mb-8">Let's personalize your experience. Please provide some details to get started.</p>
 
                 {error && (

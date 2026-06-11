@@ -440,7 +440,7 @@ const TerminalCard = () => {
   const [status, setStatus] = useState('idle');
 
   const codeLines = [
-    { num: '1', parts: [{ text: 'payperai', cls: 'text-blue-400' }, { text: ".deploy({", cls: 'text-white/80' }] },
+    { num: '1', parts: [{ text: 'PayPerUseAI', cls: 'text-blue-400' }, { text: ".deploy({", cls: 'text-white/80' }] },
     { num: '2', parts: [{ text: '  model: ', cls: 'text-white/50' }, { text: "'gpt-4o'", cls: 'text-emerald-400' }, { text: ',', cls: 'text-white/50' }] },
     { num: '3', parts: [{ text: '  billing: ', cls: 'text-white/50' }, { text: "'per-token'", cls: 'text-emerald-400' }, { text: ',', cls: 'text-white/50' }] },
     { num: '4', parts: [{ text: '  chain: ', cls: 'text-white/50' }, { text: "'algorand'", cls: 'text-emerald-400' }] },
@@ -614,7 +614,7 @@ const Home = () => {
 
       setConnectStatus('Please wait...');
       const { nonce } = await getNonce(addr);
-      const message = `PayPerAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
+      const message = `PayPerUseAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
       const msgBytes = new TextEncoder().encode(message);
 
       setConnectStatus('Sign in Wallet...');
@@ -1277,7 +1277,7 @@ const Home = () => {
                 <div className="absolute inset-0 bg-accent/5 rounded-3xl blur-3xl scale-110" />
                 <img
                   src="/ai marketplace.png"
-                  alt="PayPerAI decentralized custom AI agent marketplace creator dashboard"
+                  alt="PayPerUseAI decentralized custom AI agent marketplace creator dashboard"
                   className="relative w-[85%] max-w-[440px] h-auto object-contain mx-auto drop-shadow-2xl rounded-2xl"
                 />
               </motion.div>
@@ -1458,7 +1458,7 @@ const Home = () => {
                 <span className="text-gradient">something great?</span>
               </motion.h2>
               <p className="text-lg text-muted/80 max-w-md leading-relaxed mb-10">
-                Join thousands of teams shipping faster with PayPerAI. Start free, scale infinitely.
+                Join thousands of teams shipping faster with PayPerUseAI. Start free, scale infinitely.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
@@ -1473,7 +1473,7 @@ const Home = () => {
                   </svg>
                 </button>
                 <button
-                  onClick={() => window.open('mailto:sales@payperai.com')}
+                  onClick={() => window.open('mailto:sales@PayPerUseAI.com')}
                   className="w-full sm:w-auto btn-secondary !px-8 !py-4 text-base"
                 >
                   Talk to sales
@@ -1494,7 +1494,7 @@ const Home = () => {
                 <iframe
                   className="absolute inset-0 w-full h-full object-cover"
                   src="https://www.youtube.com/embed/wxWkeq6ea4A?si=qIIFOSd3nooruOPk&rel=0"
-                  title="PayPerAI Video"
+                  title="PayPerUseAI Video"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen

@@ -1,10 +1,10 @@
-# PayPerAI System Architecture
+# PayPerUseAI System Architecture
 
-This document provides a detailed, real-world architectural overview of the **PayPerAI** system, reflecting its production-grade design.
+This document provides a detailed, real-world architectural overview of the **PayPerUseAI** system, reflecting its production-grade design.
 
 ## 1. High-Level Architecture Overview
 
-PayPerAI operates on a hybrid architecture combining a decentralized Web3 trust layer (Algorand Smart Contracts) with a high-performance Web2 backend (FastAPI + PostgreSQL). This hybrid approach ensures trustless financial transactions while maintaining lightning-fast, zero-latency AI streaming.
+PayPerUseAI operates on a hybrid architecture combining a decentralized Web3 trust layer (Algorand Smart Contracts) with a high-performance Web2 backend (FastAPI + PostgreSQL). This hybrid approach ensures trustless financial transactions while maintaining lightning-fast, zero-latency AI streaming.
 
 ```mermaid
 graph TD
@@ -18,7 +18,7 @@ graph TD
     AIProviders((AI Providers<br/>OpenAI, Groq, Gemini))
     
     Blockchain[Algorand Blockchain]
-    SmartContract[PayPerAI Smart Contract]
+    SmartContract[PayPerUseAI Smart Contract]
     Indexer[Algorand Indexer]
 
     %% Connections
@@ -112,7 +112,7 @@ sequenceDiagram
 ```
 
 ### 3.2. Two-Phase Token Streaming & Settlement Flow
-This is the core financial engine of PayPerAI. It ensures zero-latency streaming while guaranteeing the platform gets paid accurately per token.
+This is the core financial engine of PayPerUseAI. It ensures zero-latency streaming while guaranteeing the platform gets paid accurately per token.
 
 ```mermaid
 sequenceDiagram

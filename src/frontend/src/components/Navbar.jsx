@@ -139,7 +139,7 @@ const Navbar = () => {
             // Step 2: Get nonce from backend
             setConnectStatus('Please wait...');
             const { nonce } = await getNonce(addr);
-            const message = `PayPerAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
+            const message = `PayPerUseAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
 
             // Step 3: Ask Pera Wallet to sign the message (signData — no ALGO cost)
             setConnectStatus('Sign in Wallet...');
@@ -363,7 +363,7 @@ const Navbar = () => {
                             whileHover={{ letterSpacing: '0.06em' }}
                             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                         >
-                            PayPerAI
+                            PayPerUseAI
                         </motion.span>
                         <span className="text-[9px] font-medium text-foreground/30 tracking-wide group-hover:text-accent transition-colors duration-500">
                             TM

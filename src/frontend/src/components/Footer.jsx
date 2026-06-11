@@ -129,7 +129,7 @@ const Footer = () => {
                                 className="group inline-flex items-center gap-2 mb-4"
                             >
                                 <span className="text-lg font-bold tracking-[-0.03em] text-foreground transition-all duration-300 group-hover:drop-shadow-[0_0_12px_rgba(139,115,85,0.4)]">
-                                    PayPerAI
+                                    PayPerUseAI
                                 </span>
                                 <span className="text-[9px] font-semibold text-accent/60 tracking-widest uppercase mt-[-6px]">
                                     TM
@@ -245,7 +245,7 @@ const Footer = () => {
                     >
                         <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
                             <p className="text-xs text-muted">
-                                © 2026 PayPerAI — Debuggers United. All rights reserved.
+                                © 2026 PayPerUseAI — Debuggers United. All rights reserved.
                             </p>
                             <div className="flex items-center gap-4">
                                 <a

@@ -1,6 +1,6 @@
-# PayPerAI Project Context & Architecture
+# PayPerUseAI Project Context & Architecture
 
-PayPerAI is a decentralized AI orchestration platform built on the Algorand blockchain. It enables truly granular, pay-per-token AI billing without subscriptions or middleman lock-in.
+PayPerUseAI is a decentralized AI orchestration platform built on the Algorand blockchain. It enables truly granular, pay-per-token AI billing without subscriptions or middleman lock-in.
 
 ## 🏗️ System Architecture
 
