@@ -1596,6 +1596,7 @@ const WorkspacePage = () => {
                                 </button>
                             </div>
                         ) : (
+                            <>
                             <form onSubmit={handleSendPrompt} className="relative mx-auto w-full max-w-3xl bg-[#f4f4f4] rounded-[24px] border border-gray-200 p-1.5 focus-within:bg-white focus-within:shadow-sm transition-all duration-200">
                                 <div className="flex flex-col">
                                     <textarea
@@ -1689,6 +1690,18 @@ const WorkspacePage = () => {
                                     </div>
                                 </div>
                             </form>
+                            <div className="mx-auto w-full max-w-3xl flex flex-wrap items-center justify-between gap-4 mt-3 px-2">
+                                <div className="flex items-center gap-1.5 text-[11px] font-medium text-gray-500 bg-gray-50/50 border border-gray-200/60 rounded-full px-2.5 py-1">
+                                    <svg className="w-3 h-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Enterprise APIs: Your data is NOT used for training
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[11px] font-medium text-gray-500">
+                                    Live Session Cost: <span className="text-gray-900 font-semibold bg-gray-100 px-2 py-0.5 rounded-md">${(totalCost || 0).toFixed(4)}</span>
+                                </div>
+                            </div>
+                            </>
                         )}
                     </div>
                 </main>
