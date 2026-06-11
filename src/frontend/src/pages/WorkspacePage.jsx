@@ -128,6 +128,7 @@ const WorkspacePage = () => {
     const [, setTick] = useState(0); // Used to force re-render for countdown
     const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
     const [isStartingSession, setIsStartingSession] = useState(false);
+    const [topUpAmount, setTopUpAmount] = useState('1');
 
     const [randomPrompts, setRandomPrompts] = useState([]);
     
@@ -494,9 +495,22 @@ const WorkspacePage = () => {
                 returns: { type: 'uint64' },
             });
 
-            const expiryTime = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
-            const depositAmount = 1000000;
-            const maxSpend = (paymentInfo?.balance_microalgo || 0) + depositAmount;
+            let expiryTime = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+            if (sessionStatus === 'active' && sessionExpiry && sessionExpiry > Math.floor(Date.now() / 1000)) {
+                expiryTime = sessionExpiry;
+            }
+
+            const bBoxName = new Uint8Array([...new TextEncoder().encode('b_'), ...algosdk.decodeAddress(wallet).publicKey]);
+            let currentEscrow = 0;
+            try {
+                const bBox = await client.getApplicationBoxByName(appId, bBoxName).do();
+                currentEscrow = Number(algosdk.decodeUint64(bBox.value, 'safe'));
+            } catch (e) {
+                // Ignore if box doesn't exist
+            }
+
+            const depositAmount = Math.max(0.1, parseFloat(topUpAmount || 0)) * 1000000;
+            const maxSpend = currentEscrow + depositAmount;
             const dummySigner = algosdk.makeBasicAccountTransactionSigner({ addr: wallet, sk: new Uint8Array(64) });
             const atc = new algosdk.AtomicTransactionComposer();
 
@@ -527,6 +541,10 @@ const WorkspacePage = () => {
             const group = atc.buildGroup().map(t => t.txn);
             let signed;
             try {
+                // Ensure PeraWallet is connected before signing
+                if (!pw.connector) {
+                    await pw.connect();
+                }
                 signed = await pw.signTransaction([group.map(txn => ({ txn, signers: [wallet] }))]);
             } catch (signErr) {
                 console.warn('Initial session sign failed, trying refresh:', signErr);
@@ -1208,14 +1226,24 @@ const WorkspacePage = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleStartSession}
-                                        disabled={isStartingSession}
-                                        className="w-full rounded-xl border border-gray-900 bg-gray-900 text-white py-2.5 text-[13px] font-medium hover:bg-gray-800 transition-colors"
-                                    >
-                                        {isStartingSession ? 'Waiting…' : '+ Top Up 1 ALGO'}
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="number" 
+                                            min="0.1" 
+                                            step="0.1" 
+                                            value={topUpAmount} 
+                                            onChange={(e) => setTopUpAmount(e.target.value)} 
+                                            className="w-24 rounded-xl border border-gray-200 px-3 text-[13px]"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleStartSession}
+                                            disabled={isStartingSession || parseFloat(topUpAmount) <= 0}
+                                            className="flex-1 rounded-xl border border-gray-900 bg-gray-900 text-white py-2.5 text-[13px] font-medium hover:bg-gray-800 transition-colors"
+                                        >
+                                            {isStartingSession ? 'Waiting…' : `+ Top Up ${topUpAmount} ALGO`}
+                                        </button>
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={handleEndSessionAndWithdraw}
