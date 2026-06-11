@@ -34,7 +34,7 @@ SERVICE_CATALOG = {
     },
     "gemini_flash": {
         "id": "gemini_flash",
-        "name": "Gemini 1.5 Flash",
+        "name": "Gemini 2.0 Flash Lite",
         "description": "Google's lightweight, fast, and highly capable multimodal model.",
         "price_input_microalgo": 350_000,
         "price_output_microalgo": 1_400_000,
@@ -42,7 +42,7 @@ SERVICE_CATALOG = {
         "price_output_usd": 0.90,
         "example_prompt": "Draft a professional email to a client.",
         "provider": "gemini",
-        "model": "gemini-1.5-flash",
+        "model": "gemini-2.0-flash-lite",
         "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
     },
     "qwen25": {
@@ -87,7 +87,7 @@ SERVICE_CATALOG = {
     },
     "impact_reviewer": {
         "id": "impact_reviewer",
-        "name": "Gemini 1.5 Flash",
+        "name": "Gemini 2.0 Flash Lite",
         "description": "Google's lightweight, fast, and highly capable multimodal model.",
         "price_input_microalgo": 350_000,
         "price_output_microalgo": 1_400_000,
@@ -95,7 +95,7 @@ SERVICE_CATALOG = {
         "price_output_usd": 0.90,
         "example_prompt": "Draft a professional email to a client.",
         "provider": "gemini",
-        "model": "gemini-1.5-flash",
+        "model": "gemini-2.0-flash-lite",
         "system_prompt": "You are a highly capable, general-purpose AI assistant. Provide helpful, clear, and accurate responses to user queries."
     },
     "qwen_chat": {
