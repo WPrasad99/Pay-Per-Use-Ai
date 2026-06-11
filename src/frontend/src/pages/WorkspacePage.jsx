@@ -496,19 +496,7 @@ const WorkspacePage = () => {
 
             const expiryTime = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
             const depositAmount = 1000000;
-            let currentEscrow = paymentInfo?.balance_microalgo || 0;
-            try {
-                // We dynamically read your live escrow balance from the "b_" Box directly off the blockchain
-                const bBoxName = new Uint8Array([
-                    ...new TextEncoder().encode('b_'),
-                    ...algosdk.decodeAddress(wallet).publicKey,
-                ]);
-                const bBox = await client.getApplicationBoxByName(appId, bBoxName).do();
-                currentEscrow = Number(algosdk.decodeUint64(bBox.value, 'safe'));
-            } catch (e) {
-                // Box might not exist yet if you never deposited
-            }
-            const maxSpend = currentEscrow + depositAmount;
+            const maxSpend = (paymentInfo?.balance_microalgo || 0) + depositAmount;
             const dummySigner = algosdk.makeBasicAccountTransactionSigner({ addr: wallet, sk: new Uint8Array(64) });
             const atc = new algosdk.AtomicTransactionComposer();
 
