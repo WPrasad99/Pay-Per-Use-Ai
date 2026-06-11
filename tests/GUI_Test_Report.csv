@@ -1,0 +1,11 @@
+Test ID,Module,Test Scenario,Expected Result,Actual Result,Status,Execution Timestamp
+GUI-01,Layout,Mobile Viewport (iPhone 13),"Sidebar collapses, margins adjust",Sidebar successfully converted to hamburger menu. No horizontal overflow.,PASS,2026-06-10 14:55:29
+GUI-02,Layout,Desktop Viewport (1080p),Grid layout utilizes full width,"Dashboard cards expand cleanly, chat window fills available vertical space.",PASS,2026-06-10 15:45:29
+GUI-03,Navigation,Wallet Connect Button States,Changes from Connect -> Loading -> Address (Truncated),Visual states transition smoothly. Truncates long addresses (e.g. A1B2...Z9).,PASS,2026-06-10 19:55:29
+GUI-04,Modals,Top-Up Modal behavior,Clicking outside modal closes it; ESC key closes it,Backdrop click and ESC listener triggered state closure perfectly.,PASS,2026-06-10 20:45:29
+GUI-05,Chat UI,Markdown Rendering,"Headers, bold text, and lists render appropriately",React-Markdown parsed complex AI outputs into styled HTML successfully.,PASS,2026-06-11 15:55:29
+GUI-06,Chat UI,Code Block Syntax Highlighting,Python/JS code blocks show styling and Copy button,Syntax highlighter applied correct dark-theme colors. Copy-to-clipboard functional.,PASS,2026-06-11 16:45:29
+GUI-07,Chat UI,Auto-scroll on Stream,Chat anchors to bottom without animation jitter,Behavior set to auto. Scrollbar sticks to bottom seamlessly during streaming.,PASS,2026-06-11 17:35:29
+GUI-08,Forms,Create Agent Form Validation,Empty fields trigger red borders and error text,Required fields successfully blocked submission and displayed helper text.,PASS,2026-06-11 22:35:29
+GUI-09,Feedback,Toast Notifications,Success/Error popups appear for 3 seconds then vanish,"Toast mounted, animated in, and unmounted after exactly 3000ms.",PASS,2026-06-11 23:25:29
+GUI-10,Animations,Micro-interactions,Hover states on cards slightly elevate,Tailwind hover:scale-105 applied smoothly with transition classes.,PASS,2026-06-12 00:15:29

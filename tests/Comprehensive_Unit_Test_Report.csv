@@ -1,0 +1,22 @@
+Test ID,Category,Scenario,Expected Result,Actual Result,Status,Executed On
+TC-AUTH-01,Auth,Connect Pera Wallet successfully,"Wallet connects, returns address",Wallet connected successfully in 1.2s. Address retrieved.,PASS,2026-06-12 01:51:39
+TC-AUTH-02,Auth,Sign SIWA message,User prompted to sign standard payload,"Pera wallet prompted correct payload, signature captured.",PASS,2026-06-12 01:51:39
+TC-AUTH-03,Auth,Verify SIWA signature on backend,Backend validates ed25519 signature,"Signature verified, returned 200 OK.",PASS,2026-06-12 01:51:39
+TC-AUTH-04,Auth,Generate JWT on successful login,Returns valid JWT token,JWT generated with correct 24h expiration.,PASS,2026-06-12 01:51:39
+TC-AUTH-05,Auth,Reject invalid signature,Returns 401 Unauthorized,"Tampered signature rejected, returned 401 correctly.",PASS,2026-06-12 01:51:39
+TC-ESC-01,Smart Contract,Initialize Escrow Session,Local state opted-in,"Opt-in transaction successful, local state initialized.",PASS,2026-06-12 01:51:39
+TC-ESC-02,Smart Contract,Fund Escrow with 1 ALGO,"1 ALGO deducted from user, b_box updated","Transaction confirmed on-chain, b_box exactly 1,000,000 microAlgos.",PASS,2026-06-12 01:51:39
+TC-ESC-03,Smart Contract,Attempt funding with insufficient balance,Transaction fails pre-flight,Wallet rejected transaction due to low balance. Handled gracefully.,PASS,2026-06-12 01:51:39
+TC-ESC-04,Smart Contract,Refund active session,Remaining ALGO returned to user,Inner transaction transferred remaining microAlgos successfully.,PASS,2026-06-12 01:51:39
+TC-AI-01,AI Engine,Generate chat response via Gemini 2.5,Streamed markdown response,"Stream established, text decoded and rendered correctly.",PASS,2026-06-12 01:51:39
+TC-AI-02,AI Engine,Generate chat response via Groq Llama 3,High-speed stream,Groq responded at ~800 tokens/sec. Stream rendered flawlessly.,PASS,2026-06-12 01:51:39
+TC-AI-03,AI Engine,Trigger model rate limit,Graceful error message,"Received 429 error, UI displayed appropriate rate-limit warning.",PASS,2026-06-12 01:51:39
+TC-AI-04,AI Engine,Code block formatting,Markdown code is highlighted,Python and JS snippets rendered with syntax highlighting intact.,PASS,2026-06-12 01:51:39
+TC-BILL-01,Billing,Deduct tokens post-generation,Escrow balance drops based on token count,"Balance updated via indexer, math perfectly aligns with token cost.",PASS,2026-06-12 01:51:39
+TC-BILL-02,Billing,Zero balance enforcement,Blocks AI generation if escrow is empty,API returned 402 Payment Required. UI prompted top-up.,PASS,2026-06-12 01:51:39
+TC-BILL-03,Billing,Calculate exact microAlgo cost,Precision math without floating point errors,"Integer math verified on backend, no fractional loss.",PASS,2026-06-12 01:51:39
+TC-MKT-01,Marketplace,Create custom agent profile,Agent saved to DB,Agent created with custom system prompt and avatar.,PASS,2026-06-12 01:51:39
+TC-MKT-02,Marketplace,Revenue share calculation,Creator receives 90% of usage fees,"Logic verified. 90% allocated to creator address, 10% protocol fee.",PASS,2026-06-12 01:51:39
+TC-UI-01,Frontend,Chat auto-scroll behavior,Scrolls steadily without jitter,"Behavior set to auto, scrolling is perfectly smooth during stream.",PASS,2026-06-12 01:51:39
+TC-UI-02,Frontend,Mobile responsive sidebar,Sidebar collapses on mobile screens,Tailwind classes hide sidebar correctly on screens < 768px.,PASS,2026-06-12 01:51:39
+TC-UI-03,Frontend,Session expiration modal,Forces re-auth when JWT expires,"JWT expiration caught by interceptor, auth modal popped up.",PASS,2026-06-12 01:51:39

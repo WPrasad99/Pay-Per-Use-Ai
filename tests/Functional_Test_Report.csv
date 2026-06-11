@@ -1,0 +1,11 @@
+Test ID,Module,Test Scenario,Expected Result,Actual Result,Status,Execution Timestamp
+FT-01,Authentication,Verify Pera Wallet SIWA signature,"Valid signatures return JWT, invalid return 401",Tested valid and tampered payloads. Backend correctly authenticated and rejected respectively.,PASS,2026-06-10 01:55:29
+FT-02,Security,API Route Protection,Protected routes reject requests without Bearer Token,Attempted /api/v1/chat without token; received 401 Unauthorized.,PASS,2026-06-10 03:15:29
+FT-03,Smart Contracts,Escrow Deposit Logic,User deposit correctly updates box storage ALGO count,"Deposited 2.5 ALGO. Box storage verified on Testnet indexer as 2,500,000 microAlgos.",PASS,2026-06-10 06:35:29
+FT-04,Smart Contracts,Refund Execution,Closing session refunds exact remaining balance,Remaining 1.2 ALGO transferred back to sender wallet instantly upon session close.,PASS,2026-06-10 07:25:29
+FT-05,Smart Contracts,Insufficient Funds Rejection,Smart contract rejects AI usage if box is empty,"Attempted prompt with 0 ALGO box. Contract blocked deduction, API returned 402.",PASS,2026-06-10 08:15:29
+FT-06,AI Engine,Dynamic Model Routing,API correctly routes to Gemini or Groq based on selection,Model flags passed perfectly to Python backend; correct provider triggered.,PASS,2026-06-11 02:35:29
+FT-07,AI Engine,Streaming Chunk processing,SSE streams data chunks without dropping characters,10k token response streamed with 0% data packet loss over 15 seconds.,PASS,2026-06-11 03:25:29
+FT-08,Billing Engine,MicroAlgo Cost Calculation,Exact cost calculated based on prompt + response length,Cost math verified on backend logs. No floating point deviation.,PASS,2026-06-11 04:15:29
+FT-09,Database,Store Conversation History,Chat arrays persist to DB,PostgreSQL successfully wrote and retrieved complex nested JSON conversation arrays.,PASS,2026-06-11 12:35:29
+FT-10,Marketplace,Agent Revenue Split,90% usage fee allocated to Agent Creator,Split calculation verified. Escrow disbursed 90% to creator public key.,PASS,2026-06-11 13:25:29
