@@ -20,7 +20,7 @@ import base64
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import Cookie, HTTPException, status
+from fastapi import Cookie, HTTPException, status, Header
 from jose import JWTError, jwt
 import msgpack
 
@@ -131,10 +131,17 @@ def decode_access_token(token: str) -> str:
 
 # ── FastAPI Dependency ────────────────────────────────────────
 
-def get_current_user(access_token: Optional[str] = Cookie(default=None)) -> str:
-    if not access_token:
+def get_current_user(
+    access_token: Optional[str] = Cookie(default=None),
+    authorization: Optional[str] = Header(default=None)
+) -> str:
+    token = access_token
+    if not token and authorization and authorization.startswith("Bearer "):
+        token = authorization.split("Bearer ")[1]
+        
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated. Please sign in."
         )
-    return decode_access_token(access_token)
+    return decode_access_token(token)

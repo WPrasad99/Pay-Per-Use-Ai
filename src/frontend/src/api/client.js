@@ -1,8 +1,14 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
-/** All requests include credentials so the HttpOnly JWT cookie is sent. */
-const apiFetch = (url, options = {}) =>
-    fetch(url, { credentials: 'include', ...options });
+/** All requests include credentials so the HttpOnly JWT cookie is sent, and fall back to Bearer token if available. */
+const apiFetch = (url, options = {}) => {
+    const headers = { ...(options.headers || {}) };
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return fetch(url, { credentials: 'include', ...options, headers });
+};
 
 const handleResponse = async (res) => {
     if (!res.ok) {
@@ -29,10 +35,15 @@ export const verifySiwa = async (walletAddress, message, signature) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wallet_address: walletAddress, message, signature }),
     });
-    return handleResponse(res);
+    const data = await handleResponse(res);
+    if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+    }
+    return data;
 };
 
 export const authLogout = async () => {
+    localStorage.removeItem('auth_token');
     const res = await apiFetch(`${BASE_URL}/api/v1/auth/logout`, { method: 'POST' });
     return handleResponse(res);
 };

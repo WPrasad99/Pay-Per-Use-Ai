@@ -90,7 +90,7 @@ async def verify_signature(request: Request, data: VerifyIn, response: Response)
         httponly=True, samesite="none", secure=True,
         max_age=86400, path="/",
     )
-    return {"wallet_address": data.wallet_address, "authenticated": True}
+    return {"wallet_address": data.wallet_address, "authenticated": True, "token": token}
 
 
 @router.post("/logout")
