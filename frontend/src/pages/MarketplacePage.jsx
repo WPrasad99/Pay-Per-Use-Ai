@@ -230,7 +230,7 @@ export default function MarketplacePage() {
                                                     {agent.total_uses || 0}
                                                 </span>
                                             </div>
-                                            <span className="rounded-full border border-gray-200 px-2.5 py-0.5 text-[11px] font-medium text-gray-700">
+                                            <span className="rounded-full border border-gray-200 px-3 py-1 text-[13px] font-semibold text-gray-800">
                                                 {agent.pricing_model === 'per_request' 
                                                     ? `${(agent.price_per_request_microalgo / 1_000_000).toFixed(2)} ALGO` 
                                                     : 'Per token'

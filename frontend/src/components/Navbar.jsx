@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Menu, X, Wallet, Loader2, ArrowRight, User, Mail, Calendar, Sparkles } from 'lucide-react';
 import { peraWallet } from '../config/peraWallet';
 import { getUserProfile, getNonce, verifySiwa, authLogout, registerUser } from '../api/client';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 // ── Persistent wallet helpers (24-hour expiry in localStorage) ──
 const WALLET_KEY = 'wallet_address';
@@ -122,7 +123,7 @@ const Navbar = () => {
         if (e) e.preventDefault();
         if (isConnecting) return;
         setIsConnecting(true);
-        setConnectStatus('Connecting wallet...');
+        setConnectStatus('Connecting...');
 
         try {
             // Step 1: Connect via Pera Wallet (QR scan)
@@ -136,12 +137,12 @@ const Navbar = () => {
             const addr = accounts[0];
 
             // Step 2: Get nonce from backend
-            setConnectStatus('Getting verification challenge...');
+            setConnectStatus('Please wait...');
             const { nonce } = await getNonce(addr);
             const message = `PayPerAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
 
             // Step 3: Ask Pera Wallet to sign the message (signData — no ALGO cost)
-            setConnectStatus('Sign the message in Pera Wallet...');
+            setConnectStatus('Sign in Wallet...');
             const msgBytes  = new TextEncoder().encode(message);
             const signedData = await peraWallet.signData(
                 [{ data: msgBytes, message }],
@@ -192,7 +193,10 @@ const Navbar = () => {
         try {
             await registerUser(accountAddress, onboardingData.name, onboardingData.dob, onboardingData.email);
             setShowOnboarding(false);
-            navigate('/dashboard');
+            const redirectPath = sessionStorage.getItem('onboarding_redirect') || '/dashboard';
+            sessionStorage.removeItem('onboarding_redirect');
+            setConnectStatus('Verifying...');
+            navigate(redirectPath);
         } catch (err) {
             alert('Registration failed: ' + (err.message || 'Unknown error'));
         } finally {
@@ -257,10 +261,6 @@ const Navbar = () => {
                     className={`group btn-primary text-sm !px-6 !py-2.5 flex items-center gap-2 ${mobile ? 'w-full text-center justify-center' : ''}`}
                     onClick={mobile ? () => setIsOpen(false) : undefined}
                 >
-                    <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                    </span>
                     Open Workspace
                     <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
                 </Link>
@@ -519,9 +519,6 @@ const Navbar = () => {
                                                     }`}
                                                 >
                                                     {link.label}
-                                                    {active && (
-                                                        <span className="inline-block ml-2 w-1.5 h-1.5 rounded-full bg-accent align-middle" />
-                                                    )}
                                                 </a>
                                             )}
                                         </motion.div>

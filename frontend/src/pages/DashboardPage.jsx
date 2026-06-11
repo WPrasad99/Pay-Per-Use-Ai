@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { peraWallet } from '../config/peraWallet';
 import { getUserProfile, getServices, getConversationHistory, sendChat, streamChat, getConversationMessages, getWalletPrepayBalance, depositWalletFunds, getPaymentInfo, deleteConversation, getUserAnalytics, getSessionStatus } from '../api/client';
 import { useSiwa } from '../hooks/useSiwa';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 const DashboardPage = () => {
     const navigate = useNavigate();
@@ -419,8 +420,17 @@ const DashboardPage = () => {
         navigate('/');
     };
 
-    if (loading) return <div className="h-screen w-full flex items-center justify-center bg-transparent text-black">Loading...</div>;
-
+    if (loading) return (
+        <div className="h-screen w-full flex items-center justify-center bg-[#f9f9f9]">
+            <div className="w-64 h-64">
+                <DotLottieReact
+                    src="https://lottie.host/897a2bc8-dc6b-481d-b7b3-f1728677a47d/giR3l29pyS.lottie"
+                    loop
+                    autoplay
+                />
+            </div>
+        </div>
+    );
     return (
         <div className="h-screen w-full flex bg-transparent text-[#0a0a0a] overflow-hidden font-sans">
             

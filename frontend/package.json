@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-react": "^0.19.4",
     "@perawallet/connect": "^1.5.2",
     "algosdk": "^3.5.2",
     "buffer": "^6.0.3",

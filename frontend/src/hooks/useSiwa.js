@@ -12,10 +12,12 @@ export function useSiwa() {
     const signOut = async () => {
         try { await authLogout(); } catch (_) { }
         try {
-            if (peraWallet.isConnected) {
-                await peraWallet.disconnect();
-            }
+            await peraWallet.disconnect();
         } catch (_) { }
+        sessionStorage.clear();
+        localStorage.removeItem('wallet_address');
+        localStorage.removeItem('wallet_expiry');
+        localStorage.removeItem('walletconnect');
         sessionStorage.clear();
     };
 

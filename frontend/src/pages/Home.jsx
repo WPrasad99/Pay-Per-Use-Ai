@@ -23,6 +23,7 @@ const persistWallet = (addr) => {
 };
 import LiveTicker from "../components/LiveTicker";
 import { motion, AnimatePresence, useInView, useMotionValue, useTransform, useSpring } from "framer-motion";
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 /* ═══════════════════════════════════════════════════════════════
    CONSTANTS & DATA
@@ -530,6 +531,7 @@ const TerminalCard = () => {
             {status === 'verified' && '✓ Verified on Algorand'}
           </motion.span>
         </AnimatePresence>
+
       </div>
     </div>
   );
@@ -610,12 +612,12 @@ const Home = () => {
       });
       const addr = accounts[0];
 
-      setConnectStatus('Getting challenge...');
+      setConnectStatus('Please wait...');
       const { nonce } = await getNonce(addr);
       const message = `PayPerAI Sign-In\nWallet: ${addr}\nNonce: ${nonce}`;
       const msgBytes = new TextEncoder().encode(message);
 
-      setConnectStatus('Please sign in wallet...');
+      setConnectStatus('Sign in Wallet...');
       const signedData = await peraWallet.signData([{ data: msgBytes, message }], addr);
 
       setConnectStatus('Verifying...');
@@ -653,8 +655,9 @@ const Home = () => {
       const addr = getPersistedWallet();
       await registerUser(addr, onboardingData.name, onboardingData.dob, onboardingData.email);
       setShowOnboarding(false);
-      const redirectPath = sessionStorage.getItem('onboarding_redirect') || '/dashboard/marketplace';
+      const redirectPath = sessionStorage.getItem('onboarding_redirect') || '/dashboard';
       sessionStorage.removeItem('onboarding_redirect');
+      setConnectStatus('Verifying...');
       navigate(redirectPath);
     } catch (err) {
       alert('Registration failed: ' + (err.message || 'Unknown error'));
