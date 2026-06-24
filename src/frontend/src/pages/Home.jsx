@@ -768,11 +768,7 @@ const Home = () => {
               <button
                 onClick={(e) => {
                   e.preventDefault();
-                  const target = document.getElementById('join-us');
-                  if (target) {
-                    const top = target.getBoundingClientRect().top + window.pageYOffset - 80;
-                    window.scrollTo({ top, behavior: 'smooth' });
-                  }
+                  window.open('https://www.youtube.com/watch?v=wxWkeq6ea4A', '_blank');
                 }}
                 className="btn-secondary text-base !px-8 !py-4 group"
               >
