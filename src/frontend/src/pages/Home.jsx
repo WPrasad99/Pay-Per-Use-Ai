@@ -326,6 +326,8 @@ const AbstractHeroAnimation = () => {
   );
 };
 
+
+
 // ─── Orbiting Ring System (Hero Animation) ───
 const OrbitingRings = () => {
   return (
@@ -1133,7 +1135,7 @@ const Home = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.97 }}
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="w-full max-w-[380px] glass-card p-8 relative overflow-hidden"
+                  className="w-full max-w-[380px] p-8 relative overflow-hidden border border-black bg-transparent"
                 >
                   {/* Subtle gradient overlay */}
                   <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-accent/[0.04] to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
@@ -1259,99 +1261,80 @@ const Home = () => {
             </motion.div>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 items-start">
-
-            {/* LEFT: Marketplace screenshot with floating effect */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              viewport={{ once: true }}
-              className="w-full flex items-center justify-center lg:-mt-8"
-            >
+          {/* Value prop cards - Full Width Grid */}
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+          >
+            {[
+              {
+                title: 'Build & Customize Agents',
+                desc: 'Create expert AI workers by defining custom names, models, and tailored system prompt instructions built for specific professional outcomes.',
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                  </svg>
+                ),
+              },
+              {
+                title: 'Earn Token Royalties',
+                desc: 'Monetize your expertise. Set custom execution royalty fees that split instantly on-chain between creators and the platform.',
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ),
+              },
+              {
+                title: 'Secure BYOK Security',
+                desc: 'Bring Your Own Key. Maintain absolute session key control using a clean, client-side encrypted key manager.',
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                ),
+              },
+              {
+                title: 'Creator Profiles',
+                desc: 'Showcase your catalog in public profiles featuring live metrics and direct agent messaging.',
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
+                  </svg>
+                ),
+              },
+            ].map((card, idx) => (
               <motion.div
-                className="relative"
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+                key={card.title}
+                variants={staggerItem}
+                whileHover={{ y: -4, scale: 1.01 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="glass-card p-8 group cursor-default gradient-border relative overflow-hidden h-full flex flex-col justify-center"
               >
-                <div className="absolute inset-0 bg-accent/5 rounded-3xl blur-3xl scale-110" />
-                <img
-                  src="/ai marketplace.png"
-                  alt="PayPerUseAI decentralized custom AI agent marketplace creator dashboard"
-                  className="relative w-[85%] max-w-[440px] h-auto object-contain mx-auto drop-shadow-2xl rounded-2xl"
-                />
-              </motion.div>
-            </motion.div>
-
-            {/* RIGHT: Value prop cards */}
-            <motion.div
-              className="flex flex-col gap-3"
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-            >
-              {[
-                {
-                  title: 'Build & Customize Agents',
-                  desc: 'Create expert AI workers by defining custom names, models, and tailored system prompt instructions built for specific professional outcomes.',
-                  icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: 'Earn Token Royalties',
-                  desc: 'Monetize your expertise. Set custom execution royalty fees that split instantly on-chain between creators and the platform.',
-                  icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: 'Secure BYOK Security',
-                  desc: 'Bring Your Own Key. Maintain absolute session key control using a clean, client-side encrypted key manager.',
-                  icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: 'Creator Profiles',
-                  desc: 'Showcase your catalog in public profiles featuring live metrics and direct agent messaging.',
-                  icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
-                    </svg>
-                  ),
-                },
-              ].map((card, idx) => (
-                <motion.div
-                  key={card.title}
-                  variants={staggerItem}
-                  className="glass-card p-6 group cursor-default gradient-border"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground/[0.04] text-foreground/60 group-hover:bg-accent/10 group-hover:text-accent transition-all duration-500">
-                      {card.icon}
-                    </div>
-                    <div>
-                      <h3 className="text-base font-medium text-foreground">
-                        {card.title}
-                      </h3>
-                      <p className="mt-2 text-sm text-muted leading-relaxed">
-                        {card.desc}
-                      </p>
-                    </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative z-10 flex items-start gap-6">
+                  <motion.div 
+                    whileHover={{ rotate: 5, scale: 1.05 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-foreground/[0.04] text-foreground/60 group-hover:bg-accent/10 group-hover:text-accent transition-all duration-500 shadow-sm"
+                  >
+                    {card.icon}
+                  </motion.div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-foreground tracking-tight group-hover:text-accent transition-colors duration-300">
+                      {card.title}
+                    </h3>
+                    <p className="mt-3 text-base text-muted leading-relaxed">
+                      {card.desc}
+                    </p>
                   </div>
-                </motion.div>
-              ))}
-            </motion.div>
-
-          </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
@@ -1441,7 +1424,7 @@ const Home = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="glass-card !rounded-3xl overflow-hidden flex flex-col md:flex-row relative"
+            className="border border-black !rounded-3xl overflow-hidden flex flex-col md:flex-row relative bg-transparent"
           >
             {/* Ambient glow */}
             <div className="absolute top-[-50%] left-[-20%] w-[500px] h-[500px] rounded-full bg-accent/[0.04] blur-[100px] pointer-events-none" />
@@ -1488,17 +1471,10 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Video Right Side */}
+            {/* Animation Right Side */}
             <div className="flex-1 hidden md:flex items-center justify-center relative min-h-[350px]">
-              <div className="absolute inset-2 rounded-2xl overflow-hidden border border-foreground/[0.06]">
-                <iframe
-                  className="absolute inset-0 w-full h-full object-cover"
-                  src="https://www.youtube.com/embed/wxWkeq6ea4A?si=qIIFOSd3nooruOPk&rel=0"
-                  title="PayPerUseAI Video"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
+              <div className="absolute inset-0 flex items-center justify-center scale-[0.6] md:scale-[0.7]">
+                <AbstractHeroAnimation />
               </div>
             </div>
           </motion.div>
